@@ -16,7 +16,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     defaults:
       run:
-        working-directory: infra  # Make sure the working directory is set to the correct path if needed
+        working-directory: infra/aws  # Make sure the working directory is set to the correct path if needed
     steps:
       - name: Checkout
         uses: actions/checkout@v2

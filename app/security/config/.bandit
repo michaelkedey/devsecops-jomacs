@@ -1,0 +1,12 @@
+targets: 
+  - .  # Scan all `.py` files in the current directory and subdirectories
+
+# Enable specific tests
+tests:
+  - B101  # Bandit rule for hardcoded passwords
+  - B102  # Bandit rule for hardcoded secret keys
+  - B201  # Bandit rule for Flask debug=True
+  - B301  # Bandit rule for use of weak cryptographic algorithms
+
+# Set verbosity (optional)
+verbosity: high

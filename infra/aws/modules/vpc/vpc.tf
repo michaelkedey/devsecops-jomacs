@@ -124,6 +124,7 @@ resource "aws_security_group" "project_instance_sg" {
   #this rule allows ssh traffic on a custom port for the app
   ingress {
     from_port = var.ports["app"]
+    to_port = var.ports["app"]
     protocol  = var.protocols[2]
   }
 

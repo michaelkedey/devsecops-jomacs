@@ -115,32 +115,6 @@ resource "aws_route_table_association" "private_association" {
   route_table_id = aws_route_table.project_private_route_table.id
 }
 
-#security group for load balancer
-#necessary in order to set the id for the ingress web traffic in the instance sg
-resource "aws_security_group" "project_lb_sg" {
-  ingress {
-    from_port   = var.ports["custom_web"]
-    to_port     = var.ports["custom_web"]
-    protocol    = var.protocols[2]
-    cidr_blocks = var.default_route
-  }
-
-  egress {
-    from_port = var.ports["custom_web"]
-    to_port   = var.ports["custom_web"]
-    protocol  = var.protocols[2]
-  }
-  name   = var.names["lb_sg"]
-  vpc_id = aws_vpc.project_vpc.id
-
-  tags = merge(
-    var.tags_all,
-    {
-      Name = var.names["lb_sg"]
-    }
-  )
-}
-
 #security group for instances
 resource "aws_security_group" "project_instance_sg" {
   name     = var.names["instance_sg"]

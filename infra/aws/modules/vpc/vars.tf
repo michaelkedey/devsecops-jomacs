@@ -30,7 +30,8 @@ variable "names" {
     public_route_table  = "jp_public_rt",
     private_route_table = "jp_private_rt"
     internet_gateway    = "jp_igw",
-    nat_gateway         = "jp-nat_gw"
+    nat_gateway         = "jp-nat_gw",
+    instance_sg         = "jp_isg"
   }
 
   sensitive   = true
@@ -63,6 +64,7 @@ variable "eip_domain" {
 variable "ports" {
   default = {
     all = 0
+    app = 5000
   }
   sensitive = true
   type      = map(number)

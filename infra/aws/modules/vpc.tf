@@ -126,9 +126,9 @@ resource "aws_security_group" "project_lb_sg" {
   }
 
   egress {
-    from_port   = var.ports["custom_web"]
-    to_port     = var.ports["custom_web"]
-    protocol    = var.protocols[2]
+    from_port = var.ports["custom_web"]
+    to_port   = var.ports["custom_web"]
+    protocol  = var.protocols[2]
   }
   name   = var.names["lb_sg"]
   vpc_id = aws_vpc.project_vpc.id
@@ -149,8 +149,8 @@ resource "aws_security_group" "project_instance_sg" {
 
   #this rule allows ssh traffic on a custom port for the app
   ingress {
-    from_port       = var.ports["app"]
-    protocol        = var.protocols[2]
+    from_port = var.ports["app"]
+    protocol  = var.protocols[2]
   }
 
   #this rule allows all traffic out

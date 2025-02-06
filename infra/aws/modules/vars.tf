@@ -44,10 +44,10 @@ variable "tags_all" {
 variable "cidrs" {
 
   default = {
-    vpc             = "177.70.0.0/24",
-    public_subnet   = "177.70.0.0/26",
-    private_subnet  = "177.70.0.64/26",
-    default_route   = "0.0.0.0/0"
+    vpc            = "177.70.0.0/24",
+    public_subnet  = "177.70.0.0/26",
+    private_subnet = "177.70.0.64/26",
+    default_route  = "0.0.0.0/0"
   }
 
   sensitive   = true
@@ -65,8 +65,8 @@ variable "default_route" {
 variable "names" {
 
   default = {
-    vpc           = "jp_vpc",
-    public_subnet = "jp_vpc_bublic_sn",
+    vpc                 = "jp_vpc",
+    public_subnet       = "jp_vpc_bublic_sn",
     private_subnet      = "jp_vpc_private_sn",
     internet_gateway    = "jp_internet_gw",
     public_route_table  = "jp_public_rt",
@@ -104,7 +104,7 @@ variable "eip_domain" {
 
 variable "ports" {
   default = {
-    all        = 0
+    all = 0
   }
   sensitive = true
   type      = map(number)

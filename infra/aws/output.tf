@@ -1,11 +1,15 @@
+output "public_subnet1" {
+  value = module.vpc.pb_sn1
+}
+
+output "private_subnet" {
+  value = module.vpc.pr_sn
+}
+
+output "vpc" {
+  value = module.vpc.vpc
+}
+
 output "instance_id" {
   value = module.ec2.instance_id
-}
-
-output "pb_sn1" {
-  value = aws_subnet.project_public_subnet.id
-}
-
-output "pr_sn" {
-  value = aws_subnet.project_private_subnet.id
 }

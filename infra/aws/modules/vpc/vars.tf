@@ -74,7 +74,3 @@ variable "protocols" {
   type        = list(any)
   sensitive   = true
 }
-
-variable "instance_id" {
-
-}

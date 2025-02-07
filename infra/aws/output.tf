@@ -13,3 +13,7 @@ output "vpc" {
 output "instance_id" {
   value = module.ec2.instance_id
 }
+
+output "ec2_public_ip" {
+  value = module.ec2.ec2_public_ip
+}

@@ -64,7 +64,7 @@ variable "eip_domain" {
 variable "ports" {
   default = {
     all = 0
-    app = 5000
+    app = 8000
   }
   sensitive = true
   type      = map(number)

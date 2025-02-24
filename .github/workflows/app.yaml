@@ -1,7 +1,7 @@
 name: Deploy Python app to EC2
 
 on:
-  workflow_dispatch:  # Manual trigger with inputs
+  workflow_dispatch:
     inputs:
       instance_id:
         description: 'EC2 Instance ID'
@@ -61,19 +61,26 @@ jobs:
           name: bandit-report
           path: bandit_report.html
 
-      # Step 8: Deploy to EC2 via SSM (using correct action)
+      # Step 8: Deploy to EC2 via SSM (using AWS CLI directly)
       - name: Deploy to EC2 via SSM
-        uses: aws-actions/aws-ssm-run-command@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}  # e.g., us-east-1
-          instance-ids: ${{ github.event.inputs.instance_id }}  # Use workflow input
-          document-name: AWS-RunShellScript
-          commands: |
-            cd /opt/myapp
-            git pull origin main
-            python3 -m venv myapp --clear
-            source myapp/bin/activate
-            pip install -r requirements.txt
-          comment: "Deploying to ${{ github.event.inputs.environment }} environment"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        run: |
+          # Install AWS CLI
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+
+          # Send commands via AWS SSM
+          aws ssm send-command \
+            --instance-ids "${{ github.event.inputs.instance_id }}" \
+            --document-name "AWS-RunShellScript" \
+            --parameters '{"commands": [
+              "cd /opt/myapp || exit 1",
+              "git pull origin main || exit 1",
+              "python3 -m venv myapp --clear || exit 1",
+              "source myapp/bin/activate || exit 1",
+              "pip install -r requirements.txt || exit 1"
+            ]}'

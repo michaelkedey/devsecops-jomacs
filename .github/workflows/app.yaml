@@ -58,17 +58,18 @@ jobs:
           sudo ./aws/install --update
 
           # Send commands to EC2
+          
           aws ssm send-command \
             --instance-ids "${{ github.event.inputs.instance_id }}" \
             --document-name "AWS-RunShellScript" \
             --parameters '{
               "commands": [
-                "cd /opt/myapp/app/python || exit 1",  # <-- Match EC2 directory structure
+                "cd /opt/myapp/app/python || exit 1", 
                 "git fetch origin || exit 1",
                 "git checkout $GIT_COMMIT_SHA || exit 1",
                 "git pull origin main || exit 1",
                 "python3 -m venv myapp --clear || exit 1",
                 "source myapp/bin/activate || exit 1",
-                "pip install -r requirements.txt || exit 1"  # Now this path works
+                "pip install -r requirements.txt || exit 1" 
               ]
             }'

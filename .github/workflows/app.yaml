@@ -43,7 +43,7 @@ jobs:
 
       # Step 5: Upload Safety scan report as artifact
       - name: Upload Safety scan report
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: safety-report
           path: safety_report.txt
@@ -58,7 +58,7 @@ jobs:
 
       # Step 7: Upload Bandit scan report as artifact
       - name: Upload Bandit scan report
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: bandit-report
           path: bandit_report.html

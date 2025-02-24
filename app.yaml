@@ -1,17 +1,11 @@
 name: Deploy Python app to EC2
 
 on:
-  workflow_dispatch:  # Manually trigger the workflow
-    inputs:
-      instance_id:
-        description: 'EC2 Instance ID'
-        required: true
-        type: string
-      environment:
-        description: 'Deployment environment (dev, prod)'
-        required: true
-        default: 'prod'
-
+  push:
+    branches:
+      - main  # Trigger the workflow when changes are pushed to the "main" branch
+    paths:
+      - 'app/**'
 jobs:
   deploy:
     runs-on: ubuntu-latest  # Use the latest Ubuntu runner for the job
@@ -63,20 +57,31 @@ jobs:
           name: bandit-report
           path: bandit_report.html
 
-      # Step 8: Deploy to AWS EC2 using AWS Systems Manager (SSM)
-      - name: Deploy to EC2 via SSM
-        uses: aws-actions/aws-ssm-run-command@v1
-        with:
-          document-name: "AWS-RunShellScript"
-          targets: "Key=instanceIds,Values=${{ github.event.inputs.instance_id }}"
-          parameters: |
-            commands:
-              - cd /opt/myapp || exit 1
-              - git pull origin main || exit 1
-              - python3 -m venv myapp || exit 1
-              - source myapp/bin/activate || exit 1
-              - pip install -r requirements.txt || exit 1
+      # Step 8: Deploy to AWS EC2 (only if previous steps are successful)
+      - name: Deploy to AWS EC2
+        run: |
+          # Save the AWS private key (GitHub Secret) into a .pem file
+          echo "$AWS_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+
+          # SSH into EC2 and deploy the changes
+          ssh -i private_key.pem ec2-user@$EC2_PUBLIC_IP << 'EOF'
+            # Change directory to the app's folder
+            cd /opt/myapp
+
+            # Pull the latest code from GitHub
+            git pull origin main
+
+            # Create a virtual environment if it doesn't already exist
+            python3 -m venv myapp  # Create the virtual environment
+            
+            # Activate the virtual environment
+            source myapp/bin/activate
+
+            # Install any new dependencies
+            pip install -r requirements.txt
+
+          EOF
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}  # Store your AWS Access Key in GitHub Secrets
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}  # Store your AWS Secret Key in GitHub Secrets
-          AWS_REGION: 'us-east-1'  # Specify the AWS region where the EC2 instance is located
+          AWS_PRIVATE_KEY: ${{ secrets.AWS_PRIVATE_KEY }}  # Store your private key in GitHub Secrets
+          EC2_PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}  # Store your EC2 instance IP in GitHub Secrets

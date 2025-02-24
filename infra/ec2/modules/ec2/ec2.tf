@@ -4,6 +4,8 @@ resource "aws_instance" "project_instance" {
   subnet_id       = var.subnet_id
   security_groups = var.security_groups
   provider        = aws.project_region
+  iam_instance_profile = aws_iam_instance_profile.ec2_ssm_instance_profile.name
+
   tags = sensitive(
     merge(
       var.tags_all,

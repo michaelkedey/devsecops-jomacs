@@ -39,3 +39,6 @@ variable "tags_all" {
   }
 }
 
+variable "iam_user" {
+  type = string
+}

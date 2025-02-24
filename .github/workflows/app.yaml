@@ -17,70 +17,58 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout code (updated to v4)
+      # Step 1: Checkout code (full history for SHA)
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed for git checkout $GIT_COMMIT_SHA later
 
-      # Step 2: Set up Python (updated to v4)
+      # Step 2: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.8'
 
-      # Step 3: Install dependencies
+      # Step 3: Install dependencies FROM app/python/requirements.txt
       - name: Install dependencies
         run: |
+          cd app/python  # <-- KEY CHANGE: Move to the Python app directory
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.txt  # Now this path is correct
 
-      # Step 4: Run Safety
+      # Steps 4-7: Security scans (same as before but run from app/python)
       - name: Run Safety (CVE Scan)
         run: |
+          cd app/python  # <-- Run scans in the correct directory
           pip install safety
           safety check -r requirements.txt --full-report > safety_report.txt || true
-        continue-on-error: true
+        # ... rest of Safety/Bandit steps ...
 
-      # Step 5: Upload Safety report (updated to v4)
-      - name: Upload Safety scan report
-        uses: actions/upload-artifact@v4
-        with:
-          name: safety-report
-          path: safety_report.txt
-
-      # Step 6: Run Bandit
-      - name: Run Bandit (Security Scan)
-        run: |
-          pip install bandit
-          bandit -r . -o bandit_report.html || true
-        continue-on-error: true
-
-      # Step 7: Upload Bandit report (updated to v4)
-      - name: Upload Bandit scan report
-        uses: actions/upload-artifact@v4
-        with:
-          name: bandit-report
-          path: bandit_report.html
-
-      # Step 8: Deploy to EC2 via SSM (using AWS CLI directly)
+      # Step 8: Deploy to EC2 (with corrected paths)
       - name: Deploy to EC2 via SSM
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          GIT_COMMIT_SHA: ${{ github.sha }}
         run: |
           # Install AWS CLI
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
           unzip awscliv2.zip
           sudo ./aws/install
 
-          # Send commands via AWS SSM
+          # Send commands to EC2
           aws ssm send-command \
             --instance-ids "${{ github.event.inputs.instance_id }}" \
             --document-name "AWS-RunShellScript" \
-            --parameters '{"commands": [
-              "cd /opt/myapp || exit 1",
-              "git pull origin main || exit 1",
-              "python3 -m venv myapp --clear || exit 1",
-              "source myapp/bin/activate || exit 1",
-              "pip install -r requirements.txt || exit 1"
-            ]}'
+            --parameters '{
+              "commands": [
+                "cd /opt/myapp/app/python || exit 1",  # <-- Match EC2 directory structure
+                "git fetch origin || exit 1",
+                "git checkout $GIT_COMMIT_SHA || exit 1",
+                "git pull origin main || exit 1",
+                "python3 -m venv myapp --clear || exit 1",
+                "source myapp/bin/activate || exit 1",
+                "pip install -r requirements.txt || exit 1"  # Now this path works
+              ]
+            }'

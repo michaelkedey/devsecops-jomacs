@@ -10,5 +10,5 @@ module "ec2" {
   source          = "./modules/ec2"
   subnet_id       = module.vpc.pr_sn
   security_groups = [module.vpc.instance_sg]
-  iam_user = var.iam_user
+  iam_user        = var.iam_user
 }

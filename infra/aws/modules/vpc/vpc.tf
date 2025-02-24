@@ -126,6 +126,7 @@ resource "aws_security_group" "project_instance_sg" {
     from_port = var.ports["app"]
     to_port = var.ports["app"]
     protocol  = var.protocols[2]
+    cidr_blocks = var.default_route
   }
 
   #this rule allows all traffic out

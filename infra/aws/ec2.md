@@ -1,3 +1,4 @@
+- directory structure
 ```plaintext
 .
 ├── ec2.md

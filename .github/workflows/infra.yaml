@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'infra/ec2/**'  # Only trigger the workflow if files in the infra/aws directory are changed
+      - 'infra/aws/**'  # Only trigger the workflow if files in the infra/aws directory are changed
 
 jobs:
   terraform:

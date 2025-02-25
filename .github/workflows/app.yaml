@@ -90,5 +90,5 @@ jobs:
               "sleep 10",
               "sudo systemctl status gunicorn.service || exit 1",
               "curl -sSf http://localhost:8000 > /dev/null || exit 1",
-              "echo 'Deployment successful! Application is running.'"
+              "echo 'Deployment successful! Application is running.'",
             ]

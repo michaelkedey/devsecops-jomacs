@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'infra/aws/**'  # Only trigger the workflow if files in the infra/aws directory are changed
+  workflow_dispatch:  # This enables manual triggering of the workflow    
 
 jobs:
   terraform:

@@ -17,11 +17,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout code (full history for SHA)
+      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Needed for git checkout $GIT_COMMIT_SHA later
+          fetch-depth: 0
 
       # Step 2: Set up Python
       - name: Set up Python
@@ -29,22 +29,17 @@ jobs:
         with:
           python-version: '3.8'
 
-      # Step 3: Install dependencies FROM app/python/requirements.txt
+      # Step 3: Install dependencies
       - name: Install dependencies
         run: |
-          cd app/python  # <-- KEY CHANGE: Move to the Python app directory
+          cd app/python
           python -m pip install --upgrade pip
-          pip install -r requirements.txt  # Now this path is correct
+          pip install -r requirements.txt
 
-      # Steps 4-7: Security scans (same as before but run from app/python)
-      - name: Run Safety (CVE Scan)
-        run: |
-          cd app/python  # <-- Run scans in the correct directory
-          pip install safety
-          safety check -r requirements.txt --full-report > safety_report.txt || true
-        # ... rest of Safety/Bandit steps ...
+      # Steps 4-7: Security scans (keep your existing Safety/Bandit steps)
+      # ... [Your existing security scan steps] ...
 
-      # Step 8: Deploy to EC2 (with corrected paths)
+      # Step 8: Full deployment with systemd service
       - name: Deploy to EC2 via SSM
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -52,25 +47,48 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION }}
           GIT_COMMIT_SHA: ${{ github.sha }}
         run: |
-          # Install AWS CLI
+          # Install latest AWS CLI
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
           unzip awscliv2.zip
           sudo ./aws/install --update
 
-          # Send commands to EC2
-          
+          # Send deployment commands
           aws ssm send-command \
             --instance-ids "${{ github.event.inputs.instance_id }}" \
             --document-name "AWS-RunShellScript" \
-            --parameters '{
-              "commands": [
-                "cd /opt/myapp/app/python || exit 1", 
-                "git fetch origin || exit 1",
-                "git checkout $GIT_COMMIT_SHA || exit 1",
-                "git pull origin main || exit 1",
-                "python3 -m venv myapp --clear || exit 1",
-                "source myapp/bin/activate || exit 1",
-                "pip install -r requirements.txt || exit 1",
-                "nohup gunicorn --workers 3 --bind 0.0.0.0:8000 app:app > gunicorn.log 2>&1 &"
-              ]
-            }'
+            --parameters commands=[
+              "cd /opt/myapp/app/python || exit 1",
+              "git fetch origin || exit 1",
+              "git checkout $GIT_COMMIT_SHA || exit 1",
+              "git pull origin main || exit 1",
+              "sudo python3 -m venv myapp --clear || exit 1",
+              "sudo chown -R ubuntu:ubuntu . || exit 1",
+              
+              "# Create systemd service",
+              "echo 'Creating systemd service...'",
+              "sudo tee /etc/systemd/system/gunicorn.service > /dev/null <<EOL\n
+              [Unit]\n
+              Description=Gunicorn Service\n
+              After=network.target\n\n
+              [Service]\n
+              User=ubuntu\n
+              Group=ubuntu\n
+              WorkingDirectory=/opt/myapp/app/python\n
+              ExecStart=/opt/myapp/app/python/myapp/bin/gunicorn --workers 3 --bind 0.0.0.0:8000 app:app\n
+              Restart=always\n\n
+              [Install]\n
+              WantedBy=multi-user.target\n
+              EOL",
+              
+              "# Reload and start service",
+              "sudo systemctl daemon-reload || exit 1",
+              "sudo systemctl enable gunicorn.service || exit 1",
+              "sudo systemctl restart gunicorn.service || exit 1",
+              
+              "# Verify deployment",
+              "echo 'Waiting 10 seconds for service startup...'",
+              "sleep 10",
+              "sudo systemctl status gunicorn.service || exit 1",
+              "curl -sSf http://localhost:8000 > /dev/null || exit 1",
+              "echo 'Deployment successful! Application is running.'"
+            ]

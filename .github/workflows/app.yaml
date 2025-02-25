@@ -78,75 +78,42 @@ jobs:
           sudo ./aws/install --update
 
           # Send deployment commands
-
           aws ssm send-command \
-
             --instance-ids "${{ github.event.inputs.instance_id }}" \
-
             --document-name "AWS-RunShellScript" \
-
             --parameters '{
-
               "commands": [
-
                 "cd /opt/myapp/app/python || exit 1",
-
                 "git fetch origin || exit 1",
-
                 "git checkout '"$GIT_COMMIT_SHA"' || exit 1",
-
                 "git pull origin main || exit 1",
-
                 "sudo python3 -m venv myapp --clear || exit 1",
-
                 "sudo chown -R ubuntu:ubuntu . || exit 1",
-
                 "echo \"Creating systemd service...\"",
-
                 "sudo tee /etc/systemd/system/gunicorn.service > /dev/null <<EOL",
-
                 "[Unit]",
-
                 "Description=Gunicorn Service",
-
                 "After=network.target",
-
                 "",
 
                 "[Service]",
-
                 "User =ubuntu",
-
                 "Group=ubuntu",
-
                 "WorkingDirectory=/opt/myapp/app/python",
-
                 "ExecStart=/opt/myapp/app/python/myapp/bin/gunicorn --workers 3 --bind 0.0.0.0:8000 app:app",
-
                 "Restart=always",
-
                 "",
 
                 "[Install]",
-
                 "WantedBy=multi-user.target",
-
                 "EOL",
-
                 "sudo systemctl daemon-reload || exit 1",
-
                 "sudo systemctl enable gunicorn.service || exit 1",
-
                 "sudo systemctl restart gunicorn.service || exit 1",
-
                 "echo \"Waiting 10 seconds for service startup...\"",
-
                 "sleep 10",
-
                 "sudo systemctl status gunicorn.service || exit 1",
-
                 "curl -sSf http://localhost:8000 > /dev/null || exit 1",
-
                 "echo \"Deployment successful! Application is running.\""
 
               ]

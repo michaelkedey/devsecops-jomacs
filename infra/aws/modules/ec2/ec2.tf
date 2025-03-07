@@ -5,7 +5,6 @@ resource "aws_instance" "project_instance" {
   security_groups = var.security_groups
   provider        = aws.project_region
   associate_public_ip_address = var.public_ip
-  key_name = var.key_name
   iam_instance_profile = aws_iam_instance_profile.ec2_ssm_instance_profile.name
 
   tags = sensitive(
@@ -18,7 +17,7 @@ resource "aws_instance" "project_instance" {
   )
   #key exists already in my cloud environment
   #comment the code below to run without key
-  #key_name = var.key_name
+  key_name = var.key_name
 }
 
 

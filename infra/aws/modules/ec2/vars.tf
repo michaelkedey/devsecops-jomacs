@@ -24,11 +24,6 @@ variable "names" {
   type = map(string)
 }
 
-variable "key_name" {
-  default = "ginakey"
-  type    = string
-}
-
 variable "tags_all" {
   type        = map(string)
   description = "A map of tags to assign to the resource."

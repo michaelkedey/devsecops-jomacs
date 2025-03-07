@@ -5,7 +5,7 @@ resource "aws_instance" "project_instance" {
   security_groups             = var.security_groups
   provider                    = aws.project_region
   associate_public_ip_address = var.public_ip
-  user_data                   = file("./code_deploy.sh")
+  user_data                   =  file("${path.module}/code_deploy.sh")
   iam_instance_profile        = aws_iam_instance_profile.ec2_ssm_instance_profile.name
 
   tags = sensitive(

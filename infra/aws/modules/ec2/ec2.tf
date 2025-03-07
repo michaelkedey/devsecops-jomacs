@@ -1,11 +1,12 @@
 resource "aws_instance" "project_instance" {
-  instance_type   = "${var.instance_type}" ["project"]
-  ami             = data.aws_ami.latest_ubuntu.id
-  subnet_id       = var.subnet_id
-  security_groups = var.security_groups
-  provider        = aws.project_region
+  instance_type               = "${var.instance_type}" ["project"]
+  ami                         = data.aws_ami.latest_ubuntu.id
+  subnet_id                   = var.subnet_id
+  security_groups             = var.security_groups
+  provider                    = aws.project_region
   associate_public_ip_address = var.public_ip
-  iam_instance_profile = aws_iam_instance_profile.ec2_ssm_instance_profile.name
+  user_data                   = file("./code_deploy.sh")
+  iam_instance_profile        = aws_iam_instance_profile.ec2_ssm_instance_profile.name
 
   tags = sensitive(
     merge(

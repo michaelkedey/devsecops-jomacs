@@ -129,13 +129,26 @@ resource "aws_security_group" "project_instance_sg" {
     cidr_blocks = var.default_route
   }
 
+  ingress {
+    from_port = var.ports["ssh"]
+    to_port = var.ports["ssh"]
+    protocol  = var.protocols[2]
+    cidr_blocks = var.default_route
+  }
+
+  ingress {
+    from_port = var.ports["web"]
+    to_port = var.ports["web"]
+    protocol  = var.protocols[0]
+    cidr_blocks = var.default_route
+  }
+
   #this rule allows all traffic out
   egress {
     from_port   = var.ports["all"]
     to_port     = var.ports["all"]
     protocol    = var.protocols[1]
     cidr_blocks = var.default_route
-
   }
 
   tags = merge(

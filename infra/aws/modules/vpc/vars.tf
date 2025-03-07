@@ -65,6 +65,8 @@ variable "ports" {
   default = {
     all = 0
     app = 8000
+    ssh = 22
+    web = 80
   }
   sensitive = true
   type      = map(number)

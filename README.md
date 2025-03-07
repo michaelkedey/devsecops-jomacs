@@ -1,4 +1,6 @@
 # devsecops-jomacs
+![bandit report](./images/bandit.png)
+![safety scan](./images/safety.png)
 
 ```plaintext
 .

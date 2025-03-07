@@ -110,11 +110,11 @@ jobs:
                 "sudo systemctl daemon-reload || exit 1",
                 "sudo systemctl enable gunicorn.service || exit 1",
                 "sudo systemctl restart gunicorn.service || exit 1",
-                "echo \"Waiting 10 seconds for service startup...\"",
+                "echo \"Waiting 10 seconds for service startup...\" >> /tmp/deploy_log.txt",
                 "sleep 10",
                 "sudo systemctl status gunicorn.service || exit 1",
-                "curl -sSf http://localhost:8000 > /dev/null || exit 1",
-                "echo \"Deployment successful! Application is running.\""
+                "curl -sSf http://localhost:8000 > >> /tmp/deploy_log.txt || exit 1",
+                "echo \"Deployment successful! Application is running.\" >> /tmp/deploy_log.txt"
 
               ]
 

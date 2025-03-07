@@ -139,7 +139,7 @@ resource "aws_security_group" "project_instance_sg" {
   ingress {
     from_port = var.ports["web"]
     to_port = var.ports["web"]
-    protocol  = var.protocols[0]
+    protocol  = var.protocols[2]
     cidr_blocks = var.default_route
   }
 

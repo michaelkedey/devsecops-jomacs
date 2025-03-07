@@ -35,10 +35,19 @@ variable "tags_all" {
   sensitive   = true
   default = {
     "Environment" = "devsecops-jomacs",
-    "Owner"       = "Michael Kedey"
+    "Owner"       = "michael_kedey"
   }
 }
 
 variable "iam_user" {
+  type = string
+}
+
+variable "public_ip" {
+  type = bool
+
+}
+
+variable "key_name" {
   type = string
 }

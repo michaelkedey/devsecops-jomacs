@@ -19,7 +19,7 @@ module "bastion" {
   subnet_id       = module.vpc.pb_sn
   public_ip       = var.public_ip
   key_name        = var.key_name
-  security_groups = module.lb.bastion_sg
+  security_groups = [module.lb.bastion_sg]
 }
 
 module "lb" {

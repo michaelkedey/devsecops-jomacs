@@ -28,7 +28,7 @@ jobs:
           host: ${{ inputs.bastion_ip }}
           port: ${{ secrets.SSH_PORT }}
           username: ${{ secrets.EC2_USER }}
-          key: github-ec2.pem
+          key: "github-ec2.pem"
           script: |
             # Connect to Private EC2 Instance
             ssh -o StrictHostKeyChecking=no -i github-ec2.pem -p ${{ secrets.SSH_PORT }} ${{ secrets.EC2_USER }}@${{ inputs.ec2_ip }} <<EOF

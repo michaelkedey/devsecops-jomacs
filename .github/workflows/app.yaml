@@ -1,10 +1,14 @@
-name: Deploy Python app to EC2
+name: Deploy App to EC2
 
 on:
   workflow_dispatch:
     inputs:
-      instance_id:
-        description: 'EC2 Instance ID'
+      bastion_public_ip:
+        description: 'Bastion Public IP'
+        required: true
+        type: string
+      ec2_private_ip:
+        description: 'EC2 Private IP'
         required: true
         type: string
       environment:
@@ -15,107 +19,34 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      # Step 1: Checkout code
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Needed for git checkout $GIT_COMMIT_SHA later
+      # 1. Checkout Code from GitHub
+      - name: Checkout Code
+        uses: actions/checkout@v2
 
-      # Step 2: Set up Python
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.8'
-
-      # Step 3: Install dependencies
-      - name: Install dependencies
+      # 2. Set up SSH key for Bastion Host
+      - name: Set up SSH key
         run: |
-          cd app/python  # <-- Ensure you're in the correct directory
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          echo "$EC2_SSH_KEY" > private_key.pem
+          chmod 600 private_key.pem
 
-      # Step 4: Run Safety (CVE scan)
-      - name: Run Safety (CVE Scan)
+      # 3. Copy app/python code to EC2 via Bastion Host
+      - name: Copy app/python code to EC2 via Bastion Host
         run: |
-          cd app/python  # <-- Run safety scan in the app directory
-          pip install safety
-          safety check -r requirements.txt --full-report > safety_report.txt || true  # Continue even if the safety check fails
+          # SSH into the Bastion Host and copy the app/python directory to the EC2 instance
+          ssh -i private_key.pem -o StrictHostKeyChecking=no -p 8008 ubuntu@$BASTION_PUBLIC_IP << 'EOF'
+            # Use SCP to copy the app/python directory from GitHub Actions runner to the EC2 instance
+            scp -i private_key.pem -r ./app/python ubuntu@$EC2_PRIVATE_IP:/home/ubuntu/my-app/python
+            # Run the app on the EC2 instance
+            ssh -i private_key.pem -p 8008 ubuntu@$EC2_PRIVATE_IP << 'INNER_EOF'
+              cd /home/ubuntu/my-app/python
+              gunicorn -w 4 -b 0.0.0.0:80 app:app &
+            INNER_EOF
+          EOF
 
-      # Step 5: Run Bandit (Static analysis for security)
-      - name: Run Bandit (Static analysis for security)
-        run: |
-          cd app/python
-          pip install bandit
-          bandit -r . -f html -o bandit_report.html || true  # Continue even if Bandit fails
+      # 4. Clean up private key
+      - name: Clean up private key
+        run: rm -f private_key.pem
 
-      # Step 6: Run Flake8 (Code style checks)
-      - name: Run Flake8 (Code style checks)
-        run: |
-          cd app/python
-          pip install flake8
-          flake8 . || true  # Continue even if flake8 fails
 
-      # Step 7: Run Pytest (Unit tests)
-      - name: Run Pytest (Unit tests)
-        run: |
-          cd app/python
-          pip install pytest
-          pytest --maxfail=1 --disable-warnings -q || true  # Continue even if tests fail
-
-      # Step 8: Full deployment with systemd service
-      - name: Deploy to EC2 via SSM
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          GIT_COMMIT_SHA: ${{ github.sha }}
-        run: |
-          # Install latest AWS CLI
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip
-          sudo ./aws/install --update
-
-          # Send deployment commands
-          aws ssm send-command \
-            --instance-ids "${{ github.event.inputs.instance_id }}" \
-            --document-name "AWS-RunShellScript" \
-            --parameters '{
-              "commands": [
-                "cd /opt/myapp/app/python || exit 1",
-                "git fetch origin || exit 1",
-                "git checkout '"$GIT_COMMIT_SHA"' || exit 1",
-                "git pull origin main || exit 1",
-                "sudo python3 -m venv myapp --clear || exit 1",
-                "sudo chown -R ubuntu:ubuntu . || exit 1",
-                "echo \"Creating systemd service...\"",
-                "sudo tee /etc/systemd/system/gunicorn.service > /dev/null <<EOL",
-                "[Unit]",
-                "Description=Gunicorn Service",
-                "After=network.target",
-                "",
-
-                "[Service]",
-                "User =ubuntu",
-                "Group=ubuntu",
-                "WorkingDirectory=/opt/myapp/app/python",
-                "ExecStart=/opt/myapp/app/python/myapp/bin/gunicorn --workers 3 --bind 0.0.0.0:8000 app:app",
-                "Restart=always",
-                "",
-
-                "[Install]",
-                "WantedBy=multi-user.target",
-                "EOL",
-                "sudo systemctl daemon-reload || exit 1",
-                "sudo systemctl enable gunicorn.service || exit 1",
-                "sudo systemctl restart gunicorn.service || exit 1",
-                "echo \"Waiting 10 seconds for service startup...\" >> /tmp/deploy_log.txt",
-                "sleep 10",
-                "sudo systemctl status gunicorn.service || exit 1",
-                "curl -sSf http://localhost:8000 > >> /tmp/deploy_log.txt || exit 1",
-                "echo \"Deployment successful! Application is running.\" >> /tmp/deploy_log.txt"
-
-              ]
-
-            }'
+        

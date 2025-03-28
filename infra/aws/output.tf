@@ -18,10 +18,6 @@ output "instance_id" {
   value = module.ec2.instance_id
 }
 
-output "bastion_public_ip" {
-  value = module.bastion.bastion_public_ip
-}
-
 output "lb_sg" {
   value = module.lb.lb_sg
 }
@@ -32,4 +28,16 @@ output "instance_sg" {
 
 output "bastion_sg" {
   value = module.lb.bastion_sg
+}
+
+output "lb_dns" {
+  value = module.lb.lb_dns
+}
+
+output "bastion_public_ip" {
+  value = module.bastion.bastion_public_ip
+}
+
+output "ec2_private_ip" {
+  value = module.ec2.ec2_private_ip
 }

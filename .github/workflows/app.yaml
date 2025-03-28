@@ -11,50 +11,31 @@ on:
         description: 'EC2 Private IP'
         required: true
         type: string
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      SSH_USER: ${{ secrets.EC2_USER }}
-      SSH_PORT: ${{ secrets.SSH_PORT }}
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Configure SSH Environment
-        env:
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$EC2_SSH_KEY" > ~/.ssh/private_key.pem
-          chmod 600 ~/.ssh/private_key.pem
-          ssh-keyscan ${{ inputs.bastion_ip }} >> ~/.ssh/known_hosts
-          ssh-keyscan ${{ inputs.ec2_ip }} >> ~/.ssh/known_hosts
+      - name: Connect to Bastion Host and Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ inputs.bastion_ip }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Connect to Private EC2 Instance
+            ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.EC2_USER }}@${{ inputs.ec2_ip }} <<EOF
+              # Your deployment commands here
+              mkdir -p /home/$USER/my-app/
+              cp -r ./app/python /home/$USER/my-app/
+              cd /home/$USER/my-app/
+              pip install -r requirements.txt
+              gunicorn -w 4 -b 0.0.0.0:80 app:app &
 
-      - name: Deploy Application Files
-        run: |
-          scp -o "StrictHostKeyChecking=no" \
-              -o "ProxyJump ${SSH_USER}@${{ inputs.bastion_ip }}:${SSH_PORT}" \
-              -i ~/.ssh/private_key.pem \
-              -r ./app/python \
-              -P $SSH_PORT \
-              ${SSH_USER}@${{ inputs.ec2_ip }}:/home/${SSH_USER}/my-app/
-
-      - name: Start Application Service
-        run: |
-          ssh -J ${SSH_USER}@${{ inputs.bastion_ip }}:${SSH_PORT} \
-              -i ~/.ssh/private_key.pem \
-              -p $SSH_PORT \
-              ${SSH_USER}@${{ inputs.ec2_ip }} \
-              "cd /home/${SSH_USER}/my-app/python && \
-              sudo systemctl restart myapp.service"
-
-      - name: Cleanup SSH Assets
-        run: |
-          rm -f ~/.ssh/private_key.pem
-          rm -f ~/.ssh/known_hosts
+            EOF
 
 
 # name: Secure Deployment via Bastion

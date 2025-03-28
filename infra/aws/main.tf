@@ -12,6 +12,7 @@ module "ec2" {
   subnet_id       = module.vpc.pr_sn
   security_groups = [module.lb.instance_sg]
   iam_user        = var.iam_user
+  key_name        = var.key_name
 }
 
 module "bastion" {

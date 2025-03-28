@@ -37,3 +37,7 @@ variable "tags_all" {
 variable "iam_user" {
   type = string
 }
+
+variable "key_name" {
+  type = string
+}

@@ -37,7 +37,7 @@ resource "aws_lb_listener" "project_lb_listener" {
 #target group for load balancer
 resource "aws_lb_target_group" "project_target_group" {
   name     = var.names["app-tg"]
-  port     = var.ports["app-tg"]
+  port     = var.ports["app"]
   protocol = var.protocols[0]
   vpc_id   = var.vpc_id
 

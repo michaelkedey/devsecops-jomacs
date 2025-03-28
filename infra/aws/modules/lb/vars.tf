@@ -10,7 +10,7 @@ variable "names" {
     instance_sg = "jp_isg",
     lb_sg       = "jp_lb_sg",
     app-tg      = "jp-app-tg",
-    lb          = "jp_lb"
+    lb          = "jp-lb"
   }
 
   sensitive   = true

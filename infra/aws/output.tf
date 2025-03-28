@@ -19,9 +19,9 @@ output "ec2_public_ip" {
 }
 
 output "lb_sg" {
-  value = module.lb.lb_sg.id
+  value = module.lb.lb_sg
 }
 
 output "instance_sg" {
-  value = module.lb.instance_sg.id
+  value = module.lb.instance_sg
 }

@@ -1,5 +1,28 @@
+resource "aws_lb" "project_lb" {
+  name               = var.names["lb"]
+  internal           = var.lb_internal
+  load_balancer_type = var.lb_type
+  security_groups    = [aws_security_group.lb_sg.id]
+  #subnets            = [for subnet in aws_subnet.public : subnet.id]
+  subnets                    = [var.subnet_ids]
+  enable_deletion_protection = var.delete_ptotection
+
+#   access_logs {
+#     bucket  = aws_s3_bucket.lb_logs.id
+#     prefix  = "test-lb"
+#     enabled = true
+#   }
+
+  tags = merge(
+    var.tags_all,
+    {
+      Name = var.names["app-tg"]
+    }
+  )
+}
+
 #load balancer traffic listener
-resource "aws_lb_listener" "project_lb" {
+resource "aws_lb_listener" "project_lb_listener" {
   load_balancer_arn = aws_lb.project_lb.arn
   port              = var.ports["app"]
   protocol          = var.protocols[0]

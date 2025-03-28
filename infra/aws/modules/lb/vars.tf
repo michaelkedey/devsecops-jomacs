@@ -9,7 +9,8 @@ variable "names" {
   default = {
     instance_sg = "jp_isg",
     lb_sg       = "jp_lb_sg",
-    app-tg      = "jp-app-tg"
+    app-tg      = "jp-app-tg",
+    lb          = "jp_lb"
   }
 
   sensitive   = true
@@ -54,5 +55,24 @@ variable "vpc_id" {
 }
 
 variable "instance_id" {
+  type = string
+}
+
+variable "delete_ptotection" {
+  default = true
+  type    = bool
+}
+
+variable "lb_internal" {
+  default = false
+  type    = bool
+}
+
+variable "lb_type" {
+  default = "application"
+  type    = string
+}
+
+variable "subnet_ids" {
   type = string
 }

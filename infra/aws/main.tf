@@ -20,4 +20,5 @@ module "lb" {
   source      = "./modules/lb"
   vpc_id      = module.vpc.vpc_id
   instance_id = module.ec2.instance_id
+  subnet_ids  = [module.vpc.pb_sn1]
 }

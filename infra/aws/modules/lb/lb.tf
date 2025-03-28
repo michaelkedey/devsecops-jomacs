@@ -2,16 +2,16 @@ resource "aws_lb" "project_lb" {
   name               = var.names["lb"]
   internal           = var.lb_internal
   load_balancer_type = var.lb_type
-  security_groups    = [aws_security_group.lb_sg.id]
+  security_groups    = [aws_security_group.project_lb_sg.id]
   #subnets            = [for subnet in aws_subnet.public : subnet.id]
   subnets                    = [var.subnet_ids]
   enable_deletion_protection = var.delete_ptotection
 
-#   access_logs {
-#     bucket  = aws_s3_bucket.lb_logs.id
-#     prefix  = "test-lb"
-#     enabled = true
-#   }
+  #   access_logs {
+  #     bucket  = aws_s3_bucket.lb_logs.id
+  #     prefix  = "test-lb"
+  #     enabled = true
+  #   }
 
   tags = merge(
     var.tags_all,

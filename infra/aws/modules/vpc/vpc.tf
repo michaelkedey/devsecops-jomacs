@@ -71,6 +71,7 @@ resource "aws_internet_gateway" "project_internet_gateway" {
   )
 }
 
+
 #public route table
 resource "aws_route_table" "project_public_route_table" {
   vpc_id = aws_vpc.project_vpc.id
@@ -113,48 +114,4 @@ resource "aws_route_table" "project_private_route_table" {
 resource "aws_route_table_association" "private_association" {
   subnet_id      = aws_subnet.project_private_subnet.id
   route_table_id = aws_route_table.project_private_route_table.id
-}
-
-#security group for instances
-resource "aws_security_group" "project_instance_sg" {
-  name     = var.names["instance_sg"]
-  vpc_id   = aws_vpc.project_vpc.id
-  provider = aws.project_region
-
-  #this rule allows ssh traffic on a custom port for the app
-  ingress {
-    from_port = var.ports["app"]
-    to_port = var.ports["app"]
-    protocol  = var.protocols[2]
-    cidr_blocks = var.default_route
-  }
-
-  ingress {
-    from_port = var.ports["ssh"]
-    to_port = var.ports["ssh"]
-    protocol  = var.protocols[2]
-    cidr_blocks = var.default_route
-  }
-
-  ingress {
-    from_port = var.ports["web"]
-    to_port = var.ports["web"]
-    protocol  = var.protocols[2]
-    cidr_blocks = var.default_route
-  }
-
-  #this rule allows all traffic out
-  egress {
-    from_port   = var.ports["all"]
-    to_port     = var.ports["all"]
-    protocol    = var.protocols[1]
-    cidr_blocks = var.default_route
-  }
-
-  tags = merge(
-    var.tags_all,
-    {
-      Name = var.names["instance_sg"]
-    }
-  )
 }

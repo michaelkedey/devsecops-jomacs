@@ -31,7 +31,9 @@ variable "names" {
     private_route_table = "jp_private_rt"
     internet_gateway    = "jp_igw",
     nat_gateway         = "jp-nat_gw",
-    instance_sg         = "jp_isg"
+    instance_sg         = "jp_isg",
+    lb_sg               = "jp_lb_sg",
+    app-tg              = "jp-app-tg"
   }
 
   sensitive   = true
@@ -63,10 +65,9 @@ variable "eip_domain" {
 
 variable "ports" {
   default = {
-    all = 0
-    app = 8000
-    ssh = 22
-    web = 80
+    all        = 0
+    app        = 80
+    custom_ssh = 8008
   }
   sensitive = true
   type      = map(number)
@@ -74,7 +75,16 @@ variable "ports" {
 
 variable "protocols" {
   default     = ["HTTP", -1, "tcp"]
-  description = "allow only tcp traffic in"
+  description = "allow traffic in"
   type        = list(any)
   sensitive   = true
+}
+
+variable "lb_default_action" {
+  default = "forward"
+  type    = string
+}
+
+variable "lb_sg" {
+
 }

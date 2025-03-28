@@ -6,7 +6,7 @@ output "pr_sn" {
   value = aws_subnet.project_private_subnet.id
 }
 
-output "vpc" {
+output "vpc_id" {
   value = aws_vpc.project_vpc.id
 }
 

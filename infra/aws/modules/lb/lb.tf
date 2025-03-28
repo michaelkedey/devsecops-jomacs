@@ -1,5 +1,5 @@
 #load balancer traffic listener
-resource "aws_lb_listener" "project_lb_listener" {
+resource "aws_lb_listener" "project_lb" {
   load_balancer_arn = aws_lb.project_lb.arn
   port              = var.ports["app"]
   protocol          = var.protocols[0]

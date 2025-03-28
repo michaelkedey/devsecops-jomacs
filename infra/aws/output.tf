@@ -7,7 +7,7 @@ output "private_subnet" {
 }
 
 output "vpc" {
-  value = module.vpc.vpc
+  value = module.vpc.vpc_id
 }
 
 output "instance_id" {

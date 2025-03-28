@@ -16,42 +16,45 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      # Environment variables for SSH and EC2 configuration
-      EC2: ${{ inputs.ec2_ip }}
-      BASTION: ${{ inputs.bastion_ip }}
-      EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-      USER: ${{ secrets.EC2_USER }}
+      SSH_USER: ${{ secrets.EC2_USER }}
       SSH_PORT: ${{ secrets.SSH_PORT }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up SSH key
+      - name: Configure SSH Environment
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
           echo "$EC2_SSH_KEY" > ~/.ssh/private_key.pem
           chmod 600 ~/.ssh/private_key.pem
           ssh-keyscan ${{ inputs.bastion_ip }} >> ~/.ssh/known_hosts
+          ssh-keyscan ${{ inputs.ec2_ip }} >> ~/.ssh/known_hosts
 
-      - name: Copy app/python code to EC2
+      - name: Deploy Application Files
         run: |
-          # Direct copy using bastion as jump host
           scp -o "StrictHostKeyChecking=no" \
-              -o "ProxyJump $USER@${{ inputs.bastion_ip }}:$SSH_PORT" \
+              -o "ProxyJump ${SSH_USER}@${{ inputs.bastion_ip }}:${SSH_PORT}" \
               -i ~/.ssh/private_key.pem \
               -r ./app/python \
-              $USER@${{ inputs.ec2_ip }}:/home/$USER/my-app/
+              -P $SSH_PORT \
+              ${SSH_USER}@${{ inputs.ec2_ip }}:/home/${SSH_USER}/my-app/
 
-      - name: Start application
+      - name: Start Application Service
         run: |
-          ssh -J $USER@${{ inputs.bastion_ip }}:$SSH_PORT \
+          ssh -J ${SSH_USER}@${{ inputs.bastion_ip }}:${SSH_PORT} \
               -i ~/.ssh/private_key.pem \
-              $USER@${{ inputs.ec2_ip }} \
-              "cd /home/$USER/my-app/python && nohup gunicorn -w 4 -b 0.0.0.0:80 app:app > /dev/null 2>&1 &"
+              -p $SSH_PORT \
+              ${SSH_USER}@${{ inputs.ec2_ip }} \
+              "cd /home/${SSH_USER}/my-app/python && \
+              sudo systemctl restart myapp.service"
 
-      - name: Clean up private key
-        run: rm -f ~/.ssh/private_key.pem
+      - name: Cleanup SSH Assets
+        run: |
+          rm -f ~/.ssh/private_key.pem
+          rm -f ~/.ssh/known_hosts
 
 
 # name: Secure Deployment via Bastion

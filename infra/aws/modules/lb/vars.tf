@@ -74,5 +74,5 @@ variable "lb_type" {
 }
 
 variable "subnet_ids" {
-  type = string
+  
 }

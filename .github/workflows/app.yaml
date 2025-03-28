@@ -24,26 +24,26 @@ jobs:
         with:
           host: ${{ inputs.ec2_ip }}       # Use private IP directly
           username: ubuntu
-          key: ${{ secrets.SSH_KEY }}
+          key: ${{ secrets.EC2_SSH_KEY }}
           port: 8008
           source: "app/python/"
           target: "/home/ubuntu/my-app/"
           proxy_host: ${{ inputs.bastion_ip }}  # Bastion IP
           proxy_port: 8008
           proxy_username: ubuntu
-          proxy_key: ${{ secrets.SSH_KEY }}     # Same key for bastion
+          proxy_key: ${{ secrets.EC2_SSH_KEY }}     # Same key for bastion
 
       - name: Start Application
         uses: appleboy/ssh-action@master
         with:
           host: ${{ inputs.ec2_ip }}
           username: ubuntu
-          key: ${{ secrets.SSH_KEY }}
+          key: ${{ secrets.EC2_SSH_KEY }}
           port: 8008
           proxy_host: ${{ inputs.bastion_ip }}
           proxy_port: 8008
           proxy_username: ubuntu
-          proxy_key: ${{ secrets.SSH_KEY }}
+          proxy_key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd /home/ubuntu/my-app/python
             nohup gunicorn -w 4 -b 0.0.0.0:80 app:app > /dev/null 2>&1 &
@@ -78,7 +78,7 @@ jobs:
 #       # 2. Set up SSH key for Bastion Host
 #       - name: Set up SSH key
 #         run: |
-#           echo "$EC2_EC2_SSH_KEY" > private_key.pem
+#           echo "$EC2_EC2_EC2_SSH_KEY" > private_key.pem
 #           chmod 600 private_key.pem
 
 #       # 3. Copy app/python code to EC2 via Bastion Host

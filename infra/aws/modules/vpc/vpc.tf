@@ -108,6 +108,12 @@ resource "aws_route_table_association" "public_association" {
   route_table_id = aws_route_table.project_public_route_table.id
 }
 
+#associate public rt with public subnet1
+resource "aws_route_table_association" "public_association1" {
+  subnet_id      = aws_subnet.project_public_subnet1.id
+  route_table_id = aws_route_table.project_public_route_table.id
+}
+
 #private route table
 resource "aws_route_table" "project_private_route_table" {
   vpc_id = aws_vpc.project_vpc.id

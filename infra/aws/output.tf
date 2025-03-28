@@ -29,3 +29,7 @@ output "lb_sg" {
 output "instance_sg" {
   value = module.lb.instance_sg
 }
+
+output "bastion_sg" {
+  value = module.lb.bastion_sg
+}

@@ -8,6 +8,7 @@ variable "names" {
 
   default = {
     instance_sg = "jp_isg",
+    jumper_sg   = "jp_jumper_sg",
     lb_sg       = "jp_lb_sg",
     app-tg      = "jp-app-tg",
     lb          = "jp-lb"

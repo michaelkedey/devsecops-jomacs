@@ -4,7 +4,7 @@ variable "instance_type" {
     project    = "t2.micro",
     production = "m5.large"
   }
-  description = "instance type for project server"
+  description = "instance type for bastion server"
 }
 
 variable "subnet_id" {
@@ -19,7 +19,7 @@ variable "security_groups" {
 
 variable "names" {
   default = {
-    instance_name = "jp_server"
+    instance_name = "jp_bastion"
   }
   type = map(string)
 }
@@ -34,6 +34,11 @@ variable "tags_all" {
   }
 }
 
-variable "iam_user" {
+variable "public_ip" {
+  type = bool
+
+}
+
+variable "key_name" {
   type = string
 }

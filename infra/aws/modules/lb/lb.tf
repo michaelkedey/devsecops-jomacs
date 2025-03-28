@@ -91,10 +91,10 @@ resource "aws_security_group" "project_instance_sg" {
 
   #this rule allows ssh traffic on a custom port
   ingress {
-    from_port   = var.ports["custom_ssh"]
-    to_port     = var.ports["custom_ssh"]
-    protocol    = var.protocols[2]
-    cidr_blocks = var.default_route
+    from_port       = var.ports["custom_ssh"]
+    to_port         = var.ports["custom_ssh"]
+    protocol        = var.protocols[2]
+    security_groups = [aws_security_group.project_jumper_sg.id]
   }
   #this rule allows ingress app traffic from the lb only
   ingress {
@@ -117,6 +117,37 @@ resource "aws_security_group" "project_instance_sg" {
     var.tags_all,
     {
       Name = var.names["instance_sg"]
+    }
+  )
+}
+
+#security group for jumper
+resource "aws_security_group" "project_jumper_sg" {
+  name     = var.names["jumper_sg"]
+  vpc_id   = var.vpc_id
+  provider = aws.project_region
+
+  #this rule allows ssh traffic on a custom port
+  ingress {
+    from_port   = var.ports["custom_ssh"]
+    to_port     = var.ports["custom_ssh"]
+    protocol    = var.protocols[2]
+    cidr_blocks = var.default_route #modify to your own ip for mor security
+  }
+
+  #this rule allows all traffic out
+  egress {
+    from_port   = var.ports["all"]
+    to_port     = var.ports["all"]
+    protocol    = var.protocols[1]
+    cidr_blocks = var.default_route
+
+  }
+
+  tags = merge(
+    var.tags_all,
+    {
+      Name = var.names["jumper_sg"]
     }
   )
 }

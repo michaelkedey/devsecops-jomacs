@@ -5,3 +5,7 @@ output "lb_sg" {
 output "instance_sg" {
   value = aws_security_group.project_instance_sg.id
 }
+
+output "bastion_sg" {
+  value = aws_security_group.project_jumper_sg.id
+}

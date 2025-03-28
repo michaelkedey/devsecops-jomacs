@@ -16,44 +16,44 @@ on:
         required: true
         default: 'prod'
 
-env:
-  BASTION_PORT: 8008
-  SSH_USER: ubuntu
-  APP_DIR: /home/ubuntu/my-app/python
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      # 1. Checkout Code from GitHub
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
+      # 2. Set up SSH key for Bastion Host
       - name: Set up SSH key
-        env:
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
-          mkdir -p ~/.ssh
-          echo "$EC2_SSH_KEY" > ~/.ssh/private_key.pem
-          chmod 600 ~/.ssh/private_key.pem
-          ssh-keyscan -p ${{ env.BASTION_PORT }} ${{ inputs.bastion_public_ip }} >> ~/.ssh/known_hosts
-          ssh-keyscan ${{ inputs.ec2_private_ip }} >> ~/.ssh/known_hosts
+          echo "$EC2_SSH_KEY" > private_key.pem
+          chmod 600 private_key.pem
 
-      - name: Deploy Application
+      # 3. SCP the app/python directory to Bastion Host
+      - name: Copy app/python code to Bastion Host
         run: |
-          # Copy files through bastion
-          scp -o "StrictHostKeyChecking=no" \
-              -o "ProxyJump ${{ env.SSH_USER }}@${{ inputs.bastion_public_ip }}:${{ env.BASTION_PORT }}" \
-              -i ~/.ssh/private_key.pem \
-              -r ./app/python ${{ env.SSH_USER }}@${{ inputs.ec2_private_ip }}:${{ env.APP_DIR }}
+          # Use SCP to copy the app/python directory from GitHub Actions runner to the Bastion Host
+          scp -i private_key.pem -r ./app/python ubuntu@$BASTION_PUBLIC_IP:/home/ubuntu/my-app/python
 
-          # Start application service
-          ssh -J ${{ env.SSH_USER }}@${{ inputs.bastion_public_ip }}:${{ env.BASTION_PORT }} \
-              -i ~/.ssh/private_key.pem \
-              ${{ env.SSH_USER }}@${{ inputs.ec2_private_ip }} \
-              "cd ${{ env.APP_DIR }} && nohup gunicorn -w 4 -b 0.0.0.0:80 app:app > /dev/null 2>&1 &"
+      # 4. SSH into the Bastion Host and SCP to the EC2 instance
+      - name: SSH into Bastion and SCP to EC2
+        run: |
+          # SSH into Bastion Host and copy the app/python directory to the EC2 instance
+          ssh -i private_key.pem -o StrictHostKeyChecking=no -T ubuntu@$BASTION_PUBLIC_IP << 'EOF'
+            # Now SCP from Bastion Host to EC2 private instance
+            scp -i private_key.pem -r /home/ubuntu/my-app/python ubuntu@$EC2_PRIVATE_IP:/home/ubuntu/my-app/python
+            # Run the app on the EC2 instance
+            ssh -i private_key.pem ubuntu@$EC2_PRIVATE_IP << 'INNER_EOF'
+              cd /home/ubuntu/my-app/python
+              gunicorn -w 4 -b 0.0.0.0:80 app:app &
+            INNER_EOF
+          EOF
 
-      - name: Clean up SSH key
-        run: rm -rf ~/.ssh/private_key.pem
+      # 5. Clean up private key
+      - name: Clean up private key
+        run: rm -f private_key.pem
+
 
 
 # name: Deploy App to EC2

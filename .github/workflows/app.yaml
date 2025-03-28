@@ -27,6 +27,7 @@ jobs:
         SSH_PORT: ${{ secrets.SSH_PORT }}
       run: |
         echo "$PRIVATE_KEY" > github-ec2.pem
+        cat github-ec2.pem
         chmod 600 github-ec2.pem
         
         # SSH into Bastion Host and execute commands

@@ -14,7 +14,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: $ubuntu-latest
+    runs-on: ubuntu-latest
     env:
       # Environment variables for SSH and EC2 configuration
       EC2: ${{ inputs.ec2_ip }}

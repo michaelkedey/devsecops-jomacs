@@ -26,6 +26,20 @@ resource "aws_subnet" "project_public_subnet" {
   )
 }
 
+resource "aws_subnet" "project_public_subnet1" {
+  vpc_id            = aws_vpc.project_vpc.id
+  cidr_block        = var.cidrs["public_subnet1"]
+  provider          = aws.project_region
+  availability_zone = var.azs[1]
+
+  tags = merge(
+    var.tags_all,
+    {
+      Name = var.names["public_subnet1"]
+    }
+  )
+}
+
 #private subnet
 resource "aws_subnet" "project_private_subnet" {
   vpc_id            = aws_vpc.project_vpc.id

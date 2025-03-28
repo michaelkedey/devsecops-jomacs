@@ -1,5 +1,9 @@
-output "pb_sn1" {
+output "pb_sn" {
   value = aws_subnet.project_public_subnet.id
+}
+
+output "pb_sn1" {
+  value = aws_subnet.project_public_subnet1.id
 }
 
 output "pr_sn" {

@@ -1,3 +1,7 @@
+output "public_subnet" {
+  value = module.vpc.pb_sn
+}
+
 output "public_subnet1" {
   value = module.vpc.pb_sn1
 }

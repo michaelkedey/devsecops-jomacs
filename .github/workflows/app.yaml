@@ -22,7 +22,7 @@ jobs:
       env:
         EC2: ${{ inputs.ec2_ip }}
         BASTION: ${{ inputs.bastion_ip }}
-        PRIVATE_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
+        EC2_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
         USER: ${{ secrets.EC2_USER }}
         SSH_PORT: ${{ secrets.SSH_PORT }}
       run: |

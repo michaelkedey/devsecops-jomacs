@@ -21,17 +21,17 @@ jobs:
         run: |
           # Write the private key to a file
           echo "${{ secrets.EC2_SSH_KEY }}" > github-ec2.pem
-          chmod 600 github-ec2.pem
+          chmod ${{ secrets.EC2_SSH_KEY }}
       - name: Connect to Bastion Host and Deploy
         uses: appleboy/ssh-action@master
         with:
           host: ${{ inputs.bastion_ip }}
           port: ${{ secrets.SSH_PORT }}
           username: ${{ secrets.EC2_USER }}
-          key: github-ec2.pem
+          key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             # Connect to Private EC2 Instance
-            ssh -o StrictHostKeyChecking=no -i github-ec2.pem -p ${{ secrets.SSH_PORT }} ${{ secrets.EC2_USER }}@${{ inputs.ec2_ip }} <<EOF
+            ssh -o StrictHostKeyChecking=no -i ${{ secrets.EC2_SSH_KEY }} -p ${{ secrets.SSH_PORT }} ${{ secrets.EC2_USER }}@${{ inputs.ec2_ip }} <<EOF
               # Your deployment commands here
               mkdir -p /home/${{ secrets.EC2_USER }}/my-app/
               cp -r ./app/python /home/${{ secrets.EC2_USER }}/my-app/

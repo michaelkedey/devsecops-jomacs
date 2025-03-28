@@ -12,7 +12,6 @@ on:
         required: true
         type: string
 
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -27,11 +26,15 @@ jobs:
         USER: ${{ secrets.EC2_USER }}
         SSH_PORT: ${{ secrets.SSH_PORT }}
       run: |
-        echo "$EC2_PRIVATE_KEY" > github-ec2.pem && chmod 600 github-ec2.pem
-        ssh -o StrictHostKeyChecking=no -i github-ec2.pem -p ${SSH_PORT} ${USER}@${BASTION} '
-        echo "Current directory: $(pwd)"
-        echo "Listing home directory:"
-        ls -la ~
+        echo "$PRIVATE_KEY" > github-ec2.pem
+        chmod 600 github-ec2.pem
+        
+        # SSH into Bastion Host and execute commands
+        ssh -o StrictHostKeyChecking=no -i github-ec2.pem -p ${SSH_PORT} ${USER}@${BASTION} << 'EOF'
+          echo "Current directory: $(pwd)"
+          echo "Listing home directory:"
+          ls -la ~
+        EOF
 
 
 # jobs:

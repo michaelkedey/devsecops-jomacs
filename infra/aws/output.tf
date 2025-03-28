@@ -18,8 +18,8 @@ output "instance_id" {
   value = module.ec2.instance_id
 }
 
-output "ec2_public_ip" {
-  value = module.ec2.ec2_public_ip
+output "bastion_public_ip" {
+  value = module.bastion.bastion_public_ip
 }
 
 output "lb_sg" {

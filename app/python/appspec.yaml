@@ -1,0 +1,9 @@
+version: 0.0
+os: linux
+files:
+  - source: app/python       # Files to copy to EC2
+    destination: /opt/myapp  # Target directory on the instance
+hooks:
+  AfterInstall:
+    - location: scripts/deploy.sh  # Runs after files are copied
+      timeout: 300

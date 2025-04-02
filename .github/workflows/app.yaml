@@ -49,7 +49,7 @@ jobs:
           # Install dependencies
           cd /home/${USER}/my-app/
           sudo apt-get install python3-pip -y
-          sudo apt-get install gunicorn
+          sudo apt-get install gunicorn -y
           pip install -r requirements.txt
           
           # Start Gunicorn

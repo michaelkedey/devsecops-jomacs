@@ -31,12 +31,11 @@ jobs:
         PORT: ${{ secrets.SSH_PORT }}
       run: |
         # Save the SSH key to a file and set permissions
-        echo "$PRIVATE_KEY" > private_key.pem
-        chmod 600 private_key.pem
+        echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
         
         # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
         # This command forwards the local port 2222 to the target EC2 instance's SSH (port 22)
-        ssh -i private_key.pem -L 2222:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION}
+        ssh -i private_key.pem -o StrictHostKeyChecking=no -L 2222:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION}
         # ssh -i private_key.pem -L 2222:${HOST}:22 -p ${PORT} ${USER}@${BASTION} -N -f
         
         # Verify the tunnel is up (checking that we can connect to the local port 2222)

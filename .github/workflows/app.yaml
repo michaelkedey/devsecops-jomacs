@@ -15,63 +15,135 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      # Checkout the code
       - uses: actions/checkout@v2
 
-      # Setup SSH key & Connect to Bastion
-      - name: Setup SSH tunnel through Bastion
+      - name: Setup SSH tunnel
         env:
           PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          BASTION: ${{ inputs.bastion_ip }}
-          HOST: ${{ inputs.ec2_ip }}
-          USER: ${{ secrets.EC2_USER }}
-          PORT: ${{ secrets.SSH_PORT }}
         run: |
-          # Save the private key to a file and set proper permissions
-          echo "$PRIVATE_KEY" > github-ec2.pem
+          # Create properly formatted PEM file
+          echo "$PRIVATE_KEY" | sed 's/\\n/\n/g' > github-ec2.pem
           chmod 600 github-ec2.pem
           
-          # Debug: List the directory to confirm the private key exists
-          ls -alh
-          
-          # Establish the SSH tunnel
-          ssh -o StrictHostKeyChecking=no \
-              -o ExitOnForwardFailure=yes \
-              -i github-ec2.pem \
-              -p ${PORT} \
-              -N -f -L 2222:${HOST}:${PORT} \
-              ${USER}@${BASTION}
-          
-          # Verify tunnel connection
-          timeout 20 bash -c 'until nc -z localhost 2222; do sleep 1; done'
+          # Verify key format
+          ssh-keygen -lf github-ec2.pem
 
-      # Deploy to Private EC2
-      - name: Deploy to Private EC2
-        uses: appleboy/ssh-action@master
+      - name: Establish Bastion Tunnel
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=30 \
+              -i github-ec2.pem \
+              -p ${{ secrets.SSH_PORT }} \
+              -N -f -L 2222:${{ inputs.ec2_ip }}:${{ secrets.SSH_PORT }} \
+              ${{ secrets.EC2_USER }}@${{ inputs.bastion_ip }}
+          
+          # Wait for tunnel stabilization
+          timeout 30 bash -c 'until nc -z localhost 2222; do sleep 1; done'
+
+      - name: Deploy Application
+        uses: appleboy/ssh-action@v1.8.1
         with:
-          host: localhost           # Connecting to localhost because of the tunnel
+          host: localhost
           username: ${{ secrets.EC2_USER }}
-          key: github-ec2.pem       # The private key used for SSH
-          port: 2222                # Local port for the SSH tunnel
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 2222
+          script_timeout: 10m
           script: |
-            # Create app directory
-            mkdir -p /home/${{ secrets.EC2_USER }}/my-app/
+            mkdir -p ~/my-app
+            rsync -avz -e "ssh -p 2222 -o StrictHostKeyChecking=no" \
+              ./app/python/ ${{ secrets.EC2_USER }}@localhost:~/my-app/
             
-            # Copy app files via rsync
-            rsync -avz -e "ssh -p 2222" ./app/python/ ${{ secrets.EC2_USER }}@localhost:/home/${{ secrets.EC2_USER }}/my-app/
-            
-            # Install dependencies
-            cd /home/${{ secrets.EC2_USER }}/my-app
+            cd ~/my-app
+            python -m venv .venv
+            source .venv/bin/activate
             pip install -r requirements.txt
-            
-            # Run Gunicorn server
             nohup gunicorn -w 4 -b 0.0.0.0:80 app:app > /dev/null 2>&1 &
 
-      # Cleanup SSH tunnel
-      - name: Cleanup SSH tunnel
-        run: pkill -f "ssh -N -f -L 2222"
+
+
+
+
+
+
+
+
+
+
+# name: Secure Deployment via Bastion
+
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       bastion_ip:
+#         description: 'Bastion Public IP'
+#         required: true
+#         type: string
+#       ec2_ip:
+#         description: 'EC2 Private IP'
+#         required: true
+#         type: string
+
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       # Checkout the code
+#       - uses: actions/checkout@v2
+
+#       # Setup SSH key & Connect to Bastion
+#       - name: Setup SSH tunnel through Bastion
+#         env:
+#           PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+#           BASTION: ${{ inputs.bastion_ip }}
+#           HOST: ${{ inputs.ec2_ip }}
+#           USER: ${{ secrets.EC2_USER }}
+#           PORT: ${{ secrets.SSH_PORT }}
+#         run: |
+#           # Save the private key to a file and set proper permissions
+#           echo "$PRIVATE_KEY" > github-ec2.pem
+#           chmod 600 github-ec2.pem
+          
+#           # Debug: List the directory to confirm the private key exists
+#           ls -alh
+          
+#           # Establish the SSH tunnel
+#           ssh -o StrictHostKeyChecking=no \
+#               -o ExitOnForwardFailure=yes \
+#               -i github-ec2.pem \
+#               -p ${PORT} \
+#               -N -f -L 2222:${HOST}:${PORT} \
+#               ${USER}@${BASTION}
+          
+#           # Verify tunnel connection
+#           timeout 20 bash -c 'until nc -z localhost 2222; do sleep 1; done'
+
+#       # Deploy to Private EC2
+#       - name: Deploy to Private EC2
+#         uses: appleboy/ssh-action@master
+#         with:
+#           host: localhost           # Connecting to localhost because of the tunnel
+#           username: ${{ secrets.EC2_USER }}
+#           key: github-ec2.pem       # The private key used for SSH
+#           port: 2222                # Local port for the SSH tunnel
+#           script: |
+#             # Create app directory
+#             mkdir -p /home/${{ secrets.EC2_USER }}/my-app/
+            
+#             # Copy app files via rsync
+#             rsync -avz -e "ssh -p 2222" ./app/python/ ${{ secrets.EC2_USER }}@localhost:/home/${{ secrets.EC2_USER }}/my-app/
+            
+#             # Install dependencies
+#             cd /home/${{ secrets.EC2_USER }}/my-app
+#             pip install -r requirements.txt
+            
+#             # Run Gunicorn server
+#             nohup gunicorn -w 4 -b 0.0.0.0:80 app:app > /dev/null 2>&1 &
+
+#       # Cleanup SSH tunnel
+#       - name: Cleanup SSH tunnel
+#         run: pkill -f "ssh -N -f -L 2222"
 
 
 

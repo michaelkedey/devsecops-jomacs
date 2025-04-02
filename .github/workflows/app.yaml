@@ -28,7 +28,7 @@ jobs:
         echo "$PRIVATE_KEY" > github-ec2.pem && chmod 600 github-ec2.pem
 
         # Copy the private key to the Bastion server (already assuming it's in your GitHub secrets)
-        scp -i github-ec2.pem -P ${PORT} github-ec2.pem ${USER}@${BASTION}:/home/${USER}/
+        scp -o StrictHostKeyChecking=no -i github-ec2.pem -P ${PORT} github-ec2.pem ${USER}@${BASTION}:/home/${USER}/
 
         # SSH into the Bastion
         ssh -o StrictHostKeyChecking=no -i github-ec2.pem -p ${PORT} ${USER}@${BASTION} << 'BASTION_SETUP'

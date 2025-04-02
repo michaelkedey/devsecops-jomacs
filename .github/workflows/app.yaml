@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Setup SSH key & Connect to Bastion
+    - name: Setup SSH key & Connect to Bastion and forward port
       env:
         PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
         BASTION: ${{ inputs.bastion_ip }}
@@ -25,16 +25,54 @@ jobs:
         PORT: ${{ secrets.SSH_PORT }}
       run: |
         echo "$PRIVATE_KEY" > github-ec2.pem && chmod 600 github-ec2.pem
-        ssh -o StrictHostKeyChecking=no -i github-ec2.pem -p ${PORT} ${USER}@${BASTION}
-        echo "Current directory: $(pwd)"
-        echo "Listing home directory:"
-        ls -la ~
-        ssh -o StrictHostKeyChecking=no -i github-ec2.pem -p ${PORT} ${USER}@${HOST}
+        ssh -o StrictHostKeyChecking=no -i github-ec2.pem -p ${EC2_SSH_PORT} -N -f -L 2222:${HOST}:${EC2_SSH_PORT} ${USER}@${BASTION}
+        sleep 5 # Wait for tunnel to establish
+        ssh -o StrictHostKeyChecking=no -i github-ec2.pem -p 2222 ${USER}@localhost
         mkdir -p /home/${{ secrets.EC2_USER }}/my-app/
         cp -r ./app/python /home/${{ secrets.EC2_USER }}/my-app/
-        cd /home/${{ secrets.EC2_USER }}my-app/
+        cd /home/${{ secrets.EC2_USER }}/my-app/
         pip install -r requirements.txt
         gunicorn -w 4 -b 0.0.0.0:80 app:app &
+
+
+
+# name: Secure Deployment via Bastion
+
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       bastion_ip:
+#         description: 'Bastion Public IP'
+#         required: true
+#         type: string
+#       ec2_ip:
+#         description: 'EC2 Private IP'
+#         required: true
+#         type: string
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+#     steps:
+#     - uses: actions/checkout@v2
+#     - name: Setup SSH key & Connect to Bastion
+#       env:
+#         PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+#         BASTION: ${{ inputs.bastion_ip }}
+#         HOST: ${{ inputs.ec2_ip }}
+#         USER: ${{ secrets.EC2_USER }}
+#         PORT: ${{ secrets.SSH_PORT }}
+#       run: |
+#         echo "$PRIVATE_KEY" > github-ec2.pem && chmod 600 github-ec2.pem
+#         ssh -o StrictHostKeyChecking=no -i github-ec2.pem -p ${PORT} ${USER}@${BASTION}
+#         echo "Current directory: $(pwd)"
+#         echo "Listing home directory:"
+#         ls -la ~
+#         ssh -o StrictHostKeyChecking=no -i github-ec2.pem -p ${PORT} ${USER}@${HOST}
+#         mkdir -p /home/${{ secrets.EC2_USER }}/my-app/
+#         cp -r ./app/python /home/${{ secrets.EC2_USER }}/my-app/
+#         cd /home/${{ secrets.EC2_USER }}my-app/
+#         pip install -r requirements.txt
+#         gunicorn -w 4 -b 0.0.0.0:80 app:app &
     
 
 

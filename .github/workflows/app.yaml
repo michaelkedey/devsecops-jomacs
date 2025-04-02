@@ -426,7 +426,6 @@ jobs:
         run: |
           # Copy the SSH key to Bastion Host
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
-          ls -lah
           scp -i ./private_key.pem -P ${PORT} ./private_key.pem ${USER}@${BASTION}:/home/${USER}
           
           # SSH into the Bastion Host and copy the app/python directory to the EC2 instance

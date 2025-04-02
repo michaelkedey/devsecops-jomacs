@@ -433,9 +433,12 @@ jobs:
           ssh -J ${USER}@${BASTION}:${PORT} -i private_key.pem -p ${PORT} ${USER}@${HOST} exit
 
           # Copy application files through bastion to private EC2
-          scp -o "ProxyJump ${USER}@${BASTION}:${PORT}" -i private_key.pem -P ${PORT} ./app/python ${USER}@${HOST}:/home/${USER}/my-app/
-
-
+          scp -r \
+              -o "ProxyJump ${USER}@${BASTION}:${PORT}" \
+              -i private_key.pem \
+              -P "${PORT}" \
+              ./app/python \
+              "${USER}@${HOST}:/home/${USER}/my-app/"
           # Execute commands on private EC2 via bastion
           ssh -J ${USER}@${BASTION}:${PORT} \
               -i private_key.pem \

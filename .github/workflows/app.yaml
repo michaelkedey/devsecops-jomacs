@@ -15,9 +15,12 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
+      # Checkout the code
       - uses: actions/checkout@v2
 
+      # Setup SSH key & Connect to Bastion
       - name: Setup SSH tunnel through Bastion
         env:
           PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
@@ -26,11 +29,14 @@ jobs:
           USER: ${{ secrets.EC2_USER }}
           PORT: ${{ secrets.SSH_PORT }}
         run: |
-          # Save SSH key with proper permissions
+          # Save the private key to a file and set proper permissions
           echo "$PRIVATE_KEY" > github-ec2.pem
           chmod 600 github-ec2.pem
           
-          # Establish SSH tunnel with stability checks
+          # Debug: List the directory to confirm the private key exists
+          ls -alh
+          
+          # Establish the SSH tunnel
           ssh -o StrictHostKeyChecking=no \
               -o ExitOnForwardFailure=yes \
               -i github-ec2.pem \
@@ -41,28 +47,32 @@ jobs:
           # Verify tunnel connection
           timeout 20 bash -c 'until nc -z localhost 2222; do sleep 1; done'
 
+      # Deploy to Private EC2
       - name: Deploy to Private EC2
         uses: appleboy/ssh-action@master
         with:
-          host: localhost
+          host: localhost           # Connecting to localhost because of the tunnel
           username: ${{ secrets.EC2_USER }}
-          key: ./github-ec2.pem
-          port: 2222
+          key: github-ec2.pem       # The private key used for SSH
+          port: 2222                # Local port for the SSH tunnel
           script: |
-            # Create directory structure
+            # Create app directory
             mkdir -p /home/${{ secrets.EC2_USER }}/my-app/
             
-            # Copy application files (from GitHub runner to EC2)
-            rsync -avz -e "ssh -p 2222" ./app/python/ \
-              ${{ secrets.EC2_USER }}@localhost:/home/${{ secrets.EC2_USER }}/my-app/
+            # Copy app files via rsync
+            rsync -avz -e "ssh -p 2222" ./app/python/ ${{ secrets.EC2_USER }}@localhost:/home/${{ secrets.EC2_USER }}/my-app/
             
-            # Install dependencies and start service
+            # Install dependencies
             cd /home/${{ secrets.EC2_USER }}/my-app
             pip install -r requirements.txt
+            
+            # Run Gunicorn server
             nohup gunicorn -w 4 -b 0.0.0.0:80 app:app > /dev/null 2>&1 &
 
+      # Cleanup SSH tunnel
       - name: Cleanup SSH tunnel
         run: pkill -f "ssh -N -f -L 2222"
+
 
 
 

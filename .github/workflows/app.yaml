@@ -40,9 +40,7 @@ jobs:
       env:
         USER: ${{ secrets.EC2_USER }}  # EC2 User (e.g., ubuntu)
         HOST: ${{ inputs.ec2_ip }}  # EC2 Private IP
-        # KEY: ${{ secrets.EC2_SSH_KEY }}
       run: |
-        # echo "$KEY" > key.pem && chmod 600 key.pem
         rsync -avz -e "ssh -i private_key.pem -p 2222 -o StrictHostKeyChecking=no ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
         # scp -r -P 2222 -i private_key.pem ./app  ${USER}@localhost:/home/${USER}/my-app/
         

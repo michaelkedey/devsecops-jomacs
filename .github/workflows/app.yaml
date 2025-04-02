@@ -29,18 +29,15 @@ jobs:
         # Create SSH key file
         echo "$PRIVATE_KEY" > github-ec2.pem && chmod 600 github-ec2.pem
 
-        # Connect to Bastion and forward ports (optional, if needed)
-        ssh -o StrictHostKeyChecking=no -t -t -i github-ec2.pem -p ${PORT} "${USER}@${BASTION}" << 'EOF'
-          # After SSH to Bastion, SSH to the private EC2 instance
-          ssh -o StrictHostKeyChecking=no -i github-ec2.pem -p ${PORT} ${USER}@${HOST} << 'EC2_SETUP'
-            # Setup commands on the EC2 instance
-            mkdir -p /home/${USER}/my-app/
-            cp -r ./app/python /home/${USER}/my-app/
-            cd /home/${USER}/my-app/
-            pip install -r requirements.txt
-            gunicorn -w 4 -b 0.0.0.0:80 app:app &
-          EC2_SETUP
+        # Connect to Bastion, then SSH to EC2 and execute the app setup
+        ssh -o StrictHostKeyChecking=no -i github-ec2.pem -p ${PORT} "${USER}@${BASTION}" << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i github-ec2.pem -p ${PORT} ${USER}@${HOST} "bash -c 'mkdir -p /home/${USER}/my-app/ && \
+          cp -r ./app/python /home/${USER}/my-app/ && \
+          cd /home/${USER}/my-app/ && \
+          pip install -r requirements.txt && \
+          gunicorn -w 4 -b 0.0.0.0:80 app:app &'"
         EOF
+
 
 
 

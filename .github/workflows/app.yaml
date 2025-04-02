@@ -39,7 +39,7 @@ jobs:
               ${{ secrets.EC2_USER }}@${{ inputs.bastion_ip }}
           
           # Wait for tunnel stabilization
-          timeout 30 bash -c 'until nc -z localhost 2222; do sleep 1; done'
+          timeout 30 bash -c 'until nc -z localhost ${{ secrets.SSH_PORT }}; do sleep 1; done'
 
       - name: Deploy Application
         uses: appleboy/ssh-action@master
@@ -51,7 +51,7 @@ jobs:
           script_timeout: 10m
           script: |
             mkdir -p ~/my-app
-            rsync -avz -e "ssh -p 2222 -o StrictHostKeyChecking=no" \
+            rsync -avz -e "ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no" \
               ./app/python/ ${{ secrets.EC2_USER }}@localhost:~/my-app/
             
             cd ~/my-app

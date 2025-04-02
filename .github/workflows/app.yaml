@@ -56,6 +56,12 @@ jobs:
           # Start Gunicorn
           sudo nohup gunicorn -w 4 -b 0.0.0.0:80 app:app > gunicorn.log 2>&1 &
         EOF
-    # 4. Clean up SSH tunnel
-    - name: Clean up SSH tunnel
-      run: pkill -f "ssh -L 2222"
+    # # 4. Clean up SSH tunnel
+    # - name: Clean up SSH tunnel
+    #   run: pkill -f "ssh -L 2222"
+    - name: Cleanup SSH Tunnel
+      if: always()  # Runs even if previous steps fail
+      run: |
+        # Kill tunnel process using port 2222
+        pkill -f "ssh.*2222:.*${{ inputs.ec2_ip }}"
+        echo "SSH tunnel terminated"

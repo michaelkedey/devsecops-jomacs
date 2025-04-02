@@ -53,7 +53,7 @@ jobs:
           pip install -r requirements.txt
           
           # Start Gunicorn
-          nohup gunicorn -w 4 -b 0.0.0.0:80 app:app > gunicorn.log 2>&1 &
+          sudo nohup gunicorn -w 4 -b 0.0.0.0:80 app:app > gunicorn.log 2>&1 &
         EOF
     # 4. Clean up SSH tunnel
     - name: Clean up SSH tunnel

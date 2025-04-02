@@ -42,7 +42,7 @@ jobs:
           timeout 30 bash -c 'until nc -z localhost 2222; do sleep 1; done'
 
       - name: Deploy Application
-        uses: appleboy/ssh-action@v1.8.1
+        uses: appleboy/ssh-action
         with:
           host: localhost
           username: ${{ secrets.EC2_USER }}

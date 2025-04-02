@@ -47,7 +47,7 @@ jobs:
       with:
         host: localhost  # Connect to local port 2222, which forwards to the EC2 instance
         username: ${{ secrets.EC2_USER }}
-        key: ./private_key.pem
+        key: ${{ secrets.EC2_SSH_KEY }}
         port: 2222  # Use the local port of the tunnel
         script: |
           # Create directory on the target EC2 instance if it doesn't exist

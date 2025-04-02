@@ -43,10 +43,8 @@ jobs:
         PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
       run: |
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
-          # Use rsync to deploy code to EC2 over SSH tunnel
-          # rsync -avz -e "ssh -p 2222" ./app/ user@localhost:/target/path
-          # rsync -avz -e "ssh -p 2222" ./app/ ${USER}@localhost:/home/${USER}/my-app/
-          scp -r -P 2222 -i ${{ secrets.EC2_SSH_KEY }} ./app  ${USER}@localhost:/home/${USER}/my-app/
+          rsync -avz -e "ssh -i private_key.pem -p 2222" ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
+          # scp -r -P 2222 -i private_key.pem ./app  ${USER}@localhost:/home/${USER}/my-app/
           
           # SSH into the EC2 instance and install dependencies and start Gunicorn
           ssh -i private_key.pem -p 2222 -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'

@@ -41,7 +41,7 @@ jobs:
         USER: ${{ secrets.EC2_USER }}  # EC2 User (e.g., ubuntu)
         HOST: ${{ inputs.ec2_ip }}  # EC2 Private IP
       run: |
-        rsync -avz -e "ssh -i private_key.pem -p 2222 -o StrictHostKeyChecking=no ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
+        rsync -avz -e "ssh -i private_key.pem -p 2222 -o StrictHostKeyChecking=no" ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
         # scp -r -P 2222 -i private_key.pem ./app  ${USER}@localhost:/home/${USER}/my-app/
         
         # SSH into the EC2 instance and install dependencies and start Gunicorn

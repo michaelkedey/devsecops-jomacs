@@ -425,24 +425,46 @@ jobs:
       - name: Copy app/python code to EC2 via Bastion Host
         run: |
           # Copy the SSH key to Bastion Host
+          # Create SSH key file locally
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
-          scp -i ./private_key.pem -P ${PORT} ./private_key.pem ${USER}@${BASTION}:/home/${USER}
-          
-          # SSH into the Bastion Host and copy the app/python directory to the EC2 instance
-          ssh -i private_key.pem -o StrictHostKeyChecking=no -p ${PORT} ${USER}@${BASTION} << 'EOF'
-            # Use SCP to copy the app/python directory from GitHub Actions runner to the EC2 instance
-            scp -i private_key.pem -P ${PORT} -r ./app/python ${USER}@${HOST}:/home/${USER}/my-app/python
-            
-            # Run the app on the EC2 instance
-            ssh -i private_key.pem -p ${PORT} ${USER}@${HOST} << 'INNER_EOF'
-              cd /home/${USER}/my-app/python
-              gunicorn -w 4 -b 0.0.0.0:80 app:app &
-            INNER_EOF
+          ls -lah
+
+          # Copy application files through bastion to private EC2
+          scp -o "ProxyJump ${USER}@${BASTION}:${PORT}" \
+              -i private_key.pem \
+              -P ${PORT} \
+              -r ./app/python \
+              ${USER}@${HOST}:/home/${USER}/my-app/
+
+          # Execute commands on private EC2 via bastion
+          ssh -J ${USER}@${BASTION}:${PORT} \
+              -i private_key.pem \
+              -p ${PORT} \
+              ${USER}@${HOST} << 'EOF'
+          cd /home/${USER}/my-app/python
+          pip install -r requirements.txt
+          nohup gunicorn -w 4 -b 0.0.0.0:80 app:app > gunicorn.log 2>&1 &
           EOF
 
       # 4. Clean up private key
       - name: Clean up private key
         run: rm -f private_key.pem
 
+
+
+# echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
+# scp -i ./private_key.pem -P ${PORT} ./private_key.pem ${USER}@${BASTION}:/home/${USER}
+
+# # SSH into the Bastion Host and copy the app/python directory to the EC2 instance
+# ssh -i private_key.pem -o StrictHostKeyChecking=no -p ${PORT} ${USER}@${BASTION} << 'EOF'
+#   # Use SCP to copy the app/python directory from GitHub Actions runner to the EC2 instance
+#   scp -i private_key.pem -P ${PORT} -r ./app/python ${USER}@${HOST}:/home/${USER}/my-app/python
+  
+#   # Run the app on the EC2 instance
+#   ssh -i private_key.pem -p ${PORT} ${USER}@${HOST} << 'INNER_EOF'
+#     cd /home/${USER}/my-app/python
+#     gunicorn -w 4 -b 0.0.0.0:80 app:app &
+#   INNER_EOF
+# EOF
 
         

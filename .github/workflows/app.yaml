@@ -26,6 +26,7 @@ jobs:
         HOST: ${{ inputs.ec2_ip }}
         USER: ${{ secrets.EC2_USER }}
         PORT: ${{ secrets.SSH_PORT }}
+        TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
       run: |
         echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
         

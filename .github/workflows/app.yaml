@@ -1,392 +1,3 @@
-
-
-
-# name: Secure Deployment via Bastion
-
-# on:
-#   workflow_dispatch:
-#     inputs:
-#       bastion_ip:
-#         description: 'Bastion Public IP'
-#         required: true
-#         type: string
-#       ec2_ip:
-#         description: 'EC2 Private IP'
-#         required: true
-#         type: string
-# jobs:
-#   deploy:
-#     runs-on: ubuntu-latest
-#     steps:
-#     - uses: actions/checkout@v2
-    
-#     - name: Setup SSH key & Connect to Bastion
-#       env:
-#         PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-#         BASTION: ${{ inputs.bastion_ip }}
-#         HOST: ${{ inputs.ec2_ip }}
-#         USER: ${{ secrets.EC2_USER }}
-#         PORT: ${{ secrets.SSH_PORT }}
-#       echo "$PRIVATE_KEY" > github-ec2.pem && chmod 600 github-ec2.pem
-#     uses: appleboy/ssh-action@master
-#         with:
-#           host: ${BASTION}
-#           username: ${USER}
-#           key: github-ec2.pem
-#           port: ${PORT}
-
-#           script: |
-#             echo "Connected to Bastion Host"
-#             # Connect to private EC2 instance from here
-#             ssh -o StrictHostKeyChecking=no -p ${PORT} ${USER}@${HOST} "pwd"
-#             mkdir -p /home/${USER}/my-app/
-#             cp -r ./app/python /home/${USER}/my-app/
-#             cd /home/${USER}/my-app/
-#             pip install -r requirements.txt
-#             gunicorn -w 4 -b 0.0.0.0:80 app:app &
-
-
-
-
-#       run: |
-#         # SSH to Bastion and then ProxyCommand to EC2
-#         ssh -i github-ec2.pem -o -p ${PORT} StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-#             -o ProxyCommand="ssh -i github-ec2.pem -o StrictHostKeyChecking=no -W %h:%p ${USER}@${BASTION}" \
-#             ${USER}@${HOST} << 'EC2_SETUP'
-#           echo "Connected to EC2!"
-#           mkdir -p /home/${USER}/my-app/
-#           cp -r ./app/python /home/${USER}/my-app/
-#           cd /home/${USER}/my-app/
-#           pip install -r requirements.txt
-#           gunicorn -w 4 -b 0.0.0.0:80 app:app &
-#         EC2_SETUP
-
-
-
-
-
-
-
-
-
-
-
-# name: Connect to Private EC2 Instance
-
-# on:
-#   push:
-#     branches:
-#       - main
-
-# jobs:
-#   connect_to_private_ec2:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v3
-
-#       - name: Connect to Bastion Host
-#         uses: appleboy/ssh-action@master
-#         with:
-#           host: ${{ secrets.BASTION_HOST_IP }}
-#           username: ${{ secrets.BASTION_HOST_USERNAME }}
-#           key: ${{ secrets.BASTION_HOST_PRIVATE_KEY }}
-#           port: 22
-#           script: |
-#             echo "Connected to Bastion Host"
-#             # Connect to private EC2 instance from here
-#             ssh -o StrictHostKeyChecking=no ${{ secrets.PRIVATE_EC2_USERNAME }}@${{ secrets.PRIVATE_EC2_IP }} "pwd"
-
-
-
-
-
-
-      # run: |
-      #   echo "$PRIVATE_KEY" > github-ec2.pem && chmod 600 github-ec2.pem
-      #   scp -i github-ec2.pem -P ${PORT} github-ec2.pem  ${USER}@${BASTION}:/home/${USER}
-
-      #   ssh -o StrictHostKeyChecking=no -i github-ec2.pem -p ${PORT} ${USER}@${BASTION}
-      #   echo "Current directory: $(pwd)"
-      #   echo "Listing home directory:"
-      #   ls -la ~
-
-      #   ssh -o StrictHostKeyChecking=no -i github-ec2.pem -p ${PORT} ${USER}@${HOST}
-      #   mkdir -p /home/${{ secrets.EC2_USER }}/my-app/
-      #   cp -r ./app/python /home/${{ secrets.EC2_USER }}/my-app/
-      #   cd /home/${{ secrets.EC2_USER }}my-app/
-      #   pip install -r requirements.txt
-      #   gunicorn -w 4 -b 0.0.0.0:80 app:app &
-    
-
-
-
-# # #         echo "Installing Node.js..."
-# # #         if ! command -v nvm &> /dev/null; then
-# # #           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
-# # #           export NVM_DIR="$HOME/.nvm"
-# # #           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-# # #         fi
-# # #         nvm install node
-
-# # #         echo "Installing PM2..."
-# # #         if ! command -v pm2 &> /dev/null; then
-# # #         npm install -g pm2
-# # #         fi
-
-# # #         REPO_URL="https://github.com/afkzoro/github-aws-ec2.git"
-# # #         BRANCH="main"
-# # #         REPO_DIR="$HOME/github-aws-ec2"
-
-# # #         if [ -d "$REPO_DIR/.git" ]; then
-# # #           cd "$REPO_DIR"
-# # #           git pull origin "$BRANCH"
-# # #         else
-# # #           git clone "$REPO_URL" "$REPO_DIR"
-# # #           cd "$REPO_DIR"
-# # #         fi
-
-# # #         cd "$REPO_DIR/simple-web-server"
-# # #         npm install
-
-# # #         cd ~/github-aws-ec2/simple-web-server
-# # #         git pull origin main
-# # #         npm install
-
-# # #         echo "Starting/restarting application..."
-# # #         pm2 restart server.js || pm2 start server.js
-# # #         '
-
-
-
-
-
-# # # name: Secure Deployment via Bastion
-
-# # # on:
-# # #   workflow_dispatch:
-# # #     inputs:
-# # #       bastion_ip:
-# # #         description: 'Bastion Public IP'
-# # #         required: true
-# # #         type: string
-# # #       ec2_ip:
-# # #         description: 'EC2 Private IP'
-# # #         required: true
-# # #         type: string
-# # # jobs:
-# # #   deploy:
-# # #     runs-on: ubuntu-latest
-# # #     steps:
-# # #       - name: Checkout code
-# # #         uses: actions/checkout@v2
-# # #       - name: Setup SSH key
-# # #         run: |
-# # #           # Write the private key to a file
-# # #           echo "${{ secrets.EC2_SSH_KEY }}" > github-ec2.pem
-# # #           chmod 600 github-ec2.pem
-# # #       - name: Connect to Bastion Host and Deploy
-# # #         uses: appleboy/ssh-action@master
-# # #         with:
-# # #           host: ${{ inputs.bastion_ip }}
-# # #           port: ${{ secrets.SSH_PORT }}
-# # #           username: ${{ secrets.EC2_USER }}
-# # #           key: github-ec2.pem
-# # #           script: |
-# # #             # Connect to Private EC2 Instance
-# # #             ssh -o StrictHostKeyChecking=no -i github-ec2.pem -p ${{ secrets.SSH_PORT }} ${{ secrets.EC2_USER }}@${{ inputs.ec2_ip }} <<EOF
-# # #               # Your deployment commands here
-# # #               mkdir -p /home/${{ secrets.EC2_USER }}/my-app/
-# # #               cp -r ./app/python /home/${{ secrets.EC2_USER }}/my-app/
-# # #               cd /home/${{ secrets.EC2_USER }}my-app/
-# # #               pip install -r requirements.txt
-# # #               gunicorn -w 4 -b 0.0.0.0:80 app:app &
-
-# # #             EOF
-# # #       - name: Clean up private key
-# # #         run: |
-# # #           rm -f github-ec2.pem
-
-
-# # # name: Secure Deployment via Bastion
-
-# # # on:
-# # #   workflow_dispatch:
-# # #     inputs:
-# # #       bastion_ip:
-# # #         description: 'Bastion Public IP'
-# # #         required: true
-# # #         type: string
-# # #       ec2_ip:
-# # #         description: 'EC2 Private IP'
-# # #         required: true
-# # #         type: string
-
-# # # jobs:
-# # #   deploy:
-# # #     runs-on: ubuntu-latest
-# # #     env:
-# # #       # Environment variables for SSH and EC2 configuration
-# # #       EC2: ${{ inputs.ec2_ip }}
-# # #       BASTION: ${{ inputs.bastion_ip }}
-# # #       EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-# # #       USER: ${{ secrets.EC2_USER }}
-# # #       SSH_PORT: ${{ secrets.SSH_PORT }}
-
-# # #     steps:
-# # #       # 1. Checkout Code from GitHub
-# # #       - name: Checkout Code
-# # #         uses: actions/checkout@v2
-
-# # #       # 2. Set up SSH key for Bastion Host
-# # #       - name: Set up SSH key
-# # #         run: |
-# # #           echo "$EC2_SSH_KEY" > private_key.pem
-# # #           chmod 600 private_key.pem
-
-# # #       # 3. Copy app/python code to EC2 via Bastion Host
-# # #       - name: Copy app/python code to EC2 via Bastion Host
-# # #         run: |
-# # #           # SSH into the Bastion Host and copy the app/python directory to the EC2 instance
-# # #           ssh -i private_key.pem -o StrictHostKeyChecking=no -p $SSH_PORT $USER@$BASTION << 'EOF'
-# # #             # Use SCP to copy the app/python directory from GitHub Actions runner to the EC2 instance
-# # #             scp -i private_key.pem -r ./app/python $USER@$EC2:/home/$USER/my-app/python
-# # #             # Run the app on the EC2 instance
-# # #             ssh -i private_key.pem -p $SSH_PORT $USER@$EC2 << 'INNER_EOF'
-# # #               cd /home/$USER/my-app/python
-# # #               gunicorn -w 4 -b 0.0.0.0:80 app:app &
-# # #             INNER_EOF
-# # #           EOF
-
-# # #       # 4. Clean up private key
-# # #       - name: Clean up private key
-# # #         run: rm -f private_key.pem
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# # # name: Secure Deployment via Bastion
-# # # env:
-# # # #         EC2: ${{ inputs.ec2_ip }}
-# # # #         BASTION: ${{ inputs.bastion_ip }}
-# # # #         EC2_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-# # # #         USER: ${{ secrets.EC2_USER }}
-# # # #         SSH_PORT: ${{ secrets.SSH_PORT }}
-
-# # # on:
-# # #   workflow_dispatch:
-# # #     inputs:
-# # #       bastion_ip:
-# # #         description: 'Bastion Public IP'
-# # #         required: true
-# # #         type: string
-# # #       ec2_ip:
-# # #         description: 'EC2 Private IP'
-# # #         required: true
-# # #         type: string
-# # # jobs:
-# # #   deploy:
-# # #     runs-on: $USER-latest
-# # #     steps:
-# # #       # 1. Checkout Code from GitHub
-# # #       - name: Checkout Code
-# # #         uses: actions/checkout@v2
-
-# # #       # 2. Set up SSH key for Bastion Host
-# # #       - name: Set up SSH key
-# # #         run: |
-# # #           echo "$EC2_EC2_EC2_SSH_KEY" > private_key.pem
-# # #           chmod 600 private_key.pem
-
-# # #       # 3. Copy app/python code to EC2 via Bastion Host
-# # #       - name: Copy app/python code to EC2 via Bastion Host
-# # #         run: |
-# # #           # SSH into the Bastion Host and copy the app/python directory to the EC2 instance
-# # #           ssh -i private_key.pem -o StrictHostKeyChecking=no -p ${PORT} $USER@$BASTION_PUBLIC_IP << 'EOF'
-# # #             # Use SCP to copy the app/python directory from GitHub Actions runner to the EC2 instance
-# # #             scp -i private_key.pem -r ./app/python $USER@$EC2_PRIVATE_IP:/home/$USER/my-app/python
-# # #             # Run the app on the EC2 instance
-# # #             ssh -i private_key.pem -p ${PORT} $USER@$EC2_PRIVATE_IP << 'INNER_EOF'
-# # #               cd /home/$USER/my-app/python
-# # #               gunicorn -w 4 -b 0.0.0.0:80 app:app &
-# # #             INNER_EOF
-# # #           EOF
-
-# # #       # 4. Clean up private key
-# # #       - name: Clean up private key
-# # #         run: rm -f private_key.pem
-
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# # #     runs-on: $USER-latest
-# # #     steps:
-# # #     - uses: actions/checkout@v2
-    
-# # #     - name: Deploy to EC2
-# # #       env:
-# # #         EC2: ${{ inputs.ec2_ip }}
-# # #         BASTION: ${{ inputs.bastion_ip }}
-# # #         EC2_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-# # #         USER: ${{ secrets.EC2_USER }}
-# # #         SSH_PORT: ${{ secrets.SSH_PORT }}
-# # #       run: |
-# # #         echo "$EC2_PRIVATE_KEY" > github-ec2.pem
-# # #         chmod 600 github-ec2.pem
-        
-# # #         # SSH into Bastion Host and execute commands
-# # #         ssh -o StrictHostKeyChecking=no -i github-ec2.pem -p ${SSH_PORT} ${USER}@${BASTION} << 'EOF'
-# # #           echo "Current directory: $(pwd)"
-# # #           echo "Listing home directory:"
-# # #           ls -la ~
-# #         EOF
-
-
-
 name: Secure Deployment via Bastion
 
 on:
@@ -404,70 +15,52 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      # 1. Checkout Code from GitHub
-      - name: Checkout Code
-        uses: actions/checkout@v2
+    # 1. Checkout Code from GitHub
+    - name: Checkout Code
+      uses: actions/checkout@v2
 
-      # 2. Set up SSH key for Bastion Host
-      - name: Set up SSH key
-        env:
-          PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          BASTION: ${{ inputs.bastion_ip }}
-          HOST: ${{ inputs.ec2_ip }}
-          USER: ${{ secrets.EC2_USER }}
-          PORT: ${{ secrets.SSH_PORT }}
-        run: |
-          echo "$PRIVATE_KEY" > private_key.pem
-          chmod 600 private_key.pem
+    # 2. Set up SSH key and establish SSH Tunnel
+    - name: Set up SSH tunnel and deploy code
+      env:
+        PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+        BASTION: ${{ inputs.bastion_ip }}
+        HOST: ${{ inputs.ec2_ip }}
+        USER: ${{ secrets.EC2_USER }}
+        PORT: ${{ secrets.SSH_PORT }}
+      run: |
+        # Save the SSH key to a file and set permissions
+        echo "$PRIVATE_KEY" > private_key.pem
+        chmod 600 private_key.pem
+        
+        # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
+        # This command forwards the local port 2222 to the target EC2 instance's SSH (port 22)
+        ssh -i private_key.pem -L 2222:${HOST}:22 -p ${PORT} ${USER}@${BASTION} -N -f
+        
+        # Verify the tunnel is up (checking that we can connect to the local port 2222)
+        timeout 20 bash -c 'until nc -z localhost 2222; do sleep 1; done'
 
-      # 3. Copy app/python code to EC2 via Bastion Host
-      - name: Copy app/python code to EC2 via Bastion Host
-        run: |
-          # Copy the SSH key to Bastion Host
-          # Create SSH key file locally
-          echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
+    # 3. Deploy code and start the application on the EC2 instance
+    - name: Deploy app and start Gunicorn
+      uses: appleboy/ssh-action@master
+      with:
+        host: localhost  # Connect to local port 2222, which forwards to the EC2 instance
+        username: ${{ secrets.EC2_USER }}
+        key: ./private_key.pem
+        port: 2222  # Use the local port of the tunnel
+        script: |
+          # Create directory on the target EC2 instance if it doesn't exist
+          mkdir -p /home/${{ secrets.EC2_USER }}/my-app/
           
-          # Test connections
-          ssh -i private_key.pem -p ${PORT} ${USER}@${BASTION} exit
-          ssh -J ${USER}@${BASTION}:${PORT} -i private_key.pem -p ${PORT} ${USER}@${HOST} exit
-
-          # Copy application files through bastion to private EC2
-          scp -r \
-              -o "ProxyJump ${USER}@${BASTION}:${PORT}" \
-              -i private_key.pem \
-              -P "${PORT}" \
-              ./app/python \
-              "${USER}@${HOST}:/home/${USER}/my-app/"
-          # Execute commands on private EC2 via bastion
-          ssh -J ${USER}@${BASTION}:${PORT} \
-              -i private_key.pem \
-              -p ${PORT} \
-              ${USER}@${HOST} << 'EOF'
-          cd /home/${USER}/my-app/python
+          # Copy the application code (app/python) to the EC2 instance using SCP
+          rsync -avz -e "ssh -p 2222" ./app/python/ ${{ secrets.EC2_USER }}@localhost:/home/${{ secrets.EC2_USER }}/my-app/
+          
+          # Install the required dependencies and start Gunicorn
+          cd /home/${{ secrets.EC2_USER }}/my-app/python
           pip install -r requirements.txt
           nohup gunicorn -w 4 -b 0.0.0.0:80 app:app > gunicorn.log 2>&1 &
-          EOF
 
-      # 4. Clean up private key
-      - name: Clean up private key
-        run: rm -f private_key.pem
-
-
-
-# echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
-# scp -i ./private_key.pem -P ${PORT} ./private_key.pem ${USER}@${BASTION}:/home/${USER}
-
-# # SSH into the Bastion Host and copy the app/python directory to the EC2 instance
-# ssh -i private_key.pem -o StrictHostKeyChecking=no -p ${PORT} ${USER}@${BASTION} << 'EOF'
-#   # Use SCP to copy the app/python directory from GitHub Actions runner to the EC2 instance
-#   scp -i private_key.pem -P ${PORT} -r ./app/python ${USER}@${HOST}:/home/${USER}/my-app/python
-  
-#   # Run the app on the EC2 instance
-#   ssh -i private_key.pem -p ${PORT} ${USER}@${HOST} << 'INNER_EOF'
-#     cd /home/${USER}/my-app/python
-#     gunicorn -w 4 -b 0.0.0.0:80 app:app &
-#   INNER_EOF
-# EOF
-
-        
+    # 4. Clean up SSH tunnel
+    - name: Clean up SSH tunnel
+      run: pkill -f "ssh -L 2222"

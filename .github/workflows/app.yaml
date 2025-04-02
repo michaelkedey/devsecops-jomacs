@@ -42,7 +42,7 @@ jobs:
         HOST: ${{ inputs.ec2_ip }}  # EC2 Private IP
         KEY: ${{ secrets.EC2_SSH_KEY }}
       run: |
-        echo "$KEY" > private_key.pem && chmod 600 key.pem
+        echo "$KEY" > key.pem && chmod 600 key.pem
         rsync -avz -e "ssh -i key.pem -p 2222" ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
         # scp -r -P 2222 -i key.pem ./app  ${USER}@localhost:/home/${USER}/my-app/
         

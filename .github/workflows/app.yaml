@@ -40,6 +40,7 @@ jobs:
       env:
         USER: ${{ secrets.EC2_USER }}  # EC2 User (e.g., ubuntu)
         HOST: ${{ inputs.ec2_ip }}  # EC2 Private IP
+        PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
       run: |
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
           # Use rsync to deploy code to EC2 over SSH tunnel

@@ -11,16 +11,13 @@ on:
         description: 'EC2 Private IP'
         required: true
         type: string
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
     # 1. Checkout Code from GitHub
     - name: Checkout Code
       uses: actions/checkout@v2
-
     # 2. Set up SSH key and establish SSH Tunnel
     - name: Set up SSH tunnel and deploy code
       env:
@@ -33,35 +30,32 @@ jobs:
         echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
         
         # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
-        # This command forwards the local port 2222 to the target EC2 instance's SSH (port 22)
-        ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L 2222:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
-      
+        # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH (port 22)
+        ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
+    # 3. copy code and deploy 
     - name: Deploy app and start Gunicorn
       env:
         USER: ${{ secrets.EC2_USER }}
+        TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
         HOST: ${{ inputs.ec2_ip }}
       run: |
-        rsync -avz -e "ssh -i private_key.pem -p 2222 -o StrictHostKeyChecking=no" ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
-        # scp -r -P 2222 -i private_key.pem ./app  ${USER}@localhost:/home/${USER}/my-app/
+        rsync -avz -e "ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no" ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
         
         # SSH into the EC2 instance and install dependencies and start Gunicorn
-        ssh -i private_key.pem -p 2222 -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'
+        ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'
           # Install dependencies
           cd /home/${USER}/my-app/
           sudo apt-get install python3-pip -y
           sudo apt-get install gunicorn -y
           sudo apt-get install python3-flask -y
           pip install -r requirements.txt
-          
           # Start Gunicorn
           sudo nohup gunicorn -w 4 -b 0.0.0.0:80 app:app > gunicorn.log 2>&1 &
         EOF
-    # # 4. Clean up SSH tunnel
-    # - name: Clean up SSH tunnel
-    #   run: pkill -f "ssh -L 2222"
+    # 3. clean-up tunnel
     - name: Cleanup SSH Tunnel
       if: always()  # Runs even if previous steps fail
       run: |
-        # Kill tunnel process using port 2222
-        pkill -f "ssh.*2222:.*${{ inputs.ec2_ip }}"
+        # Kill tunnel process using port ${TUNNEL}
+        pkill -f "ssh.*${TUNNEL}:.*${{ inputs.ec2_ip }}"
         echo "SSH tunnel terminated"

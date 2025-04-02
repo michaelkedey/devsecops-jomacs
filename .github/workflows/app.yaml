@@ -35,7 +35,7 @@ jobs:
         
         # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
         # This command forwards the local port 2222 to the target EC2 instance's SSH (port 22)
-        ssh -i private_key.pem -o StrictHostKeyChecking=no -L 2222:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION}
+        ssh -i private_key.pem -o StrictHostKeyChecking=no -t -L 2222:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION}
         # ssh -i private_key.pem -L 2222:${HOST}:22 -p ${PORT} ${USER}@${BASTION} -N -f
         
         # Verify the tunnel is up (checking that we can connect to the local port 2222)
@@ -43,16 +43,13 @@ jobs:
 
     # 3. Deploy code and start the application on the EC2 instance
     - name: Deploy app and start Gunicorn
-      # uses: appleboy/ssh-action@master
-      # with:
-      #   host: localhost  # Connect to local port 2222, which forwards to the EC2 instance
-      #   username: ${{ secrets.EC2_USER }}
-      #   key: ./private_key.pem
-      #   port: 2222  # Use the local port of the tunnel
-      #   script: |
-      run: |
-          ssh -i private_key.pem -p 2222 ${HOST}@localhost
-
+      uses: appleboy/ssh-action@master
+      with:
+        host: localhost  # Connect to local port 2222, which forwards to the EC2 instance
+        username: ${{ secrets.EC2_USER }}
+        key: ./private_key.pem
+        port: 2222  # Use the local port of the tunnel
+        script: |
           # Create directory on the target EC2 instance if it doesn't exist
           mkdir -p /home/${{ secrets.EC2_USER }}/my-app/
           

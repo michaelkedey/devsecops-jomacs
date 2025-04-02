@@ -40,14 +40,14 @@ jobs:
       env:
         USER: ${{ secrets.EC2_USER }}  # EC2 User (e.g., ubuntu)
         HOST: ${{ inputs.ec2_ip }}  # EC2 Private IP
-        KEY: ${{ secrets.EC2_SSH_KEY }}
+        # KEY: ${{ secrets.EC2_SSH_KEY }}
       run: |
-        echo "$KEY" > key.pem && chmod 600 key.pem
-        rsync -avz -e "ssh -i key.pem -p 2222" -o StrictHostKeyChecking=no ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
-        # scp -r -P 2222 -i key.pem ./app  ${USER}@localhost:/home/${USER}/my-app/
+        # echo "$KEY" > key.pem && chmod 600 key.pem
+        rsync -avz -e "ssh -i private_key.pem -p 2222 -o StrictHostKeyChecking=no ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
+        # scp -r -P 2222 -i private_key.pem ./app  ${USER}@localhost:/home/${USER}/my-app/
         
         # SSH into the EC2 instance and install dependencies and start Gunicorn
-        ssh -i key.pem -p 2222 -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'
+        ssh -i private_key.pem -p 2222 -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'
           # Install dependencies
           cd /home/${USER}/my-app/
           sudo apt-get install python3-pip -y

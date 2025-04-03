@@ -36,14 +36,14 @@ jobs:
       - name: Run Bandit Scan
         run: |
           pip install bandit
-          bandit -r ./app/python -f json -o bandit-report.json || exit 1
+          bandit -r ./app/python -f json -o app/python/bandit-report.json exit 1
         continue-on-error: true
 
       # 4. Run Safety scan (Dependency vulnerability scanner)
       - name: Run Safety Scan
         run: |
           pip install safety
-          safety check --full-report --output safety-report.json --policy-file app/python/.safety.yaml || exit 1
+          safety check -r app/python/requirements.txt --policy-file app/python/.safety.yaml --output json > app/python/safety-report.json || exit 1
         continue-on-error: true
 
       # 5. Upload the reports for later review
@@ -52,14 +52,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bandit-report
-          path: bandit-report.json
+          path: ./app/python/bandit-report.json
 
       - name: Upload Safety Report
         if: always()  # Always upload, even if workflow fails
         uses: actions/upload-artifact@v4
         with:
           name: safety-report
-          path: safety-report.json
+          path: ./app/python/safety-report.json 
 
   deploy:
     needs: scan  # Ensure deploy only happens after the scan job

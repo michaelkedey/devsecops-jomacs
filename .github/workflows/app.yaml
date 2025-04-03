@@ -81,8 +81,7 @@ jobs:
           # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
           # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH (port 22)
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
-
-      # 7. Copy code and deploy 
+      # 7. copy code and deploy 
       - name: Deploy app and start Gunicorn
         env:
           USER: ${{ secrets.EC2_USER }}
@@ -158,35 +157,6 @@ jobs:
 #       run: |
 #         python -m pip install --upgrade pip
 #         pip install -r ./app/python/requirements.txt
-
-#     # 3. Run Bandit scan (Python code security scanner)
-#     - name: Run Bandit Scan
-#       run: |
-#         pip install bandit
-#         bandit -r ./app/python -f json -o bandit-report.json || exit 1
-#       continue-on-error: true
-
-#     # 4. Run Safety scan (Dependency vulnerability scanner)
-#     - name: Run Safety Scan
-#       run: |
-#         pip install safety
-#         safety check --full-report --output safety-report.json --policy-file app/python/.safety.yaml || exit 1
-#       continue-on-error: true
-
-#     # 5. Upload the reports for later review
-#     - name: Upload Bandit Report
-#       if: always()  # Always upload, even if workflow fails
-#       uses: actions/upload-artifact@v4
-#       with:
-#         name: bandit-report
-#         path: bandit-report.json
-
-#     - name: Upload Safety Report
-#       if: always()  # Always upload, even if workflow fails
-#       uses: actions/upload-artifact@v4
-#       with:
-#         name: safety-report
-#         path: safety-report.json
 
 #     # 6. Set up SSH key and establish SSH Tunnel
 #     - name: Set up SSH tunnel and deploy code

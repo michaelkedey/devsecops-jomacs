@@ -1,0 +1,158 @@
+
+
++===========================================================================================================================================================================================+
+
+
+DEPRECATED: this command (`check`) has been DEPRECATED, and will be unsupported beyond 01 June 2024.
+
+
+We highly encourage switching to the new `scan` command which is easier to use, more powerful, and can be set up to mimic the deprecated command if required.
+
+
++===========================================================================================================================================================================================+
+
+
+{
+    "report_meta": {
+        "scan_target": "files",
+        "scanned": [
+            "app/python/requirements.txt"
+        ],
+        "scanned_full_path": [
+            "/home/iridis-admin/Desktop/devsecops-jomacs/app/python/requirements.txt"
+        ],
+        "target_languages": [
+            "python"
+        ],
+        "policy_file": "-",
+        "policy_file_source": "local",
+        "audit_and_monitor": false,
+        "api_key": false,
+        "account": "",
+        "local_database_path": null,
+        "safety_version": "3.2.14",
+        "timestamp": "2025-04-03 19:11:45",
+        "packages_found": 4,
+        "vulnerabilities_found": 0,
+        "vulnerabilities_ignored": 0,
+        "remediations_recommended": 0,
+        "telemetry": {
+            "safety_options": {
+                "files": {
+                    "-r": 1
+                },
+                "policy_file": {
+                    "--policy-file": 1
+                },
+                "output": {
+                    "--output": 1
+                }
+            },
+            "safety_version": "3.2.14",
+            "safety_source": "cli",
+            "os_type": "Linux",
+            "os_release": "6.8.0-52-generic",
+            "os_description": "Linux-6.8.0-52-generic-x86_64-with-glibc2.35",
+            "python_version": "3.10.12",
+            "safety_command": "check"
+        },
+        "git": {
+            "branch": "main",
+            "tag": "",
+            "commit": "201bf51fa26d7850298472a9ca51b6e50ba69102",
+            "dirty": true,
+            "origin": "git@github.com:michaelkedey/devsecops-jomacs.git"
+        },
+        "project": null,
+        "json_version": "1.1",
+        "remediations_attempted": 0,
+        "remediations_completed": 0,
+        "remediation_mode": "NON_INTERACTIVE"
+    },
+    "scanned_packages": {
+        "flask": {
+            "name": "flask",
+            "version": null,
+            "requirements": [
+                {
+                    "raw": "Flask>=2.3.2",
+                    "extras": [],
+                    "marker": null,
+                    "name": "Flask",
+                    "specifier": ">=2.3.2",
+                    "url": null,
+                    "found": "/home/iridis-admin/Desktop/devsecops-jomacs/app/python/requirements.txt"
+                }
+            ]
+        },
+        "gunicorn": {
+            "name": "gunicorn",
+            "version": null,
+            "requirements": [
+                {
+                    "raw": "gunicorn>=23.0.0",
+                    "extras": [],
+                    "marker": null,
+                    "name": "gunicorn",
+                    "specifier": ">=23.0.0",
+                    "url": null,
+                    "found": "/home/iridis-admin/Desktop/devsecops-jomacs/app/python/requirements.txt"
+                }
+            ]
+        },
+        "safety": {
+            "name": "safety",
+            "version": null,
+            "requirements": [
+                {
+                    "raw": "safety>=2.2.0",
+                    "extras": [],
+                    "marker": null,
+                    "name": "safety",
+                    "specifier": ">=2.2.0",
+                    "url": null,
+                    "found": "/home/iridis-admin/Desktop/devsecops-jomacs/app/python/requirements.txt"
+                }
+            ]
+        },
+        "bandit": {
+            "name": "bandit",
+            "version": null,
+            "requirements": [
+                {
+                    "raw": "bandit>=1.7.7",
+                    "extras": [],
+                    "marker": null,
+                    "name": "bandit",
+                    "specifier": ">=1.7.7",
+                    "url": null,
+                    "found": "/home/iridis-admin/Desktop/devsecops-jomacs/app/python/requirements.txt"
+                }
+            ]
+        }
+    },
+    "affected_packages": {},
+    "announcements": [],
+    "vulnerabilities": [],
+    "ignored_vulnerabilities": [],
+    "remediations": {},
+    "remediations_results": {
+        "vulnerabilities_fixed": [],
+        "remediations_applied": {},
+        "remediations_skipped": {}
+    }
+}
+
+
++===========================================================================================================================================================================================+
+
+
+DEPRECATED: this command (`check`) has been DEPRECATED, and will be unsupported beyond 01 June 2024.
+
+
+We highly encourage switching to the new `scan` command which is easier to use, more powerful, and can be set up to mimic the deprecated command if required.
+
+
++===========================================================================================================================================================================================+
+
+

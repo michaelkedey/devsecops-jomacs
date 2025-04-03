@@ -18,7 +18,42 @@ jobs:
     # 1. Checkout Code from GitHub
     - name: Checkout Code
       uses: actions/checkout@v2
-    # 2. Set up SSH key and establish SSH Tunnel
+     # 2. Set up Python environment and install dependencies
+    - name: Set up Python 3.x
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r ./app/python/requirements.txt
+
+    # 3. Run Bandit scan (Python code security scanner)
+    - name: Run Bandit Scan
+      run: |
+        pip install bandit
+        bandit -r ./app/python -f json -o bandit-report.json || exit 1
+
+    # 4. Run Safety scan (Dependency vulnerability scanner)
+    - name: Run Safety Scan
+      run: |
+        pip install safety
+        safety check --full-report --output safety-report.json || exit 1
+
+    # 5. Upload the reports for later review
+    - name: Upload Bandit Report
+      uses: actions/upload-artifact@v2
+      with:
+        name: bandit-report
+        path: bandit-report.json
+
+    - name: Upload Safety Report
+      uses: actions/upload-artifact@v2
+      with:
+        name: safety-report
+        path: safety-report.json
+
+    # 6. Set up SSH key and establish SSH Tunnel
     - name: Set up SSH tunnel and deploy code
       env:
         PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
@@ -33,7 +68,7 @@ jobs:
         # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
         # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH (port 22)
         ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
-    # 3. copy code and deploy 
+    # 7. copy code and deploy 
     - name: Deploy app and start Gunicorn
       env:
         USER: ${{ secrets.EC2_USER }}
@@ -53,7 +88,7 @@ jobs:
           # Start Gunicorn
           sudo nohup gunicorn -w 4 -b 0.0.0.0:80 app:app > gunicorn.log 2>&1 &
         EOF
-    # 3. clean-up tunnel
+    # 8. clean-up tunnel
     - name: Cleanup SSH Tunnel
       if: always()  # Runs even if previous steps fail
       run: |

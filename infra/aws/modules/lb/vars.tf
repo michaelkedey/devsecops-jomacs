@@ -60,7 +60,7 @@ variable "instance_id" {
 }
 
 variable "delete_ptotection" {
-  default = true
+  default = false
   type    = bool
 }
 

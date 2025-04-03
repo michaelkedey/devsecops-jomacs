@@ -36,15 +36,13 @@ jobs:
       - name: Run Bandit Scan
         run: |
           pip install bandit
-          bandit -r ./app/python -f json -o app/python/bandit-report.json
-        continue-on-error: true
+          bandit -r ./app/python -f json -o app/python/bandit-report.json || exit 1
 
       # 4. Run Safety scan (Dependency vulnerability scanner)
       - name: Run Safety Scan
         run: |
           pip install safety
           safety check -r app/python/requirements.txt --policy-file app/python/.safety.yaml --output json > app/python/safety-report.json || exit 1
-        continue-on-error: true
 
       # 5. Upload the reports for later review
       - name: Upload Bandit Report

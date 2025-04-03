@@ -66,6 +66,9 @@ jobs:
     if: success()  # Only run if the scan job succeeds
     runs-on: ubuntu-latest
     steps:
+      # 1. Checkout Code from GitHub
+      - name: Checkout Code
+        uses: actions/checkout@v2    
       # 6. Set up SSH key and establish SSH Tunnel
       - name: Set up SSH tunnel and deploy code
         env:

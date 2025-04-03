@@ -36,7 +36,7 @@ jobs:
       - name: Run Bandit Scan
         run: |
           pip install bandit
-          bandit -r ./app/python -f json -o app/python/bandit-report.json exit 1
+          bandit -r ./app/python -f json -o app/python/bandit-report.json
         continue-on-error: true
 
       # 4. Run Safety scan (Dependency vulnerability scanner)

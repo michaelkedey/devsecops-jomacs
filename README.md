@@ -6,7 +6,7 @@
 ![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git)
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python)
 
-#### Secure CI/CD Pipeline with Automated Scanning
+### Secure CI/CD Pipeline with Automated Scanning
 
 ##### [cicd](./cicd/)
 - **[infra.yaml](./cicd/infra.yaml)
@@ -63,7 +63,7 @@
     * 3 subnets (private, public, public1)
     * ssm resources
   
-#### Local Infrastructure-as-Code with Policy Enforcement
+### Local Infrastructure-as-Code with Policy Enforcement
 ##### [infra](./infra/)
 - [local/docker](./infra/local/docker/): uses terraform iac, including terraform modules to create the local infrsatructure of 2 docker resuorces for local docker container deplyment. Resources include:
     * 1 container

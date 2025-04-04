@@ -1,3 +1,3 @@
 ```
-docker pull michaelkedey/cipher-tool:v4
+docker pull michaelkedey/cipher-tool:v2
 ```

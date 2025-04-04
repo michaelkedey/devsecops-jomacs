@@ -5,7 +5,7 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # Step 3: Copy the local directory contents into the container at /app
-COPY ./app/python /app
+COPY . /app
 
 # Step 4: Install dependencies
 # We copy the requirements.txt file first to take advantage of Docker layer caching

@@ -6,7 +6,7 @@
 ![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git)
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python)
 
-### Secure CI/CD Pipeline with Automated Scanning
+### 1. Secure CI/CD Pipeline with Automated Scanning
 
 ##### [cicd](./cicd/)
 - **[infra.yaml](./cicd/infra.yaml)
@@ -31,7 +31,12 @@
     * using ssh and rsync to securely transfer files to the private server from the bastion via custom ssh ports, only when the sfacety and security checks pass.
     * starting the app and verifying it is running on the private server
     * this workflow is triggerd manually only after submitting required inputs for the `bastion_public_ip` and `ec2_private_ip`
-
+- **[docker.yaml](./cicd/):** this workflow securely automates the scanning, creation and deployment of the created docker image to dockerhub. It performs a trivy scan of the created image, and on success, the image is deployed to dockerhub. On failure however, the image is not deployed. ;
+    * trivy scan for vulnerabilities
+        * [trivy-scan.json](./app/python/scan-reports/trivy-scanreport.json)
+    * generating scan reports for auditing
+    * failing image deployments to dockerhub if any security issues are found.
+  
 ##### [app](./app/)
 - [ciphertool](./app/ciphertool/ciphertool.md)
     * contains docker pull command to run the cipher-tool application
@@ -63,12 +68,15 @@
     * 3 subnets (private, public, public1)
     * ssm resources
   
-### Local Infrastructure-as-Code with Policy Enforcement
+### 2. Local Infrastructure-as-Code with Policy Enforcement
+
 ##### [infra](./infra/)
 - [local/docker](./infra/local/docker/): uses terraform iac, including terraform modules to create the local infrsatructure of 2 docker resuorces for local docker container deplyment. Resources include:
-    * 1 container
-    * 1 [image](https://hub.docker.com/r/michaelkedey/cipher-tool/tags)
-      * please use V2
+    * 2 containes
+    * 2 [docker images](https://hub.docker.com/r/michaelkedey/)
+      * [michaelkedey/cipher-tool:v2](https://hub.docker.com/r/michaelkedey/cipher-tool/tags)
+        * please use V2
+      * [michaelkedey/jomacsdevsecops:latest](https://hub.docker.com/r/michaelkedey/jomacsdevsecops/tags)
     * Installation & 🛠️ Usage
       - Clone the repository: `https://github.com/michaelkedey/devsecops-jomacs.git`
           ```
@@ -87,7 +95,18 @@
         ```
         terraform destroy --auto-approve
         ```
-#### Container Scanning & Registry Compliance
+
+#### 3. Container Scanning & Registry Compliance
+
+##### [app](./app/)
+- [python](./app/python/)
+  * contains the python application code bundled into a container image
+  * [Dokerfile](./app/containerization/Dockerfile): used to create the containerized image of the [python-app](./app/python/)
+- **[docker.yaml](./cicd/):** this workflow securely automates the scanning, creation and deployment of the created docker image to dockerhub. It performs a trivy scan of the created image, and on success, the image is deployed to dockerhub. On failure however, the image is not deployed. ;
+    * trivy scan for vulnerabilities
+        * [trivy-scan.json](./app/python/scan-reports/trivy-scanreport.json)
+    * generating scan reports for auditing
+    * failing image deployments to dockerhub if any security issues are found.
 
 #### directory structure
 ```plaintext

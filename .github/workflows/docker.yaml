@@ -45,7 +45,8 @@ jobs:
 
     # Upload the Trivy scan report as an artifact (so you can download it later)
     - name: Upload Trivy scan report
-      uses: actions/upload-artifact@v3
+      if: always()
+      uses: actions/upload-artifact@v4
       with:
         name: trivy-scan-report
         path: trivy-reports/scan-report.json

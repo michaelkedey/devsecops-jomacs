@@ -1,6 +1,13 @@
 # devsecops-jomacs
 
+![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform)
+![AWS](https://img.shields.io/badge/AWS-232F3E?style=for-the-badge&logo=amazon-aws)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker)
+![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git)
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python)
+
 #### Secure CI/CD Pipeline with Automated Scanning
+
 ##### [cicd](./cicd/)
 - **[infra.yaml](./cicd/infra.yaml)
   - designed to to create the necessary AWS resources for the pipeline,including;
@@ -55,6 +62,9 @@
     * 3 route-table associations (private, public, public1)
     * 3 subnets (private, public, public1)
     * ssm resources
+  
+#### Local Infrastructure-as-Code with Policy Enforcement
+##### [infra](./infra/)
 - [local/docker](./infra/local/docker/): uses terraform iac, including terraform modules to create the local infrsatructure of 2 docker resuorces for local docker container deplyment. Resources include:
     * 1 container
     * 1 [image](https://hub.docker.com/r/michaelkedey/cipher-tool/tags)
@@ -77,6 +87,8 @@
         ```
         terraform destroy --auto-approve
         ```
+#### Container Scanning & Registry Compliance
+
 #### directory structure
 ```plaintext
 .

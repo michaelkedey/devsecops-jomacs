@@ -36,16 +36,6 @@ resource "aws_lb_target_group" "project_target_group" {
   )
 }
 
-resource "aws_lb_target_group" "my-tg-1" {
-  name        = "my-target-group-1"
-  port        = 80
-  protocol    = "HTTP"
-  target_type = "instance"
-  vpc_id      = "vpc-XXXXXXXX"
-  health_check {
-  }
-}
-
 #associate the instance with the target group
 resource "aws_lb_target_group_attachment" "project_app_tg_attachment" {
   target_group_arn = aws_lb_target_group.project_target_group.arn

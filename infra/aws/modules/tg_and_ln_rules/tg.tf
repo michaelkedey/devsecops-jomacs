@@ -3,7 +3,7 @@ resource "aws_lb_listener_rule" "project_rule" {
   priority     = var.listener_rule_priority
   action {
     type             = var.listener_rule_action
-    target_group_arn = aws_lb_target_group.project_target_group.arn
+    target_group_arn = aws_lb_target_group.project_df_target_group.arn
   }
   condition {
     path_pattern {
@@ -48,7 +48,7 @@ resource "aws_lb_target_group" "project_df_target_group" {
 
 #associate the instance with the target group
 resource "aws_lb_target_group_attachment" "project_tg_attachment" {
-  target_group_arn = aws_lb_target_group.project_target_group.arn
+  target_group_arn = aws_lb_target_group.project_df_target_group.arn
   target_id        = var.instance_id
   port             = var.tg_port
 }

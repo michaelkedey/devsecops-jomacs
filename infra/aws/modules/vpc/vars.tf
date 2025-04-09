@@ -2,11 +2,12 @@
 variable "cidrs" {
 
   default = {
-    vpc            = "177.70.0.0/24",
-    public_subnet  = "177.70.0.0/26",
-    public_subnet1 = "177.70.0.128/26",
-    private_subnet = "177.70.0.64/26",
-    default_route  = "0.0.0.0/0"
+    vpc             = "177.70.0.0/24",
+    public_subnet   = "177.70.0.0/26",
+    public_subnet1  = "177.70.0.128/26",
+    private_subnet  = "177.70.0.64/26",
+    private_subnet1 = "177.70.0.192/26"
+    default_route   = "0.0.0.0/0"
   }
 
   sensitive   = true
@@ -28,6 +29,7 @@ variable "names" {
     public_subnet       = "jp_vpc_bublic_sn",
     public_subnet1      = "jp_vpc_bublic_sn1",
     private_subnet      = "jp_vpc_private_sn",
+    private_subnet1     = "jp_vpc_private_sn1",
     internet_gateway    = "jp_internet_gw",
     public_route_table  = "jp_public_rt",
     private_route_table = "jp_private_rt"
@@ -54,7 +56,7 @@ variable "tags_all" {
 }
 
 variable "azs" {
-  default   = ["us-east-1a", "us-east-1b"]
+  default   = ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"]
   type      = list(string)
   sensitive = true
 }

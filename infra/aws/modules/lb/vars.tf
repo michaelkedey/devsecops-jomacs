@@ -10,7 +10,9 @@ variable "names" {
     instance_sg = "jp_isg",
     jumper_sg   = "jp_jumper_sg",
     lb_sg       = "jp_lb_sg",
+    elk_sg      = "jp_elk_sg",
     app-tg      = "jp-app-tg",
+    elk-tg      = "jp-elk-tg",
     lb          = "jp-lb"
   }
 
@@ -34,6 +36,7 @@ variable "ports" {
     all        = 0
     app        = 80
     custom_ssh = 8008
+    elk        = 5601
   }
   sensitive = true
   type      = map(number)
@@ -46,16 +49,47 @@ variable "protocols" {
   sensitive   = true
 }
 
-variable "lb_default_action" {
+variable "lb_default_action_type" {
+  default = "fixed-response"
+  type    = string
+}
+
+variable "listener_rule_action" {
   default = "forward"
   type    = string
 }
 
-variable "vpc_id" {
-  type = string
+variable "listener_rule_priority" {
+  default = {
+    first  = 10
+    second = 20
+  }
+  type = map(number)
 }
 
-variable "instance_id" {
+variable "listener_rule_path" {
+  default = {
+    app = "/app"
+    elk = "/elk"
+  }
+}
+
+variable "lb_default_action_cn_type" {
+  default = "text/plain"
+  type    = string
+}
+
+variable "lb_default_action_message" {
+  default = "The load balancer works, to access the /app to access elk dashboard /elk"
+  type    = string
+}
+
+variable "lb_default_action_status_code" {
+  default = "200"
+  type    = string
+}
+
+variable "vpc_id" {
   type = string
 }
 

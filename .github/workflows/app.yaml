@@ -109,6 +109,13 @@ jobs:
             echo "gunicorn log"
             sudo cat gunicorn.log
           EOF
+          # 8. Clean-up tunnel
+      - name: Cleanup SSH Tunnel
+        if: always()  # Runs even if previous steps fail
+        run: |
+          # Kill tunnel process using port ${TUNNEL}
+          pkill -f "ssh.*${TUNNEL}:.*${{ inputs.ec2_ip }}"
+          echo "SSH tunnel terminated"
 
   deploy-elk:
     needs: deploy-app  # Ensure deploy only happens after the scan job

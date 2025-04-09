@@ -5,7 +5,7 @@ variable "iam_user" {
 }
 
 variable "public_ip" {
-  type    = map(bool)
+  type = map(bool)
   default = {
     yes = true
     no  = false

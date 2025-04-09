@@ -1,11 +1,11 @@
 resource "aws_instance" "project_instance" {
-  instance_type   = "${var.instance_type}" ["project"]
-  ami             = data.aws_ami.latest_ubuntu.id
-  subnet_id       = var.subnet_id
-  security_groups = var.security_groups
-  provider        = aws.project_region
-  user_data       = file("${path.module}/custome_ssh.sh")
-  key_name        = var.key_name
+  instance_type               = "${var.instance_type}" ["project"]
+  ami                         = data.aws_ami.latest_ubuntu.id
+  subnet_id                   = var.subnet_id
+  security_groups             = var.security_groups
+  provider                    = aws.project_region
+  user_data                   = file("${path.module}/custome_ssh.sh")
+  key_name                    = var.key_name
   associate_public_ip_address = var.public_ip
 
   tags = sensitive(

@@ -35,7 +35,7 @@ output "lb_dns" {
 }
 
 output "bastion_public_ip" {
-  value = module.bastion.bastion_public_ip
+  value = module.bastion.ec2_public_ip
 }
 
 output "ec2_private_ip" {

@@ -12,7 +12,7 @@ module "ec2" {
   subnet_id       = module.vpc.pr_sn
   security_groups = [module.lb.instance_sg]
   key_name        = var.key_name
-  public_ip = var.public_ip["no"]
+  public_ip       = var.public_ip["no"]
 }
 
 module "bastion" {
@@ -20,7 +20,7 @@ module "bastion" {
   subnet_id       = module.vpc.pb_sn
   public_ip       = var.public_ip["yes"]
   key_name        = var.key_name
-  security_groups = [module.lb.bastion_sg] 
+  security_groups = [module.lb.bastion_sg]
 }
 
 module "lb" {

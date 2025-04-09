@@ -123,7 +123,7 @@ jobs:
         env:
           PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
           BASTION: ${{ inputs.bastion_ip }}
-          HOST: ${{ inputs.elk_ip }}
+          ELK: ${{ inputs.elk_ip }}
           USER: ${{ secrets.EC2_USER }}
           PORT: ${{ secrets.SSH_PORT }}
           TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
@@ -132,13 +132,13 @@ jobs:
           
           # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
           # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH (port 22)
-          ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
-      # 7. copy code and deploy 
+          ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${ELK}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
+      # 7. deploy elk
       - name: Deploy and start elk stack
         env:
           USER: ${{ secrets.EC2_USER }}
           TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
-          HOST: ${{ inputs.elk_ip }}
+          ELK: ${{ inputs.elk_ip }}
         run: |
           # SSH into the EC2 instance and install elk and start it
           ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'

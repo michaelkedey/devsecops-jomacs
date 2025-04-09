@@ -17,7 +17,3 @@ output "bastion_sg" {
 output "lb_dns" {
   value = aws_lb.project_lb.dns_name
 }
-
-output "lb_listener_arn" {
-  value = aws_lb_listener.project_lb_listener.arn
-}

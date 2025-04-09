@@ -50,3 +50,11 @@ variable "listener_rule_action" {
   default = "forward"
   type    = string
 } 
+
+variable "listener_rule_priority" {
+  default = {
+    first  = 10
+    second = 20
+  }
+  type = map(number)
+}

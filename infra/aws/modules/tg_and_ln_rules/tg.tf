@@ -34,9 +34,9 @@ resource "aws_lb_target_group" "project_df_target_group" {
     healthy_threshold   = var.healthcheck_healthy_treshold
     unhealthy_threshold = var.healthcheck_unhealthy_treshold
   }
-  # lifecycle {
-  #   create_before_destroy = var.tg_lifecycle 
-  # }
+  lifecycle {
+    create_before_destroy = true
+  }
 
   tags = merge(
     var.tags_all,

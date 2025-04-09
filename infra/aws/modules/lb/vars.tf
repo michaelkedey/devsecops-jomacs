@@ -15,7 +15,7 @@ variable "names" {
     elk-tg      = "jp-elk-tg",
     lb          = "jp-lb",
     df_lb_tg    = "jp-def-lb-tg",
-    lb          = "jp_lb"
+    lb          = "jp-lb"
   }
 
   sensitive   = true

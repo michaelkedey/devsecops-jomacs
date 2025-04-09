@@ -7,7 +7,7 @@ resource "aws_lb_listener_rule" "project_rule" {
   }
   condition {
     path_pattern {
-      values = ["app"]
+      values = [var.listener_rule_path]
     }
   }
   tags = merge(

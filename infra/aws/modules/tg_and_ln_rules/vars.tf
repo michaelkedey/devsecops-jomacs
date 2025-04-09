@@ -54,3 +54,7 @@ variable "listener_rule_action" {
 variable "listener_rule_priority" {
 
 }
+
+variable "listener_rule_path" {
+
+}

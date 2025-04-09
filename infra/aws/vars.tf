@@ -37,3 +37,10 @@ variable "listener_rule_priority" {
     "second" = 20
   }
 }
+
+variable "listener_rule_path" {
+  default = {
+    app = "/app"
+    elk = "/elk"
+  }
+}

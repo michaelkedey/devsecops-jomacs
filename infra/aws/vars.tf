@@ -20,8 +20,8 @@ variable "key_name" {
 
 variable "names" {
   default = {
-    app-tg-name     = "jp_app_tg"
-    elk-tg-name     = "elk_app_tg"
+    app-tg-name     = "jp-app-tg"
+    elk-tg-name     = "jp-elk-tg"
     app-ln-rule     = "jp_app-ln-rule"
     elk-ln-rule     = "jp-elk-ln-rule"
     elk_instance    = "jp_elk_server"

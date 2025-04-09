@@ -44,3 +44,14 @@ variable "listener_rule_path" {
     elk = "/elk/*"
   }
 }
+
+variable "ports" {
+  default = {
+    all        = 0
+    app        = 80
+    custom_ssh = 8008
+    elk        = 5601
+  }
+  sensitive = true
+  type      = map(number)
+}

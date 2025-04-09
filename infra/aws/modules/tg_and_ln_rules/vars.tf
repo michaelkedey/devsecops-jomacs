@@ -16,15 +16,8 @@ variable "vpc_id" {
   type = string
 }
 
-variable "ports" {
-  default = {
-    all        = 0
-    app        = 80
-    custom_ssh = 8008
-    elk        = 5601
-  }
-  sensitive = true
-  type      = map(number)
+variable "tg_port" {
+
 }
 
 variable "protocols" {
@@ -32,6 +25,11 @@ variable "protocols" {
   description = "allow traffic in"
   type        = list(any)
   sensitive   = true
+}
+
+variable "lb_target_type" {
+  default = "instance"
+  type    = string
 }
 
 variable "tg_name" {

@@ -4,8 +4,9 @@ resource "aws_lb" "project_lb" {
   load_balancer_type = var.lb_type
   security_groups    = [aws_security_group.project_lb_sg.id]
   #subnets            = [for subnet in aws_subnet.public : subnet.id]
-  subnets                    = var.subnet_ids
-  enable_deletion_protection = var.delete_ptotection
+  subnets                          = var.subnet_ids
+  enable_deletion_protection       = var.delete_ptotection
+  enable_cross_zone_load_balancing = var.cross_zone
 
   #   access_logs {
   #     bucket  = aws_s3_bucket.lb_logs.id

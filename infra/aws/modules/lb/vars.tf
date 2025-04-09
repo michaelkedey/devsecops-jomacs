@@ -98,6 +98,11 @@ variable "delete_ptotection" {
   type    = bool
 }
 
+variable "cross_zone" {
+  default = true
+  type    = bool
+}
+
 variable "lb_internal" {
   default = false
   type    = bool

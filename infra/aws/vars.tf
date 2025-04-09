@@ -40,7 +40,7 @@ variable "listener_rule_priority" {
 
 variable "listener_rule_path" {
   default = {
-    app = "/app"
-    elk = "/elk"
+    app = "/app/*"
+    elk = "/elk/*"
   }
 }

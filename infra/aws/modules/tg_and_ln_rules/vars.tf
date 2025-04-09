@@ -61,7 +61,7 @@ variable "healthcheck_unhealthy_treshold" {
   type    = number
 }
 
-variable "lifecycle" {
+variable "tg_lifecycle" {
   default = true
   type    = bool
 }

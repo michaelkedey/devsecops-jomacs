@@ -1,6 +1,6 @@
 resource "aws_lb_listener_rule" "project_rule" {
   listener_arn = var.listener_arn
-  priority     = var.listener_rule_priority["first"]
+  priority     = var.listener_rule_priority
   action {
     type             = var.listener_rule_action
     target_group_arn = aws_lb_target_group.project_target_group.arn

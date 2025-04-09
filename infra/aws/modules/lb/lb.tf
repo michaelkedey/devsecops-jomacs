@@ -34,21 +34,21 @@ resource "aws_lb" "project_lb" {
 #   tags = var.tags_all
 # }
 
-resource "aws_lb_listener" "project_lb_listener" {
-  load_balancer_arn = aws_lb.project_lb.arn
-  port              = var.ports["app"]
-  protocol          = var.protocols[0]
+# resource "aws_lb_listener" "project_lb_listener" {
+#   load_balancer_arn = aws_lb.project_lb.arn
+#   port              = var.ports["app"]
+#   protocol          = var.protocols[0]
 
-  default_action {
-    type = var.lb_default_action_type
+#   default_action {
+#     type = var.lb_default_action_type
 
-    fixed_response {
-      content_type = var.lb_default_action_cn_type
-      message_body = var.lb_default_action_message
-      status_code  = var.lb_default_action_status_code
-    }
-  }
-}
+#     fixed_response {
+#       content_type = var.lb_default_action_cn_type
+#       message_body = var.lb_default_action_message
+#       status_code  = var.lb_default_action_status_code
+#     }
+#   }
+# }
 
 # resource "aws_lb_listener_rule" "project_app_rule" {
 #   listener_arn = "${aws_lb_listener.project_lb_listener.arn}"

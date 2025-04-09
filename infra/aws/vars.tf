@@ -29,3 +29,11 @@ variable "names" {
     jumper_instance = "jp_jumper_server"
   }
 }
+
+variable "listener_rule_priority" {
+  type = map(number)
+  default = {
+    "first"  = 10
+    "second" = 20
+  }
+}

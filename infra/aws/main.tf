@@ -41,19 +41,21 @@ module "lb" {
 }
 
 module "app_tg_and_ln_rules" {
-  source       = "./modules/tg_and_ln_rules"
-  instance_id  = module.app_server.instance_id
-  vpc_id       = module.vpc.vpc_id
-  listener_arn = module.lb.lb_listener_arn
-  tg_name      = var.names["app-tg-name"]
-  ln_rule_name = var.names["app-ln-rule"]
+  source                 = "./modules/tg_and_ln_rules"
+  instance_id            = module.app_server.instance_id
+  vpc_id                 = module.vpc.vpc_id
+  listener_arn           = module.lb.lb_listener_arn
+  tg_name                = var.names["app-tg-name"]
+  ln_rule_name           = var.names["app-ln-rule"]
+  listener_rule_priority = var.listener_rule_priority["first"]
 }
 
 module "elk_tg_and_ln_rules" {
-  source       = "./modules/tg_and_ln_rules"
-  instance_id  = module.elk_server.instance_id
-  vpc_id       = module.vpc.vpc_id
-  listener_arn = module.lb.lb_listener_arn
-  tg_name      = var.names["elk-tg-name"]
-  ln_rule_name = var.names["elk-ln-rule"]
+  source                 = "./modules/tg_and_ln_rules"
+  instance_id            = module.elk_server.instance_id
+  vpc_id                 = module.vpc.vpc_id
+  listener_arn           = module.lb.lb_listener_arn
+  tg_name                = var.names["elk-tg-name"]
+  ln_rule_name           = var.names["elk-ln-rule"]
+  listener_rule_priority = var.listener_rule_priority["second"]
 }

@@ -61,10 +61,10 @@ variable "healthcheck_unhealthy_treshold" {
   type    = number
 }
 
-variable "tg_lifecycle" {
-  default = true
-  type    = bool
-}
+# variable "tg_lifecycle" {
+#   default = true
+#   type    = bool
+# }
 
 variable "lb_target_type" {
   default = "instance"

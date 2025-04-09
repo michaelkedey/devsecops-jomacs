@@ -41,14 +41,29 @@ resource "aws_lb_listener" "project_lb_listener" {
   protocol          = var.protocols[0]
 
   default_action {
-    type = var.lb_default_action_type
+    type             = var.lb_default_action
+    target_group_arn = aws_lb_target_group.default_target_group.arn
 
-    fixed_response {
-      content_type = var.lb_default_action_cn_type
-      message_body = var.lb_default_action_message
-      status_code  = var.lb_default_action_status_code
-    }
+    # fixed_response {
+    #   content_type = var.lb_default_action_cn_type
+    #   message_body = var.lb_default_action_message
+    #   status_code  = var.lb_default_action_status_code
+    # }
   }
+}
+
+resource "aws_lb_target_group" "default_target_group" {
+  name     = var.names["df_lb_tg"]
+  port     = var.ports["app"]
+  protocol = var.protocols[0]
+  vpc_id   = var.vpc_id
+
+  tags = merge(
+    var.tags_all,
+    {
+      Name = var.names["df_lb_tg"]
+    }
+  )
 }
 
 # resource "aws_lb_listener_rule" "project_app_rule" {

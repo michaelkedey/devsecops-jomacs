@@ -13,7 +13,8 @@ variable "names" {
     elk_sg      = "jp_elk_sg",
     app-tg      = "jp-app-tg",
     elk-tg      = "jp-elk-tg",
-    lb          = "jp-lb"
+    lb          = "jp-lb",
+    df_lb_tg    = "jp-def-lb-tg"
   }
 
   sensitive   = true
@@ -49,8 +50,8 @@ variable "protocols" {
   sensitive   = true
 }
 
-variable "lb_default_action_type" {
-  default = "fixed-response"
+variable "lb_default_action" {
+  default = "forward"
   type    = string
 }
 

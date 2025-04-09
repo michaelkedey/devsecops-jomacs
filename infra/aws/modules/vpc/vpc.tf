@@ -45,7 +45,7 @@ resource "aws_subnet" "project_private_subnet" {
   vpc_id            = aws_vpc.project_vpc.id
   cidr_block        = var.cidrs["private_subnet"]
   provider          = aws.project_region
-  availability_zone = var.azs[2]
+  availability_zone = var.azs[0]
 
   tags = merge(
     var.tags_all,
@@ -60,7 +60,7 @@ resource "aws_subnet" "project_private_subnet1" {
   vpc_id            = aws_vpc.project_vpc.id
   cidr_block        = var.cidrs["private_subnet1"]
   provider          = aws.project_region
-  availability_zone = var.azs[3]
+  availability_zone = var.azs[1]
 
   tags = merge(
     var.tags_all,

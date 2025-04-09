@@ -50,3 +50,7 @@ output "bastion_public_ip" {
 output "ec2_private_ip" {
   value = module.app_server.ec2_private_ip
 }
+
+output "elk_private_ip" {
+  value = module.elk_server.ec2_private_ip
+}

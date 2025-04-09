@@ -150,3 +150,9 @@ resource "aws_route_table_association" "private_association" {
   subnet_id      = aws_subnet.project_private_subnet.id
   route_table_id = aws_route_table.project_private_route_table.id
 }
+
+#associate private rt with private subnet1
+resource "aws_route_table_association" "private_association1" {
+  subnet_id      = aws_subnet.project_private_subnet1.id
+  route_table_id = aws_route_table.project_private_route_table.id
+}

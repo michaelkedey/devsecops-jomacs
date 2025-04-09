@@ -50,6 +50,7 @@ module "app_tg_and_ln_rules" {
   listener_rule_priority = var.listener_rule_priority["first"]
   listener_rule_path     = var.app_listener_rule_path
   tg_port                = var.ports["app"]
+  healthcheck_path       = var.healthcheck_path["app"]
 }
 
 module "elk_tg_and_ln_rules" {
@@ -62,4 +63,5 @@ module "elk_tg_and_ln_rules" {
   listener_rule_priority = var.listener_rule_priority["second"]
   listener_rule_path     = var.elk_listener_rule_path
   tg_port                = var.ports["elk"]
+  healthcheck_path       = var.healthcheck_path["elk"]
 }

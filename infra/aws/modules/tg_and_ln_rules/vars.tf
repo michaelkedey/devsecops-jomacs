@@ -28,8 +28,7 @@ variable "protocols" {
 }
 
 variable "healthcheck_path" {
-  default = "/"
-  type    = string
+
 }
 variable "healthcheck" {
   default = true

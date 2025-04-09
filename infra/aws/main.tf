@@ -11,16 +11,16 @@ module "ec2" {
   source          = "./modules/ec2"
   subnet_id       = module.vpc.pr_sn
   security_groups = [module.lb.instance_sg]
-  iam_user        = var.iam_user
   key_name        = var.key_name
+  public_ip = var.public_ip["no"]
 }
 
 module "bastion" {
-  source          = "./modules/jumper"
+  source          = "./modules/ec2"
   subnet_id       = module.vpc.pb_sn
-  public_ip       = var.public_ip
+  public_ip       = var.public_ip["yes"]
   key_name        = var.key_name
-  security_groups = [module.lb.bastion_sg]
+  security_groups = [module.lb.bastion_sg] 
 }
 
 module "lb" {

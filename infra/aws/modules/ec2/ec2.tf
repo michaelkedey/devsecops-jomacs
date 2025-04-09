@@ -6,7 +6,7 @@ resource "aws_instance" "project_instance" {
   provider        = aws.project_region
   user_data       = file("${path.module}/custome_ssh.sh")
   key_name        = var.key_name
-  #iam_instance_profile        = aws_iam_instance_profile.ec2_ssm_instance_profile.name
+  associate_public_ip_address = var.public_ip
 
   tags = sensitive(
     merge(

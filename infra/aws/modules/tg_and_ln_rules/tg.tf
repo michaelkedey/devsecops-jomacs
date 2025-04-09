@@ -19,15 +19,23 @@ resource "aws_lb_listener_rule" "project_rule" {
 }
 
 #app target group for load balancer
-resource "aws_lb_target_group" "project_target_group" {
+resource "aws_lb_target_group" "project_df_target_group" {
   name        = var.tg_name
   port        = var.tg_port
   protocol    = var.protocols[0]
   vpc_id      = var.vpc_id
   target_type = var.lb_target_type
   health_check {
-    path = var.healthcheck_path
-    port = var.tg_port
+    enabled             = var.healthcheck
+    interval            = var.healthcheck_interval
+    path                = var.healthcheck_path
+    timeout             = var.healthcheck_timeout
+    matcher             = var.healthcheck_matcher
+    healthy_threshold   = var.healthcheck_healthy_treshold
+    unhealthy_threshold = var.healthcheck_unhealthy_treshold
+  }
+  lifecycle {
+    create_before_destroy = var.lifecycle
   }
 
   tags = merge(
@@ -39,7 +47,7 @@ resource "aws_lb_target_group" "project_target_group" {
 }
 
 #associate the instance with the target group
-resource "aws_lb_target_group_attachment" "project_app_tg_attachment" {
+resource "aws_lb_target_group_attachment" "project_tg_attachment" {
   target_group_arn = aws_lb_target_group.project_target_group.arn
   target_id        = var.instance_id
   port             = var.tg_port

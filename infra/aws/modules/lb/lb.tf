@@ -7,49 +7,28 @@ resource "aws_lb" "project_lb" {
   subnets                          = var.subnet_ids
   enable_deletion_protection       = var.delete_ptotection
   enable_cross_zone_load_balancing = var.cross_zone
-
-  #   access_logs {
-  #     bucket  = aws_s3_bucket.lb_logs.id
-  #     prefix  = "test-lb"
-  #     enabled = true
-  #   }
-
   tags = merge(
     var.tags_all,
     {
-      Name = var.names["app-tg"]
+      Name = var.names["lb"]
     }
   )
 }
 
-#load balancer traffic listener
-# resource "aws_lb_listener" "project_lb_listener" {
-#   load_balancer_arn = aws_lb.project_lb.arn
-#   port              = var.ports["app"]
-#   protocol          = var.protocols[0]
-
-#   default_action {
-#     type             = var.lb_default_action
-#     target_group_arn = aws_lb_target_group.project_target_group.arn
-#   }
-#   tags = var.tags_all
-# }
-
 resource "aws_lb_listener" "project_lb_listener" {
-  load_balancer_arn = aws_lb.project_lb.arn
+  load_balancer_arn = aws_lb.project_lb.id
   port              = var.ports["app"]
   protocol          = var.protocols[0]
-
   default_action {
     type             = var.lb_default_action
-    target_group_arn = aws_lb_target_group.default_target_group.arn
-
-    # fixed_response {
-    #   content_type = var.lb_default_action_cn_type
-    #   message_body = var.lb_default_action_message
-    #   status_code  = var.lb_default_action_status_code
-    # }
+    target_group_arn = aws_lb_target_group.default_target_group.id
   }
+  tags = merge(
+    var.tags_all,
+    {
+      Name = var.names["lb"]
+    }
+  )
 }
 
 resource "aws_lb_target_group" "default_target_group" {

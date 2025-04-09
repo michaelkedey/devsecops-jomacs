@@ -31,6 +31,40 @@ variable "healthcheck_path" {
   default = "/"
   type    = string
 }
+variable "healthcheck" {
+  default = true
+  type    = bool
+}
+
+variable "healthcheck_interval" {
+  default = 30
+  type    = number
+}
+
+variable "healthcheck_timeout" {
+  default = 5
+  type    = number
+}
+
+variable "healthcheck_matcher" {
+  default = 200
+  type    = number
+}
+
+variable "healthcheck_healthy_treshold" {
+  default = 2
+  type    = number
+}
+
+variable "healthcheck_unhealthy_treshold" {
+  default = 5
+  type    = number
+}
+
+variable "lifecycle" {
+  default = true
+  type    = bool
+}
 
 variable "lb_target_type" {
   default = "instance"

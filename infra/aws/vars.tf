@@ -38,12 +38,16 @@ variable "listener_rule_priority" {
   }
 }
 
-variable "listener_rule_path" {
-  default = {
-    app = "/app/*"
-    elk = "/elk/*"
-  }
+variable "app_listener_rule_path" {
+  default = "/app/*"
+
 }
+
+variable "elk_listener_rule_path" {
+  default = "/elk/*"
+
+}
+
 
 variable "ports" {
   default = {

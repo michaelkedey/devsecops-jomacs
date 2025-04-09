@@ -26,6 +26,8 @@ resource "aws_lb_target_group" "project_target_group" {
   vpc_id      = var.vpc_id
   target_type = var.lb_target_type
   health_check {
+    path = var.healthcheck_path
+    port = var.tg_port
   }
 
   tags = merge(

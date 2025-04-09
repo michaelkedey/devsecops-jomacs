@@ -48,7 +48,7 @@ module "app_tg_and_ln_rules" {
   tg_name                = var.names["app-tg-name"]
   ln_rule_name           = var.names["app-ln-rule"]
   listener_rule_priority = var.listener_rule_priority["first"]
-  listener_rule_path     = var.listener_rule_path["app"]
+  listener_rule_path     = var.app_listener_rule_path
   tg_port                = var.ports["app"]
 }
 
@@ -60,6 +60,6 @@ module "elk_tg_and_ln_rules" {
   tg_name                = var.names["elk-tg-name"]
   ln_rule_name           = var.names["elk-ln-rule"]
   listener_rule_priority = var.listener_rule_priority["second"]
-  listener_rule_path     = var.listener_rule_path["elk"]
+  listener_rule_path     = var.elk_listener_rule_path
   tg_port                = var.ports["elk"]
 }

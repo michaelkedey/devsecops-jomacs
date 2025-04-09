@@ -27,6 +27,11 @@ variable "protocols" {
   sensitive   = true
 }
 
+variable "healthcheck_path" {
+  default = "/"
+  type    = string
+}
+
 variable "lb_target_type" {
   default = "instance"
   type    = string

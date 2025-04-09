@@ -17,11 +17,8 @@ variable "security_groups" {
   description = "security group to deploy server in"
 }
 
-variable "names" {
-  default = {
-    instance_name = "jp_server"
-  }
-  type = map(string)
+variable "instance_name" {
+
 }
 
 variable "tags_all" {

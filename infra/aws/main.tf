@@ -9,6 +9,7 @@ module "vpc" {
 
 module "app_server" {
   source          = "./modules/ec2"
+  instance_name   = var.names["app_instance"]
   subnet_id       = module.vpc.pr_sn
   security_groups = [module.lb.instance_sg]
   key_name        = var.key_name
@@ -17,6 +18,7 @@ module "app_server" {
 
 module "jumper_server" {
   source          = "./modules/ec2"
+  instance_name   = var.names["jumper_instance"]
   subnet_id       = module.vpc.pb_sn
   public_ip       = var.public_ip["yes"]
   key_name        = var.key_name
@@ -25,6 +27,7 @@ module "jumper_server" {
 
 module "elk_server" {
   source          = "./modules/ec2"
+  instance_name   = var.names["elk_instance"]
   subnet_id       = module.vpc.pr_sn1
   public_ip       = var.public_ip["no"]
   key_name        = var.key_name

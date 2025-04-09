@@ -20,9 +20,12 @@ variable "key_name" {
 
 variable "names" {
   default = {
-    app-tg-name = "jp_app_tg"
-    elk-tg-name = "elk_app_tg"
-    app-ln-rule = "jp_app-ln-rule"
-    elk-ln-rule = "jp-elk-ln-rule"
+    app-tg-name     = "jp_app_tg"
+    elk-tg-name     = "elk_app_tg"
+    app-ln-rule     = "jp_app-ln-rule"
+    elk-ln-rule     = "jp-elk-ln-rule"
+    elk_instance    = "jp_elk_server"
+    app_instance    = "jp_app_server"
+    jumper_instance = "jp_jumper_server"
   }
 }

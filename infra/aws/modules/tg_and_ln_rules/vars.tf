@@ -49,7 +49,7 @@ variable "listener_arn" {
 variable "listener_rule_action" {
   default = "forward"
   type    = string
-} 
+}
 
 variable "listener_rule_priority" {
   default = {

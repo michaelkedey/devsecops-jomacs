@@ -12,7 +12,7 @@ resource "aws_instance" "project_instance" {
     merge(
       var.tags_all,
       {
-        Name = var.names["instance_name"]
+        Name = var.instance_name
       }
     )
   )

@@ -45,7 +45,7 @@ module "app_tg_and_ln_rules" {
   instance_id  = module.app_server.instance_id
   vpc_id       = module.vpc.vpc_id
   listener_arn = module.lb.lb_listener_arn
-  tg_name      = var.names["app-tg"]
+  tg_name      = var.names["app-tg-name"]
   ln_rule_name = var.names["app-ln-rule"]
 }
 
@@ -54,6 +54,6 @@ module "elk_tg_and_ln_rules" {
   instance_id  = module.elk_server.instance_id
   vpc_id       = module.vpc.vpc_id
   listener_arn = module.lb.lb_listener_arn
-  tg_name      = var.names["app-tg"]
-  ln_rule_name = var.names["app-ln-rule"]
+  tg_name      = var.names["elk-tg-name"]
+  ln_rule_name = var.names["elk-ln-rule"]
 }

@@ -48,13 +48,6 @@ variable "elk_listener_rule_path" {
 
 }
 
-variable "healthcheck_path" {
-  default = {
-    app = "/app"
-    elk = "/elk"
-  }
-}
-
 variable "ports" {
   default = {
     all        = 0

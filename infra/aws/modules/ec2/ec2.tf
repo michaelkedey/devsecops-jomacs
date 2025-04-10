@@ -1,5 +1,5 @@
 resource "aws_instance" "project_instance" {
-  instance_type               = "${var.instance_type}" ["project"]
+  instance_type               = var.instance_type
   ami                         = data.aws_ami.latest_ubuntu.id
   subnet_id                   = var.subnet_id
   security_groups             = var.security_groups

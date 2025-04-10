@@ -1,10 +1,4 @@
 variable "instance_type" {
-  type = map(string)
-  default = {
-    project    = "t2.micro",
-    production = "m5.large"
-  }
-  description = "instance type for project server"
 }
 
 variable "subnet_id" {

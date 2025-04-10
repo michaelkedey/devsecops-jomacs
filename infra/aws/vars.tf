@@ -1,8 +1,12 @@
-variable "iam_user" {
-  type        = string
-  default     = "gina"
-  description = "iam user name"
+variable "instance_type" {
+  type = map(string)
+  default = {
+    project    = "t2.micro",
+    production = "t3.large"
+  }
+  description = "instance type for project server"
 }
+
 
 variable "public_ip" {
   type = map(bool)

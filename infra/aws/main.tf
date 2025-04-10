@@ -14,6 +14,7 @@ module "app_server" {
   security_groups = [module.lb.instance_sg]
   key_name        = var.key_name
   public_ip       = var.public_ip["no"]
+  instance_type   = "${var.instance_type}" ["project"]
 }
 
 module "jumper_server" {
@@ -23,6 +24,7 @@ module "jumper_server" {
   public_ip       = var.public_ip["yes"]
   key_name        = var.key_name
   security_groups = [module.lb.bastion_sg]
+  instance_type   = "${var.instance_type}" ["project"]
 }
 
 module "elk_server" {
@@ -32,6 +34,7 @@ module "elk_server" {
   public_ip       = var.public_ip["no"]
   key_name        = var.key_name
   security_groups = [module.lb.elk_sg]
+  instance_type   = "${var.instance_type}" ["production"]
 }
 
 module "lb" {

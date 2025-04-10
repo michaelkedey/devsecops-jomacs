@@ -42,9 +42,10 @@ jobs:
       - name: Capture Terraform Outputs
         id: tf_outputs
         run: |
-          echo "bastion_ip=$(terraform output -raw bastion_public_ip)" >> $GITHUB_OUTPUT
-          echo "ec2_ip=$(terraform output -raw ec2_private_ip)" >> $GITHUB_OUTPUT
-          echo "elk_ip=$(terraform output -raw elk_private_ip)" >> $GITHUB_OUTPUT
+          sudo apt-get install -y jq 
+          echo "bastion_ip=$(jq -r '.bastion_public_ip.value' outputs.json)" >> $GITHUB_OUTPUT
+          echo "ec2_ip=$(jq -r '.ec2_private_ip.value' outputs.json)" >> $GITHUB_OUTPUT
+          echo "elk_ip=$(jq -r '.elk_private_ip.value' outputs.json)" >> $GITHUB_OUTPUT
 
   scan:
     runs-on: ubuntu-latest

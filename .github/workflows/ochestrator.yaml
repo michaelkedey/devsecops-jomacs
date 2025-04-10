@@ -1,0 +1,27 @@
+name: Full Infra + App Deploy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform:
+    uses: michaelkedey/devsecops-jomacs/.github/workflows/infra.yaml@main
+    secrets: inherit
+
+  deploy-apps:
+    needs: terraform
+    uses: michaelkedey/devsecops-jomacs/.github/workflows/app.yaml@main
+    secrets: inherit
+    with:
+      bastion_ip: ${{ needs.terraform.outputs.bastion_ip }}
+      ec2_ip: ${{ needs.terraform.outputs.ec2_ip }}
+      elk_ip: ${{ needs.terraform.outputs.elk_ip }}
+
+
+  # deploy-elk:
+  #   needs: terraform
+  #   uses: your-org/your-repo/.github/workflows/deploy-elk.yml@main
+  #   secrets: inherit
+  #   with:
+  #     bastion_ip: ${{ needs.terraform.outputs.bastion_ip }}
+  #     elk_ip: ${{ needs.terraform.outputs.elk_ip }}

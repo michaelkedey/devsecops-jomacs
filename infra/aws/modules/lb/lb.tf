@@ -153,7 +153,7 @@ resource "aws_security_group" "project_elk_sg" {
     from_port       = var.ports["custom_ssh"]
     to_port         = var.ports["custom_ssh"]
     protocol        = var.protocols[2]
-    security_groups = [aws_security_group.project_lb_sg.id]
+    security_groups = [aws_security_group.project_jumper_sg.id]
   }
 
   ingress {

@@ -7,9 +7,7 @@ jobs:
   terraform:
     uses: michaelkedey/devsecops-jomacs/.github/workflows/infra.yaml@main
     secrets: inherit
-    with:
-      action: apply
-
+    
   deploy-apps:
     needs: terraform
     uses: michaelkedey/devsecops-jomacs/.github/workflows/app.yaml@main

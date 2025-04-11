@@ -1,4 +1,4 @@
-name: Secure Deployment via Bastion
+name: Secure ELK Deployment via Bastion
 
 on:
   workflow_dispatch:

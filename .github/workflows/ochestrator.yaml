@@ -44,6 +44,7 @@ jobs:
         id: tf_outputs
         run: |
           terraform output -json > outputs.json
+          echo "Generated outputs.json at: $(pwd)/outputs.json"
               echo "--- outputs.json ---"
               cat outputs.json
               echo "--------------------"
@@ -52,12 +53,12 @@ jobs:
           echo "ec2_ip=$(jq -r '.ec2_private_ip.value' outputs.json)" >> $GITHUB_OUTPUT
           echo "elk_ip=$(jq -r '.elk_private_ip.value' outputs.json)" >> $GITHUB_OUTPUT
           echo $bastion_ip
-          
+
       - name: Upload Terraform Outputs
         uses: actions/upload-artifact@v4
         with:
           name: terraform-outputs
-          path: outputs.json
+          path: infra/aws/outputs.json
 
 
   scan:

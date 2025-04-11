@@ -14,8 +14,6 @@ on:
 
 jobs:
   deploy-elk:
-    needs: deploy-app  # Ensure deploy only happens after the scan job
-    if: success()  # Only run if the app deploy job succeeds
     runs-on: ubuntu-latest
     steps:
       # 1. Checkout Code from GitHub

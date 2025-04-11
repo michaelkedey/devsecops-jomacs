@@ -63,10 +63,34 @@ jobs:
             # Install Logstash
             if ! systemctl list-units --type=service --all | grep -q logstash.service; then
               echo "Installing Logstash..."
-              wget https://artifacts.elastic.co/downloads/logstash/logstash-8.7.0.deb
-              sudo dpkg -i logstash-8.7.0.deb
-              sudo systemctl enable logstash
-              rm logstash-8.7.0.deb
+                wget https://artifacts.elastic.co/downloads/logstash/logstash-8.17.4-linux-x86_64.tar.gz
+                sudo mkdir -p /opt/logstash
+                sudo tar -xzf logstash-8.17.4-linux-x86_64.tar.gz -C /opt
+                sudo mv /opt/logstash-8.17.4/* /opt/logstash/
+                sudo rm -rf /opt/logstash-8.17.4
+                rm logstash-8.17.4-linux-x86_64.tar.gz
+
+                # Create systemd service for Logstash
+                sudo bash -c 'cat > /etc/systemd/system/logstash.service <<EOF
+                  [Unit]
+                  Description=Logstash
+                  After=network.target
+
+                  [Service]
+                  Type=simple
+                  ExecStart=/opt/logstash/bin/logstash
+                  WorkingDirectory=/opt/logstash
+                  Restart=always
+                  User=root
+                  LimitNOFILE=65536
+
+                  [Install]
+                  WantedBy=multi-user.target
+              EOF'
+                # Reload systemd and enable the service
+                sudo systemctl daemon-reexec
+                sudo systemctl daemon-reload
+                sudo systemctl enable logstash
             else
               echo "Logstash already installed."
             fi
@@ -105,3 +129,6 @@ jobs:
           # Kill tunnel process using port ${TUNNEL}
           pkill -f "ssh.*${TUNNEL}:.*${{ inputs.ec2_ip }}"
           echo "SSH tunnel terminated"
+
+
+          https://artifacts.elastic.co/downloads/logstash/logstash-8.17.4-linux-x86_64.tar.gz

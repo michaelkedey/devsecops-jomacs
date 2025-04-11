@@ -1,0 +1,96 @@
+name: Secure Deployment via Bastion
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      bastion_ip:
+        description: 'Bastion Public IP'
+        required: true
+        type: string
+      elk_ip:
+        description: 'ELK Private IP'
+        required: true
+        type: string
+
+jobs:
+  deploy-elk:
+    needs: deploy-app  # Ensure deploy only happens after the scan job
+    if: success()  # Only run if the app deploy job succeeds
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Checkout Code from GitHub
+      - name: Checkout Code
+        uses: actions/checkout@v2    
+      # 6. Set up SSH key and establish SSH Tunnel
+      - name: Set up SSH tunnel and deploy code
+        env:
+          PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+          BASTION: ${{ inputs.bastion_ip }}
+          ELK: ${{ inputs.elk_ip }}
+          USER: ${{ secrets.EC2_USER }}
+          PORT: ${{ secrets.SSH_PORT }}
+          TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
+        run: |
+          echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
+          
+          # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
+          # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH (port 22)
+          ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${ELK}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
+      # 7. deploy elk
+      - name: Deploy and start elk stack
+        env:
+          USER: ${{ secrets.EC2_USER }}
+          TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
+          PASSWORD: ${{ secrets.KIBANA_PASSWORD }}
+          ELK: ${{ inputs.elk_ip }}
+        run: |
+          # SSH into the EC2 instance and install elk and start it
+          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'
+            # Update package index
+            sudo apt-get update -y && sudo apt-get upgrade -y
+
+            # Install Java (required by Elasticsearch)
+            sudo apt-get install -y openjdk-11-jdk
+
+            # Install Elasticsearch
+            wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.7.0-amd64.deb
+            sudo dpkg -i elasticsearch-8.7.0-amd64.deb
+            sudo systemctl enable elasticsearch
+
+            # Install Logstash
+            wget https://artifacts.elastic.co/downloads/logstash/logstash-8.7.0.deb
+            sudo dpkg -i logstash-8.7.0.deb
+            sudo systemctl enable logstash
+
+            # Install Kibana
+            wget https://artifacts.elastic.co/downloads/kibana/kibana-8.7.0-amd64.deb
+            sudo dpkg -i kibana-8.7.0-amd64.deb
+            sudo systemctl enable kibana
+            # Configure Kibana to listen on all interfaces
+            sudo sed -i "s|^#\?server.host:.*|server.host: \"0.0.0.0\"|" /etc/kibana/kibana.yml
+            # Set kibana_system username and password
+            sudo bash -c 'echo "elasticsearch.username: \"kibana_system\"" >> /etc/kibana/kibana.yml'
+            sudo bash -c 'echo "elasticsearch.password: \"${PASSWORD}\"" >> /etc/kibana/kibana.yml'
+
+            # Clean up (remove downloaded packages)
+            rm elasticsearch-8.7.0-amd64.deb logstash-8.7.0.deb kibana-8.7.0-amd64.deb
+
+            #start
+            sudo systemctl start elasticsearch
+            sudo systemctl start logstash
+            sudo systemctl start kibana
+
+            # Optional: Wait for services to start
+            sudo systemctl status elasticsearch
+            sudo systemctl status logstash
+            sudo systemctl status kibana
+          EOF
+
+      # 8. Clean-up tunnel
+      - name: Cleanup SSH Tunnel
+        if: always()  # Runs even if previous steps fail
+        run: |
+          # Kill tunnel process using port ${TUNNEL}
+          pkill -f "ssh.*${TUNNEL}:.*${{ inputs.ec2_ip }}"
+          echo "SSH tunnel terminated"

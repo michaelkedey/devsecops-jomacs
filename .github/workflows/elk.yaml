@@ -63,7 +63,7 @@ jobs:
             # Install Logstash
             if ! systemctl list-units --type=service --all | grep -q elasticsearch.service; then
               echo "Installing Elasticsearch..."
-              wget wget https://artifacts.elastic.co/downloads/logstash/logstash-8.7.0-amd64.deb
+              wget https://artifacts.elastic.co/downloads/logstash/logstash-8.7.0-amd64.deb
               sudo dpkg -i sudo dpkg -i logstash-8.7.0-amd64.deb
               sudo systemctl enable logstash
               rm logstash-8.7.0-amd64.deb

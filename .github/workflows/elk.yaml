@@ -43,36 +43,50 @@ jobs:
           ELK: ${{ inputs.elk_ip }}
         run: |
           # SSH into the EC2 instance and install elk and start it
-          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF
+          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'
             # Update package index
             sudo apt-get update -y && sudo apt-get upgrade -y
 
             # Install Java (required by Elasticsearch)
             sudo apt-get install -y openjdk-11-jdk
 
-            # Install Elasticsearch
-            wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.7.0-amd64.deb
-            sudo dpkg -i elasticsearch-8.7.0-amd64.deb
-            sudo systemctl enable elasticsearch
+            if ! systemctl list-units --type=service --all | grep -q elasticsearch.service; then
+              echo "Installing Elasticsearch..."
+              wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.7.0-amd64.deb
+              sudo dpkg -i elasticsearch-8.7.0-amd64.deb
+              sudo systemctl enable elasticsearch
+              rm elasticsearch-8.7.0-amd64.deb
+            else
+              echo "Elasticsearch already installed."
+            fi
 
             # Install Logstash
-            wget https://artifacts.elastic.co/downloads/logstash/logstash-8.7.0.deb
-            sudo dpkg -i logstash-8.7.0.deb
-            sudo systemctl enable logstash
+            if ! systemctl list-units --type=service --all | grep -q logstash.service; then
+              echo "Installing Logstash..."
+              wget https://artifacts.elastic.co/downloads/logstash/logstash-8.7.0.deb
+              sudo dpkg -i logstash-8.7.0.deb
+              sudo systemctl enable logstash
+              rm logstash-8.7.0.deb
+            else
+              echo "Logstash already installed."
+            fi
 
             # Install Kibana
-            wget https://artifacts.elastic.co/downloads/kibana/kibana-8.7.0-amd64.deb
-            sudo dpkg -i kibana-8.7.0-amd64.deb
-            sudo systemctl enable kibana
-            # Configure Kibana to listen on all interfaces
-            sudo sed -i "s|^#\?server.host:.*|server.host: \"0.0.0.0\"|" /etc/kibana/kibana.yml
-            # Set kibana_system username and password
-            sudo bash -c 'echo "elasticsearch.username: \"kibana_system\"" >> /etc/kibana/kibana.yml'
-            sudo bash -c 'echo "elasticsearch.password: \"${PASSWORD}\"" >> /etc/kibana/kibana.yml'
-
-            # Clean up (remove downloaded packages)
-            rm elasticsearch-8.7.0-amd64.deb logstash-8.7.0.deb kibana-8.7.0-amd64.deb
-
+            if ! systemctl list-units --type=service --all | grep -q kibana.service; then
+              echo "Installing Kibana..."
+              wget https://artifacts.elastic.co/downloads/kibana/kibana-8.7.0-amd64.deb
+              sudo dpkg -i kibana-8.7.0-amd64.deb
+              sudo systemctl enable kibana
+              rm kibana-8.7.0-amd64.deb
+              # Configure Kibana to listen on all interfaces
+              sudo sed -i "s|^#\?server.host:.*|server.host: \"0.0.0.0\"|" /etc/kibana/kibana.yml
+              # Set kibana_system username and password
+              sudo bash -c 'echo "elasticsearch.username: \"kibana_system\"" >> /etc/kibana/kibana.yml'
+              sudo bash -c 'echo "elasticsearch.password: \"${PASSWORD}\"" >> /etc/kibana/kibana.yml'
+            else
+              echo "Kibana already installed."
+            fi
+            
             #start
             sudo systemctl start elasticsearch
             sudo systemctl start logstash

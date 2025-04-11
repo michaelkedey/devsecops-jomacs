@@ -54,12 +54,13 @@ jobs:
         id: tf_outputs
         run: |
           terraform output -json > outputs.json
+          echo "Generated outputs.json at: $(pwd)/outputs.json"
 
       - name: Upload Terraform Outputs
         uses: actions/upload-artifact@v4
         with:
           name: terraform-outputs
-          path: outputs.json
+          path: infra/aws/outputs.json
 
   destroy:
     name: "Terraform Destroy"

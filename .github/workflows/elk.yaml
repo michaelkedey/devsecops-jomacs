@@ -2,7 +2,6 @@ name: Secure ELK Deployment via Bastion
 
 on:
   workflow_dispatch:
-  workflow_call:
     inputs:
       bastion_ip:
         description: 'Bastion Public IP'

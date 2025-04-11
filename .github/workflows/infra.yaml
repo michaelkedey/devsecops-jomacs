@@ -50,12 +50,14 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve
       
-      - name: Capture Terraform Outputs
-        id: tf_outputs
-        run: |
-          echo "bastion_ip=$(terraform output -raw bastion_public_ip)" >> $GITHUB_OUTPUT
-          echo "ec2_ip=$(terraform output -raw ec2_private_ip)" >> $GITHUB_OUTPUT
-          echo "elk_ip=$(terraform output -raw elk_private_ip)" >> $GITHUB_OUTPUT
+      - name: Generate Terraform Outputs
+        run: terraform output -json > outputs.json
+
+      - name: Upload Terraform Outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-outputs
+          path: outputs.json
 
   destroy:
     name: "Terraform Destroy"

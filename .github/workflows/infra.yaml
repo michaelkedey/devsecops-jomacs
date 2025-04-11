@@ -50,8 +50,10 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve
       
-      - name: Generate Terraform Outputs
-        run: terraform output -json > outputs.json
+      - name: Capture Terraform Outputs
+        id: tf_outputs
+        run: |
+          terraform output -json > outputs.json
 
       - name: Upload Terraform Outputs
         uses: actions/upload-artifact@v4

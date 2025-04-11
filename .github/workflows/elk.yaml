@@ -71,7 +71,7 @@ jobs:
                 rm logstash-8.17.4-linux-x86_64.tar.gz
 
                 # Create systemd service for Logstash
-                sudo bash -c 'cat > /etc/systemd/system/logstash.service <<EOF
+                sudo bash -c 'cat > /etc/systemd/system/logstash.service << 'EOF'
                   [Unit]
                   Description=Logstash
                   After=network.target
@@ -129,6 +129,3 @@ jobs:
           # Kill tunnel process using port ${TUNNEL}
           pkill -f "ssh.*${TUNNEL}:.*${{ inputs.ec2_ip }}"
           echo "SSH tunnel terminated"
-
-
-          https://artifacts.elastic.co/downloads/logstash/logstash-8.17.4-linux-x86_64.tar.gz

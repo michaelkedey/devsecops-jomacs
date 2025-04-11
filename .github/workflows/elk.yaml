@@ -61,39 +61,39 @@ jobs:
             fi
 
             # Install Logstash
-            #if ! systemctl list-units --type=service --all | grep -q logstash.service; then
-            echo "Installing Logstash..."
-            wget https://artifacts.elastic.co/downloads/logstash/logstash-8.17.4-linux-x86_64.tar.gz
-            sudo mkdir -p /opt/logstash
-            sudo tar -xzf logstash-8.17.4-linux-x86_64.tar.gz -C /opt
-            sudo mv /opt/logstash-8.17.4/* /opt/logstash/
-            sudo rm -rf /opt/logstash-8.17.4
-            rm logstash-8.17.4-linux-x86_64.tar.gz
+            if ! systemctl list-units --type=service --all | grep -q logstash.service; then
+              echo "Installing Logstash..."
+              wget https://artifacts.elastic.co/downloads/logstash/logstash-8.17.4-linux-x86_64.tar.gz
+              sudo mkdir -p /opt/logstash
+              sudo tar -xzf logstash-8.17.4-linux-x86_64.tar.gz -C /opt
+              sudo mv /opt/logstash-8.17.4/* /opt/logstash/
+              sudo rm -rf /opt/logstash-8.17.4
+              rm logstash-8.17.4-linux-x86_64.tar.gz
 
-            # Create systemd service for Logstash
-            sudo bash -c 'cat > /etc/systemd/system/logstash.service << 'EOF'
-              [Unit]
-              Description=Logstash
-              After=network.target
+              # Create systemd service for Logstash
+              sudo bash -c 'cat > /etc/systemd/system/logstash.service << 'EOF'
+                [Unit]
+                Description=Logstash
+                After=network.target
 
-              [Service]
-              Type=simple
-              ExecStart=/opt/logstash/bin/logstash
-              WorkingDirectory=/opt/logstash
-              Restart=always
-              User=root
-              LimitNOFILE=65536
+                [Service]
+                Type=simple
+                ExecStart=/opt/logstash/bin/logstash
+                WorkingDirectory=/opt/logstash
+                Restart=always
+                User=root
+                LimitNOFILE=65536
 
-              [Install]
-              WantedBy=multi-user.target
-            EOF'
-            # Reload systemd and enable the service
-            sudo systemctl daemon-reexec
-            sudo systemctl daemon-reload
-            sudo systemctl enable logstash
-            # else
-            #   echo "Logstash already installed."
-            # fi
+                [Install]
+                WantedBy=multi-user.target
+              EOF'
+              # Reload systemd and enable the service
+              sudo systemctl daemon-reexec
+              sudo systemctl daemon-reload
+              sudo systemctl enable logstash
+            else
+               echo "Logstash already installed."
+            fi
 
             # Install Kibana
             if ! systemctl list-units --type=service --all | grep -q kibana.service; then
@@ -106,7 +106,7 @@ jobs:
               sudo sed -i "s|^#\?server.host:.*|server.host: \"0.0.0.0\"|" /etc/kibana/kibana.yml
               # Set kibana_system username and password
               sudo bash -c 'echo "elasticsearch.username: \"kibana_system\"" >> /etc/kibana/kibana.yml'
-              sudo bash -c 'echo "elasticsearch.password: \"Admin123\"" >> /etc/kibana/kibana.yml'
+              sudo bash -c 'echo "elasticsearch.password: \"${PASSWORD}\"" >> /etc/kibana/kibana.yml'
             else
               echo "Kibana already installed."
             fi

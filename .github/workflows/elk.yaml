@@ -55,9 +55,11 @@ jobs:
               wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.7.0-amd64.deb
               sudo dpkg -i elasticsearch-8.7.0-amd64.deb
               sudo systemctl enable elasticsearch
+              sudo systemctl start elasticsearch
               rm elasticsearch-8.7.0-amd64.deb
             else
               echo "Elasticsearch already installed."
+              sudo systemctl restart elasticsearch
             fi
 
             # Install Logstash
@@ -66,9 +68,11 @@ jobs:
               wget https://artifacts.elastic.co/downloads/logstash/logstash-8.7.0-amd64.deb
               sudo dpkg -i logstash-8.7.0-amd64.deb
               sudo systemctl enable logstash
+              sudo systemctl start logstash
               rm logstash-8.7.0-amd64.deb
             else
               echo "Logstash already installed."
+              sudo systemctl restart logstash
             fi
 
             # Install Kibana
@@ -78,22 +82,27 @@ jobs:
               sudo dpkg -i kibana-8.7.0-amd64.deb
               sudo systemctl enable kibana
               rm kibana-8.7.0-amd64.deb
-              # Configure Kibana to listen on all interfaces
+
+              # Configure Kibana to listen on all interfaces and set kibana_system username and password
               sudo sed -i "s|^#\?server.host:.*|server.host: \"0.0.0.0\"|" /etc/kibana/kibana.yml
-              # Set kibana_system username and password
-              sudo bash -c 'echo "elasticsearch.username: \"kibana_system\"" >> /etc/kibana/kibana.yml'
-              sudo bash -c 'echo "elasticsearch.password: \"${PASSWORD}\"" >> /etc/kibana/kibana.yml'
-            else
-              echo "Kibana already installed."
               sudo bash -c 'echo "elasticsearch.username: \"kibana_system\"" >> /etc/kibana/kibana.yml'
               sudo bash -c 'echo "elasticsearch.password: \"Admin123\"" >> /etc/kibana/kibana.yml'
+              
+              #set elasticsearch address 
+              sudo sed -i "s|^#\?elasticsearch.hosts:.*|elasticsearch.hosts: [\"http://localhost:9200\"]|" /etc/kibana/kibana.yml
+              
+              # Wait to ensure Elasticsearch is up before resetting password
+              sleep 30
+              
+              # Reset kibana_system password in Elasticsearch
+              echo "Resetting kibana_system password..."
+              sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u kibana_system --batch --password "Admin123"
+              sudo systemctl start kibana
+            else
+              echo "Kibana already installed."
+              sudo systemctl restart kibana
             fi
             
-            #start
-            sudo systemctl start elasticsearch
-            sudo systemctl start logstash
-            sudo systemctl start kibana
-
             # Optional: Wait for services to start
             sudo systemctl status elasticsearch
             sudo systemctl status logstash

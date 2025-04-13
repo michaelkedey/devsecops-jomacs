@@ -57,7 +57,7 @@ variable "healthcheck_healthy_treshold" {
 }
 
 variable "healthcheck_unhealthy_treshold" {
-  default = 5
+  default = 10
   type    = number
 }
 

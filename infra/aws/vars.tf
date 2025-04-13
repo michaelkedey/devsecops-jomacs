@@ -43,7 +43,7 @@ variable "listener_rule_priority" {
 }
 
 variable "app_listener_rule_path" {
-  default = "/app"
+  default = "/app/*"
 
 }
 
@@ -53,7 +53,7 @@ variable "app_static_listener_rule_path" {
 }
 
 variable "elk_listener_rule_path" {
-  default = "/elk"
+  default = "/elk/*"
 
 }
 

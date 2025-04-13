@@ -306,6 +306,8 @@ jobs:
               sudo systemctl start kibana
             else
               echo "Kibana already installed."
+              echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml
+              echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml
               sudo systemctl restart kibana
             fi
             

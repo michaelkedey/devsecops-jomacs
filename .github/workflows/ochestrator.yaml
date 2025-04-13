@@ -292,7 +292,9 @@ jobs:
               sudo bash -c 'echo "elasticsearch.username: \"kibana_system\"" >> /etc/kibana/kibana.yml'
               sudo bash -c 'echo "elasticsearch.password: \"Admin123\"" >> /etc/kibana/kibana.yml'
               
-              #set elasticsearch address 
+              # Add basePath configs and set elasticsearch address 
+              echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml
+              echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml
               sudo sed -i "s|^#\?elasticsearch.hosts:.*|elasticsearch.hosts: [\"http://localhost:9200\"]|" /etc/kibana/kibana.yml
               
               # Wait to ensure Elasticsearch is up before resetting password

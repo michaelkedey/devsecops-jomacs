@@ -9,6 +9,7 @@
 ### 1. Secure CI/CD Pipeline with Automated Scanning
 
 #### [cicd](./cicd/)
+[![Full Infra + App Deploy](https://github.com/michaelkedey/devsecops-jomacs/actions/workflows/ochestrator.yaml/badge.svg)](https://github.com/michaelkedey/devsecops-jomacs/actions/workflows/ochestrator.yaml)
 - **[infra.yaml](./cicd/infra.yaml)**
   - designed to to create the necessary AWS resources for the pipeline,including;
       * vpc with private and public subnets in multiple availability zones

@@ -180,6 +180,7 @@ jobs:
 
         run: |
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
+          sleep 40
           
           # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
           # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH (port 22)
@@ -328,7 +329,6 @@ jobs:
             }
             EOF
 
-
             # Fix configuration issues
             sudo rm -f /etc/nginx/sites-enabled/*  # Remove any broken symlinks
             sudo ln -s /etc/nginx/sites-available/elk /etc/nginx/sites-enabled/
@@ -350,79 +350,5 @@ jobs:
           # Kill tunnel process using port ${TUNNEL}
           pkill -f "ssh.*${TUNNEL}:.*${{ inputs.ec2_ip }}"
           echo "SSH tunnel terminated"
-
-  # deploy-elk:
-  #   needs: [terraform, deploy-app]  # Ensure deploy only happens after the scan job
-  #   if: success()  # Only run if the app deploy job succeeds
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     # 1. Checkout Code from GitHub
-  #     - name: Checkout Code
-  #       uses: actions/checkout@v2    
-  #     # 6. Set up SSH key and establish SSH Tunnel
-  #     - name: Set up SSH tunnel and deploy code
-  #       env:
-  #         PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-  #         BASTION: ${{ needs.terraform.outputs.bastion_ip }}
-  #         ELK: ${{ needs.terraform.outputs.elk_ip }}
-  #         USER: ${{ secrets.EC2_USER }}
-  #         PORT: ${{ secrets.SSH_PORT }}
-  #         TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
-  #       run: |
-  #         echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
-          
-  #         # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
-  #         # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH (port 22)
-  #         ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${ELK}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
-  #     # 7. deploy elk
-  #     - name: Deploy and start elk stack
-  #       env:
-  #         USER: ${{ secrets.EC2_USER }}
-  #         TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
-  #         ELK: ${{ needs.terraform.outputs.elk_ip }}
-  #       run: |
-  #         # SSH into the EC2 instance and install elk and start it
-  #         ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'
-  #           # Update package index
-  #           sudo apt-get update -y && sudo apt-get upgrade -y
-
-  #           # Install Java (required by Elasticsearch)
-  #           sudo apt-get install -y openjdk-11-jdk
-
-  #           # Install Elasticsearch
-  #           wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.7.0-amd64.deb
-  #           sudo dpkg -i elasticsearch-8.7.0-amd64.deb
-  #           sudo systemctl enable elasticsearch
-  #           sudo systemctl start elasticsearch
-
-  #           # Install Logstash
-  #           wget https://artifacts.elastic.co/downloads/logstash/logstash-8.7.0.deb
-  #           sudo dpkg -i logstash-8.7.0.deb
-  #           sudo systemctl enable logstash
-  #           sudo systemctl start logstash
-
-  #           # Install Kibana
-  #           wget https://artifacts.elastic.co/downloads/kibana/kibana-8.7.0-amd64.deb
-  #           sudo dpkg -i kibana-8.7.0-amd64.deb
-  #           sudo systemctl enable kibana
-  #           sudo systemctl start kibana
-
-  #           # Clean up (remove downloaded packages)
-  #           rm elasticsearch-8.7.0-amd64.deb logstash-8.7.0.deb kibana-8.7.0-amd64.deb
-
-  #           # Optional: Wait for services to start
-  #           sudo systemctl status elasticsearch
-  #           sudo systemctl status logstash
-  #           sudo systemctl status kibana
-  #         EOF
-
-  #     # 8. Clean-up tunnel
-  #     - name: Cleanup SSH Tunnel
-  #       if: always()  # Runs even if previous steps fail
-  #       run: |
-  #         # Kill tunnel process using port ${TUNNEL}
-  #         pkill -f "ssh.*${TUNNEL}:.*${{ inputs.ec2_ip }}"
-  #         echo "SSH tunnel terminated"
-
 
   

@@ -180,8 +180,8 @@ jobs:
 
         run: |
           echo "waiting for instances to be ready"
-          sleep 30
-          
+          sleep 90
+
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
           
           # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
@@ -319,7 +319,7 @@ jobs:
             server {
                 listen 80;
 
-                location /elk/ {
+                location / {
                     proxy_pass http://localhost:5601/;
                     proxy_http_version 1.1;
                     proxy_set_header Host \$host;

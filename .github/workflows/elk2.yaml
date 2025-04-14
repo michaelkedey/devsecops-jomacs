@@ -58,6 +58,7 @@ jobs:
               echo "enabling and starting elasticsearch"
               sudo systemctl enable elasticsearch
               sudo systemctl daemon-reload
+              echo "starting elasticsearch"
               sudo systemctl start elasticsearch
               rm elasticsearch-8.7.0-amd64.deb
 

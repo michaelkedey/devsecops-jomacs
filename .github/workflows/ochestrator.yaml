@@ -302,7 +302,7 @@ jobs:
               
               # Reset kibana_system password in Elasticsearch
               echo "Resetting kibana_system password..."
-              sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u kibana_system --batch --password "Admin123"
+              #sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u kibana_system --batch --password "Admin123"
               sudo systemctl start kibana
             else
               echo "Kibana already installed."

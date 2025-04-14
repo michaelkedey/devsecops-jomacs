@@ -1,8 +1,7 @@
-name: Full Infra + App Deploy
+name: Full Infra + App Deploy + ELK Deploy
 
 on:
   workflow_dispatch:
-
 jobs:
   terraform:
     name: "Terraform"
@@ -180,7 +179,7 @@ jobs:
 
         run: |
           echo "waiting for instances to be ready"
-          sleep 90
+          sleep 70
 
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
           
@@ -236,8 +235,6 @@ jobs:
           PORT: ${{ secrets.SSH_PORT }}
           TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
         run: |
-          echo "waiting for instances to be ready"
-          sleep 80
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
           
           # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
@@ -279,10 +276,6 @@ jobs:
 
             echo "Getting enrollment token..."
             TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
-            NEW_PASS=$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic --batch 2>&1 | grep 'New password' | awk '{print $NF}')
-            
-            #echo "Enrollment token: $TOKEN"
-            echo "ELASTIC_PASSWORD: $NEW_PASS"
 
             # Export the token to use later
             export ENROLLMENT_TOKEN="$TOKEN"
@@ -318,7 +311,7 @@ jobs:
               sudo systemctl restart logstash
             fi
 
-            # Optional: Wait for services to start
+            # checks
             sudo systemctl status elasticsearch
             sudo systemctl status logstash
             sudo systemctl status kibana

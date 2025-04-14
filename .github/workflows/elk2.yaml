@@ -1,0 +1,127 @@
+name: Secure ELK2 Deployment via Bastion
+
+on:
+  workflow_dispatch:
+    inputs:
+      bastion_ip:
+        description: 'Bastion Public IP'
+        required: true
+        type: string
+      elk_ip:
+        description: 'ELK Private IP'
+        required: true
+        type: string
+
+jobs:
+  deploy-elk:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Checkout Code from GitHub
+      - name: Checkout Code
+        uses: actions/checkout@v2    
+      # 6. Set up SSH key and establish SSH Tunnel
+      - name: Set up SSH tunnel and deploy code
+        env:
+          PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+          BASTION: ${{ inputs.bastion_ip }}
+          ELK: ${{ inputs.elk_ip }}
+          USER: ${{ secrets.EC2_USER }}
+          PORT: ${{ secrets.SSH_PORT }}
+          TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
+        run: |
+          echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
+          
+          # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
+          # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH (port 22)
+          ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${ELK}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
+      # 7. deploy elk
+      - name: Deploy and start elk stack
+        env:
+          USER: ${{ secrets.EC2_USER }}
+          TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
+          PASSWORD: ${{ secrets.KIBANA_PASSWORD }}
+          ELK: ${{ inputs.elk_ip }}
+        run: |
+          # SSH into the EC2 instance and install elk and start it
+          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'
+            # Update package index
+            sudo apt-get update -y && sudo apt-get upgrade -y
+
+            # Install Java (required by Elasticsearch)
+            sudo apt-get install -y openjdk-11-jdk
+
+            # Install Elasticsearch
+            if ! systemctl list-units --type=service --all | grep -q elasticsearch.service; then
+              echo "Installing Elasticsearch..."
+              wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.7.0-amd64.deb
+              sudo dpkg -i elasticsearch-8.7.0-amd64.deb
+              sudo systemctl enable elasticsearch
+              sudo systemctl start elasticsearch
+              rm elasticsearch-8.7.0-amd64.deb
+            else
+              echo "Elasticsearch already installed."
+              sudo systemctl restart elasticsearch
+            fi
+
+            # Wait for Elasticsearch to become available
+            echo "Waiting for Elasticsearch to start..."
+            until curl -s --cacert /etc/elasticsearch/certs/http_ca.crt -u elastic "https://localhost:9200" | grep -q "missing authentication credentials"; do
+              sleep 10
+            done
+
+            # Reset built-in users' passwords (if first install)
+            PASSWORD_FILE="/home/ubuntu/elastic_passwords.txt"
+            if [ ! -f "$PASSWORD_FILE" ]; then
+              echo "Resetting Elasticsearch passwords..."
+              sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u kibana_system --auto -v | tee "$PASSWORD_FILE"
+              sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic --auto -v | tee -a "$PASSWORD_FILE"
+              chmod 600 "$PASSWORD_FILE"
+            fi
+
+            # Extract generated passwords
+            KIBANA_PASSWORD=$(grep "New value for kibana_system" "$PASSWORD_FILE" | awk '{print $NF}')
+            ELASTIC_PASSWORD=$(grep "New value for elastic" "$PASSWORD_FILE" | awk '{print $NF}')
+
+            # Install Kibana
+            if ! systemctl list-units --type=service --all | grep -q kibana.service; then
+              echo "Installing Kibana..."
+              wget https://artifacts.elastic.co/downloads/kibana/kibana-8.7.0-amd64.deb
+              sudo dpkg -i kibana-8.7.0-amd64.deb
+              sudo systemctl enable kibana
+              rm kibana-8.7.0-amd64.deb
+
+              # Configure Kibana
+              sudo tee -a /etc/kibana/kibana.yml << EOF
+                server.host: "0.0.0.0"
+                server.basePath: "/elk"
+                server.rewriteBasePath: true
+                elasticsearch.hosts: ["https://localhost:9200"]
+                elasticsearch.username: "kibana_system"
+                elasticsearch.password: "$KIBANA_PASSWORD"
+                elasticsearch.ssl.verificationMode: certificate
+                server.ssl.enabled: true
+                server.ssl.certificate: /etc/kibana/certs/kibana.crt
+                server.ssl.key: /etc/kibana/certs/kibana.key
+              EOF
+
+              # Generate Kibana SSL certs (simplified example - use proper CA in production)
+              sudo mkdir -p /etc/kibana/certs
+              sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+                -keyout /etc/kibana/certs/kibana.key \
+                -out /etc/kibana/certs/kibana.crt \
+                -subj "/CN=$(hostname)"
+
+              # Set permissions
+              sudo chown -R kibana:kibana /etc/kibana/certs
+
+              # Start Kibana
+              sudo systemctl start kibana
+            else
+              echo "Kibana already installed."
+              sudo systemctl restart kibana
+            fi
+
+            # Final checks
+            echo "Verifying services..."
+            curl -s --cacert /etc/elasticsearch/certs/http_ca.crt -u elastic:$ELASTIC_PASSWORD "https://localhost:9200/_cluster/health"
+            sudo systemctl status kibana

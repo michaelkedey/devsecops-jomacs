@@ -42,7 +42,7 @@ variable "healthcheck_interval" {
 }
 
 variable "healthcheck_timeout" {
-  default = 5
+  default = 15
   type    = number
 }
 

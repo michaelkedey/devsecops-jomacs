@@ -299,6 +299,7 @@ jobs:
             fi
 
             # Step to configure Kibana with enrollment token
+            echo "passing token ti kibana"
             sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$ENROLLMENT_TOKEN"
             sudo systemctl start kibana
 

@@ -297,9 +297,6 @@ jobs:
               echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml
               sudo sed -i "s|^#\?elasticsearch.hosts:.*|elasticsearch.hosts: [\"http://localhost:9200\"]|" /etc/kibana/kibana.yml
               
-              # Wait to ensure Elasticsearch is up before resetting password
-              sleep 30
-              
               # Reset kibana_system password in Elasticsearch
               echo "Resetting kibana_system password..."
               #sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u kibana_system --batch --password "Admin123"
@@ -308,11 +305,37 @@ jobs:
               echo "Kibana already installed."
               sudo systemctl restart kibana
             fi
-            
+
+            #set up reverse proxy to handle path rewrite
+            sudo apt update
+            echo "installing nginx"
+            sudo apt install -y nginx
+            sudo systemctl enable nginx
+            sudo systemctl start nginx
+            sudo bash -c 'cat > /etc/nginx/sites-available/elk <<EOF
+            server {
+              listen 80;
+
+              location /elk/ {
+                proxy_pass http://localhost:5601/;
+                proxy_http_version 1.1;
+                proxy_set_header Host \$host;
+                proxy_set_header X-Real-IP \$remote_addr;
+                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto \$scheme;
+                rewrite ^/elk/(.*)\$ /\$1 break;
+              }
+            }
+            EOF'
+            sudo ln -s /etc/nginx/sites-available/elk /etc/nginx/sites-enabled/
+            sudo nginx -t
+            sudo systemctl restart nginx
+
             # Optional: Wait for services to start
             sudo systemctl status elasticsearch
             sudo systemctl status logstash
             sudo systemctl status kibana
+            sudo systemctl status nginx
           EOF
 
       # 8. Clean-up tunnel

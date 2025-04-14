@@ -409,9 +409,13 @@ jobs:
             fi
             - name: Get Kibana enrollment token
             id: get-token
+            # run: |
+            #   TOKEN=$(bin/elasticsearch-create-enrollment-token -s kibana)
+            #   echo "ENROLLMENT_TOKEN=$TOKEN" >> $GITHUB_ENV
             run: |
-              TOKEN=$(bin/elasticsearch-create-enrollment-token -s kibana)
+              TOKEN=$(/usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
               echo "ENROLLMENT_TOKEN=$TOKEN" >> $GITHUB_ENV
+
 
             # Install Kibana
             if ! systemctl list-units --type=service --all | grep -q kibana.service; then
@@ -433,10 +437,14 @@ jobs:
 
             # Step to configure Kibana with enrollment token
             - name: Start Kibana with token
-              run: |
-                echo "Using token: $ENROLLMENT_TOKEN"
-                ./bin/kibana-setup --enrollment-token $ENROLLMENT_TOKEN
-                sudo systemctl start kibana
+              # run: |
+              #   echo "Using token: $ENROLLMENT_TOKEN"
+              #   ./bin/kibana-setup --enrollment-token $ENROLLMENT_TOKEN
+              #   sudo systemctl start kibana
+            run: |
+              echo "Using token: $ENROLLMENT_TOKEN"
+              sudo /usr/share/kibana/bin/kibana-setup --enrollment-token $ENROLLMENT_TOKEN
+              sudo systemctl start kibana
 
             # Install Logstash
             if ! systemctl list-units --type=service --all | grep -q logstash.service; then

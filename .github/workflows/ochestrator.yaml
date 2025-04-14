@@ -400,21 +400,20 @@ jobs:
               sudo apt-get update -y && sudo apt-get install elasticsearch
               sudo /bin/systemctl daemon-reload
               sudo /bin/systemctl enable elasticsearch.service
-              sudo systemctl start elasticsearch.service
-              echo "waiting for elasticsearch to fully install"
+              echo "waiting for elasticsearch to fully install before starting it"
               sleep 90 
+              sudo systemctl start elasticsearch.service
+              sleep 30
             else
               echo "Elasticsearch already installed."
               sudo systemctl restart elasticsearch
             fi
+
             - name: Get Kibana enrollment token
-            id: get-token
-            # run: |
-            #   TOKEN=$(bin/elasticsearch-create-enrollment-token -s kibana)
-            #   echo "ENROLLMENT_TOKEN=$TOKEN" >> $GITHUB_ENV
-            run: |
-              TOKEN=$(/usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
-              echo "ENROLLMENT_TOKEN=$TOKEN" >> $GITHUB_ENV
+              id: get-token
+              run: |
+                TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
+                echo "ENROLLMENT_TOKEN=$TOKEN" >> $GITHUB_ENV
 
 
             # Install Kibana
@@ -437,14 +436,10 @@ jobs:
 
             # Step to configure Kibana with enrollment token
             - name: Start Kibana with token
-              # run: |
-              #   echo "Using token: $ENROLLMENT_TOKEN"
-              #   ./bin/kibana-setup --enrollment-token $ENROLLMENT_TOKEN
-              #   sudo systemctl start kibana
-            run: |
-              echo "Using token: $ENROLLMENT_TOKEN"
-              sudo /usr/share/kibana/bin/kibana-setup --enrollment-token $ENROLLMENT_TOKEN
-              sudo systemctl start kibana
+              run: |
+                echo "Using token: $ENROLLMENT_TOKEN"
+                sudo /usr/share/kibana/bin/kibana-setup --enrollment-token $ENROLLMENT_TOKEN
+                sudo systemctl start kibana
 
             # Install Logstash
             if ! systemctl list-units --type=service --all | grep -q logstash.service; then

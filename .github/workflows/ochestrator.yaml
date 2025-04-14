@@ -219,7 +219,7 @@ jobs:
   #         echo "SSH tunnel terminated"
 
   deploy-elk:
-    needs: [terraform, deploy-app ]  # Ensure deploy only happens after the scan job
+    needs: terraform  # Ensure deploy only happens after the scan job
     if: success()  # Only run if the app deploy job succeeds
     runs-on: ubuntu-latest
     steps:

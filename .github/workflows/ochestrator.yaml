@@ -312,7 +312,7 @@ jobs:
             sudo apt install -y nginx
 
             # Create Nginx configuration with proper syntax
-            sudo cat <<EOF > /etc/nginx/sites-available/elk
+            cat <<EOF | sudo tee /etc/nginx/sites-available/elk > /dev/null
             server {
                 listen 80;
 

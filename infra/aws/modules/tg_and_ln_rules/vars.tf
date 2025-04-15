@@ -37,18 +37,18 @@ variable "healthcheck" {
 }
 
 variable "healthcheck_interval" {
-  default = 30
+  default = 60
   type    = number
 }
 
 variable "healthcheck_timeout" {
-  default = 15
+  default = 10  
   type    = number
 }
 
 variable "healthcheck_matcher" {
-  default = 200
-  type    = number
+  default = "200"
+  type    = string
 }
 
 variable "healthcheck_healthy_treshold" {
@@ -57,14 +57,9 @@ variable "healthcheck_healthy_treshold" {
 }
 
 variable "healthcheck_unhealthy_treshold" {
-  default = 10
+  default = 5 
   type    = number
 }
-
-# variable "tg_lifecycle" {
-#   default = true
-#   type    = bool
-# }
 
 variable "lb_target_type" {
   default = "instance"

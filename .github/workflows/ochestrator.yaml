@@ -15,7 +15,7 @@ on:
 jobs:
   terraform-apply:
     if: ${{ github.event.inputs.action == 'apply' }}  
-    name: "Terraform"
+    name: "Terraform-apply"
     runs-on: ubuntu-latest
     outputs:
       bastion_ip: ${{ steps.tf_outputs.outputs.bastion_ip }}
@@ -191,7 +191,7 @@ jobs:
 
         run: |
           echo "waiting for instances to be ready"
-          sleep 65
+          sleep 70
 
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
           
@@ -248,7 +248,7 @@ jobs:
           TUNNEL: ${{ secrets.ELK_TUNNEL_PORT }}
         run: |
           echo "waiting for instances to be ready"
-          sleep 65
+          sleep 70
 
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
           

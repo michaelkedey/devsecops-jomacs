@@ -172,7 +172,7 @@ jobs:
         docker push michaelkedey/jomacsdevsecops:latest
 
   deploy-app:
-    needs: [terraform, scan] # Ensure deploy only happens after the scan job
+    needs: [terraform-apply, scan] # Ensure deploy only happens after the scan job
     if: ${{ github.event.inputs.action == 'apply' && success() }}  # Only run if the scan job succeeds
     runs-on: ubuntu-latest
     steps:
@@ -230,7 +230,7 @@ jobs:
           echo "SSH tunnel terminated"
 
   deploy-elk:
-    needs: terraform  # Ensure deploy only happens after the scan job
+    needs: terraform-apply  # Ensure deploy only happens after the scan job
     if: ${{ github.event.inputs.action == 'apply' && success() }}  # Only run if the app deploy job succeeds
     runs-on: ubuntu-latest
     steps:

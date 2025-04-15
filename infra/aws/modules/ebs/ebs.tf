@@ -1,5 +1,5 @@
 resource "aws_ebs_volume" "jp_ebs" {
-  availability_zone = us-east-1b
+  availability_zone = "us-east-1b"
   size              = var.ebs_size
 
     tags = sensitive(

@@ -54,3 +54,7 @@ output "ec2_private_ip" {
 output "elk_private_ip" {
   value = module.elk_server.ec2_private_ip
 }
+
+output "elk_ebs_name" {
+  value = module.elk_ebs.ebs_name
+}

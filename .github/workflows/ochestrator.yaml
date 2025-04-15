@@ -191,7 +191,7 @@ jobs:
 
         run: |
           echo "waiting for instances to be ready"
-          sleep 70
+          sleep 80
 
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
           
@@ -248,7 +248,7 @@ jobs:
           TUNNEL: ${{ secrets.ELK_TUNNEL_PORT }}
         run: |
           echo "waiting for instances to be ready"
-          sleep 70
+          sleep 80
 
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
           

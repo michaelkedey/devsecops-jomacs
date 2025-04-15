@@ -2,8 +2,19 @@ name: Full Infrastructure + App Deploy + ELK Deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      action:
+        description: "apply/destroy"
+        required: true
+        default: "apply"
+        type: choice
+        options:
+          - apply
+          - destroy
+
 jobs:
-  terraform:
+  terraform-apply:
+    if: ${{ github.event.inputs.action == 'apply' }}  
     name: "Terraform"
     runs-on: ubuntu-latest
     outputs:
@@ -61,6 +72,7 @@ jobs:
 
   scan:
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.action == 'apply' }}  
     steps:
       # 1. Checkout Code from GitHub
       - name: Checkout Code
@@ -107,7 +119,7 @@ jobs:
 
   build:
     needs: scan # Ensure deploy only happens after the scan job
-    if: success() 
+    if: ${{ github.event.inputs.action == 'apply' && success() }}
     runs-on: ubuntu-latest
     steps:
     
@@ -161,7 +173,7 @@ jobs:
 
   deploy-app:
     needs: [terraform, scan] # Ensure deploy only happens after the scan job
-    if: success()  # Only run if the scan job succeeds
+    if: ${{ github.event.inputs.action == 'apply' && success() }}  # Only run if the scan job succeeds
     runs-on: ubuntu-latest
     steps:
       # 1. Checkout Code from GitHub
@@ -219,7 +231,7 @@ jobs:
 
   deploy-elk:
     needs: terraform  # Ensure deploy only happens after the scan job
-    if: success()  # Only run if the app deploy job succeeds
+    if: ${{ github.event.inputs.action == 'apply' && success() }}  # Only run if the app deploy job succeeds
     runs-on: ubuntu-latest
     steps:
       # 1. Checkout Code from GitHub
@@ -333,4 +345,29 @@ jobs:
           pkill -f "ssh.*${TUNNEL}:.*${{ inputs.ec2_ip }}"
           echo "SSH tunnel terminated"
 
+  terraform-destroy:
+    name: "Terraform Destroy"
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    defaults:
+      run:
+        working-directory: infra/aws/
+    # Only run if "destroy" is selected manually
+    if: github.event.inputs.action == 'destroy'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.0.1
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve
   

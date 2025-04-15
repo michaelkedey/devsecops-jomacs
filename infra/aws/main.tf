@@ -37,6 +37,11 @@ module "elk_server" {
   instance_type   = "${var.instance_type}" ["production"]
 }
 
+module "elk_ebs" {
+  source = "./modules/ebs"
+  instance_id = module.elk_server.instance_id
+}
+
 module "lb" {
   source     = "./modules/lb"
   vpc_id     = module.vpc.vpc_id

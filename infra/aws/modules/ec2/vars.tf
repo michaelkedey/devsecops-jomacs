@@ -30,3 +30,18 @@ variable "key_name" {
 }
 
 variable "public_ip" {}
+
+variable "volume_size" {
+  default = 8
+  type    = number
+}
+
+variable "volume_type" {
+  default = "gp2"
+  type    = string
+}
+
+variable "deletetion" {
+  default = true
+  type    = bool
+}

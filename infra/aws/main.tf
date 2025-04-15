@@ -35,11 +35,7 @@ module "elk_server" {
   key_name        = var.key_name
   security_groups = [module.lb.elk_sg]
   instance_type   = "${var.instance_type}" ["production"]
-}
-
-module "elk_ebs" {
-  source = "./modules/ebs"
-  instance_id = module.elk_server.instance_id
+  volume_size     = var.elk_volume_size
 }
 
 module "lb" {

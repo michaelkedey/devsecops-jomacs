@@ -265,17 +265,7 @@ jobs:
           EBS: ${{ needs.terraform-apply.outputs.elk_ebs_name }}
         run: |
           # SSH into the EC2 instance and install elk and start it
-          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'
-            echo "mounting the extra ebs"
-
-            mkfs -t ext4 /dev/nvme1n1
-            # Create a mount point
-            mkdir -p /mnt/data
-            # Mount the volume
-            mount /dev/nvme1n1 /mnt/data
-            # Add it to /etc/fstab for persistent mount on reboot
-            echo '/dev/nvme1n1 /mnt/data ext4 defaults,nofail 0 2' | sudo tee -a /etc/fstab
-            
+          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'            
             # Update package index
             sudo apt-get update -y -y && sudo apt-get upgrade -y
 

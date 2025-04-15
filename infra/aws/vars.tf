@@ -57,6 +57,11 @@ variable "elk_listener_rule_path" {
 
 }
 
+variable "elk_volume_size" {
+  default = 20
+
+}
+
 variable "ports" {
   default = {
     all        = 0

@@ -8,6 +8,12 @@ resource "aws_instance" "project_instance" {
   key_name                    = var.key_name
   associate_public_ip_address = var.public_ip
 
+  root_block_device {
+    volume_size           = var.volume_size
+    volume_type           = var.volume_type
+    delete_on_termination = var.deletetion
+  }
+
   tags = sensitive(
     merge(
       var.tags_all,

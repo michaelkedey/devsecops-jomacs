@@ -183,15 +183,15 @@ jobs:
       - name: Set up SSH tunnel and deploy code
         env:
           PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          BASTION: ${{ needs.terraform.outputs.bastion_ip }}
-          HOST: ${{ needs.terraform.outputs.ec2_ip }}
+          BASTION: ${{ needs.terraform-apply.outputs.bastion_ip }}
+          HOST: ${{ needs.terraform-apply.outputs.ec2_ip }}
           USER: ${{ secrets.EC2_USER }}
           PORT: ${{ secrets.SSH_PORT }}
           TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
 
         run: |
           echo "waiting for instances to be ready"
-          sleep 80
+          sleep 60
 
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
           
@@ -203,7 +203,7 @@ jobs:
         env:
           USER: ${{ secrets.EC2_USER }}
           TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
-          HOST: ${{ needs.terraform.outputs.ec2_ip }}
+          HOST: ${{ needs.terraform-apply.outputs.ec2_ip }}
         run: |
           rsync -avz -e "ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no" ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
           
@@ -226,7 +226,7 @@ jobs:
         if: always()  # Runs even if previous steps fail
         run: |
           # Kill tunnel process using port ${TUNNEL}
-          pkill -f "ssh.*${TUNNEL}:.*${{ inputs.ec2_ip }}"
+          pkill -f "ssh.*${TUNNEL}:.*${HOST}"
           echo "SSH tunnel terminated"
 
   deploy-elk:
@@ -241,14 +241,14 @@ jobs:
       - name: Set up SSH tunnel and deploy code
         env:
           PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          BASTION: ${{ needs.terraform.outputs.bastion_ip }}
-          ELK: ${{ needs.terraform.outputs.elk_ip }}
+          BASTION: ${{ needs.terraform-apply.outputs.bastion_ip }}
+          ELK: ${{ needs.terraform-apply.outputs.elk_ip }}
           USER: ${{ secrets.EC2_USER }}
           PORT: ${{ secrets.SSH_PORT }}
           TUNNEL: ${{ secrets.ELK_TUNNEL_PORT }}
         run: |
           echo "waiting for instances to be ready"
-          sleep 80
+          sleep 60
 
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
           
@@ -261,7 +261,7 @@ jobs:
           USER: ${{ secrets.EC2_USER }}
           TUNNEL: ${{ secrets.ELK_TUNNEL_PORT }}
           PASSWORD: ${{ secrets.KIBANA_PASSWORD }}
-          ELK: ${{ needs.terraform.outputs.elk_ip }}
+          ELK: ${{ needs.terraform-apply.outputs.elk_ip }}
         run: |
           # SSH into the EC2 instance and install elk and start it
           ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'
@@ -342,7 +342,7 @@ jobs:
         if: always()  # Runs even if previous steps fail
         run: |
           # Kill tunnel process using port ${TUNNEL}
-          pkill -f "ssh.*${TUNNEL}:.*${{ inputs.ec2_ip }}"
+          pkill -f "ssh.*${TUNNEL}:.*${ELK}"
           echo "SSH tunnel terminated"
 
   terraform-destroy:

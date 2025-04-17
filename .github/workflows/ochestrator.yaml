@@ -379,23 +379,23 @@ jobs:
               sleep 10
               sudo systemctl start logstash.service
               echo "Configuring logstash"
-              sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null <<EOF
-              input {
-                beats {
-                  port => ${LOGSTASH_PORT}
+              sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << 'EOF'
+                input {
+                  beats {
+                    port => ${LOGSTASH_PORT}
+                  }
                 }
-              }
 
-              filter {
-                # Optional: add filters here, like grok to parse logs
-              }
-
-              output {
-                elasticsearch {
-                  hosts => ["http://localhost:${ELASTICSEARCH_PORT}"]
-                  index => "filebeat-%{+YYYY.MM.dd}"
+                filter {
+                  # Optional: add filters here, like grok to parse logs
                 }
-              }
+
+                output {
+                  elasticsearch {
+                    hosts => ["http://localhost:${ELASTICSEARCH_PORT}"]
+                    index => "filebeat-%{+YYYY.MM.dd}"
+                  }
+                }
               EOF
               
             else

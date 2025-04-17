@@ -379,7 +379,7 @@ jobs:
               sleep 10
               sudo systemctl start logstash.service
               echo "Configuring logstash"
-              sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << 'EOF'
+              sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << 'LOGSTASH_CONFIG'
                 input {
                   beats {
                     port => ${LOGSTASH_PORT}
@@ -396,7 +396,7 @@ jobs:
                     index => "filebeat-%{+YYYY.MM.dd}"
                   }
                 }
-              EOF
+              LOGSTASH_CONFIG
               
             else
               echo "Logstash already installed."

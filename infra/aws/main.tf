@@ -42,6 +42,7 @@ module "lb" {
   source     = "./modules/lb"
   vpc_id     = module.vpc.vpc_id
   subnet_ids = [module.vpc.pb_sn1, module.vpc.pb_sn]
+  def_tg     = module.app_tg_and_ln_rules.tg_id
 }
 
 module "app_tg_and_ln_rules" {

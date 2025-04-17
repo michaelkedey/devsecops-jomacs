@@ -21,7 +21,7 @@ resource "aws_lb_listener" "project_lb_listener" {
   protocol          = var.protocols[0]
   default_action {
     type             = var.lb_default_action
-    target_group_arn = aws_lb_target_group.default_target_group.id
+    target_group_arn = var.def_tg
   }
   tags = merge(
     var.tags_all,
@@ -30,21 +30,6 @@ resource "aws_lb_listener" "project_lb_listener" {
     }
   )
 }
-
-resource "aws_lb_target_group" "default_target_group" {
-  name     = var.names["df_lb_tg"]
-  port     = var.ports["app"]
-  protocol = var.protocols[0]
-  vpc_id   = var.vpc_id
-
-  tags = merge(
-    var.tags_all,
-    {
-      Name = var.names["df_lb_tg"]
-    }
-  )
-}
-
 
 #security group for load balancer
 #necessary in order to set the id for the ingress app traffic in the instance sg

@@ -119,3 +119,7 @@ variable "lb_type" {
 variable "subnet_ids" {
 
 }
+
+variable "def_tg" {
+
+}

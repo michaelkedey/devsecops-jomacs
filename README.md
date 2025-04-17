@@ -119,12 +119,14 @@
 
 ### 4. Centralized Logging & Security Monitoring
 
-#### directory structure
+### directory structure
 ```plaintext
 .
 ├── app
 │   ├── ciphertool
 │   │   └── ciphertool.md
+│   ├── containerization
+│   │   └── Dockerfile
 │   ├── python
 │   │   ├── app.py
 │   │   ├── appspec.yaml
@@ -133,51 +135,53 @@
 │   │   ├── requirements.txt
 │   │   ├── scan-reports
 │   │   │   ├── bandit-report.json
-│   │   │   └── safety-report.json
+│   │   │   ├── safety-report.json
+│   │   │   └── trivy-scanreport.json
 │   │   ├── static
-│   │   │   ├── css
-│   │   │   │   └── styles.css
-│   │   │   ├── fonts
-│   │   │   └── images
+│   │   │   └── css
+│   │   │       └── styles.css
 │   │   └── templates
 │   │       └── index.html
 │   └── security
 │       └── config
 ├── cicd
 │   ├── app.yaml
+│   ├── docker.yaml
 │   └── infra.yaml
-├── docs
 ├── images
 │   ├── bandit.png
-│   └── safety.png
+│   ├── cicddddddddddddddddddddddddddddddd.png
+│   ├── docker1j.png
+│   ├── docker3c.png
+│   ├── docker.png
+│   ├── README.md
+│   ├── safety.png
+│   └── workflow.png
 ├── infra
 │   ├── aws
 │   │   ├── ec2.md
 │   │   ├── main.tf
 │   │   ├── modules
-│   │   │   ├── ec2
+│   │   │   ├── compute
 │   │   │   │   ├── custome_ssh.sh
 │   │   │   │   ├── ec2.tf
-│   │   │   │   ├── iam.tf
 │   │   │   │   ├── output.tf
 │   │   │   │   ├── providers.tf
 │   │   │   │   └── vars.tf
-│   │   │   ├── jumper
-│   │   │   │   ├── bastion.tf
-│   │   │   │   ├── custome_ssh.sh
-│   │   │   │   ├── output.tf
-│   │   │   │   ├── providers.tf
-│   │   │   │   └── vars.tf
-│   │   │   ├── lb
+│   │   │   ├── loadbalancer
 │   │   │   │   ├── lb.tf
 │   │   │   │   ├── outputs.tf
 │   │   │   │   ├── providers.tf
 │   │   │   │   └── vars.tf
-│   │   │   └── vpc
+│   │   │   ├── networking
+│   │   │   │   ├── output.tf
+│   │   │   │   ├── providers.tf
+│   │   │   │   ├── vars.tf
+│   │   │   │   └── vpc.tf
+│   │   │   └── tg_and_ln_rules
 │   │   │       ├── output.tf
-│   │   │       ├── providers.tf
-│   │   │       ├── vars.tf
-│   │   │       └── vpc.tf
+│   │   │       ├── tg.tf
+│   │   │       └── vars.tf
 │   │   ├── output.tf
 │   │   ├── providers.tf
 │   │   └── vars.tf
@@ -200,10 +204,9 @@
 │           ├── output.tf
 │           ├── provider.tf
 │           ├── README.md
-│           ├── terraform.tfstate
-│           ├── terraform.tfstate.backup
 │           └── vars.tf
 └── README.md
 
-29 directories, 54 files
+27 directories, 58 files
+
 ```

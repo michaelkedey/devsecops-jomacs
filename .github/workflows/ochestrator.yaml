@@ -132,37 +132,37 @@ jobs:
     if: contains(fromJson('["build-only", "scan+build", "full-deploy"]'), github.event.inputs.action) #if: ${{ github.event.inputs.action == 'apply' && success() }}
     runs-on: ubuntu-latest
     steps:
-      # Checkout code from the repository
+      #1. Checkout code from the repository
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Set up Docker Buildx (required for multi-platform builds)
+      #2. Set up Docker Buildx (required for multi-platform builds)
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # Set up Docker
+      #3. Set up Docker
       - name: Set up Docker
         uses: docker/setup-qemu-action@v2
 
-      # Build the Docker image
+      #4. Build the Docker image
       - name: Build Docker image
         run: |
           docker build -t michaelkedey/jomacsdevsecops:latest -f app/containerization/Dockerfile app/python/
 
-      # Install Trivy
+      #5. Install Trivy
       - name: Install Trivy
         run: |
           curl -sfL https://github.com/aquasecurity/trivy/releases/download/v0.40.0/trivy_0.40.0_Linux-64bit.deb -o trivy.deb
           sudo dpkg -i trivy.deb
 
-      # Scan the Docker image for vulnerabilities using Trivy
+      #6. Scan the Docker image for vulnerabilities using Trivy
       - name: Scan Docker image for vulnerabilities
         id: trivy_scan
         run: |
           mkdir -p trivy-reports
           trivy image --no-progress --severity HIGH,CRITICAL --format json --output trivy-reports/scan-report.json michaelkedey/jomacsdevsecops:latest
 
-      # Upload the Trivy scan report as an artifact (so you can download it later)
+      #7. Upload the Trivy scan report as an artifact (so you can download it later)
       - name: Upload Trivy scan report
         if: always()
         uses: actions/upload-artifact@v4
@@ -170,7 +170,7 @@ jobs:
           name: trivy-scan-report
           path: trivy-reports/scan-report.json
 
-      # If no vulnerabilities with high severity are found, push to Docker Hub
+      #8. If no vulnerabilities with high severity are found, push to Docker Hub
       - name: Push Docker image to Docker Hub
         if: ${{ success() }}
         env:
@@ -188,7 +188,8 @@ jobs:
       # 1. Checkout Code from GitHub
       - name: Checkout Code
         uses: actions/checkout@v2
-      # 6. Set up SSH key and establish SSH Tunnel
+
+      # 2. Set up SSH key and establish SSH Tunnel
       - name: Set up SSH tunnel and deploy code
         env:
           PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
@@ -197,7 +198,6 @@ jobs:
           USER: ${{ secrets.EC2_USER }}
           PORT: ${{ secrets.SSH_PORT }}
           TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
-
         run: |
           echo "waiting for instances to be ready"
           sleep 60
@@ -205,9 +205,10 @@ jobs:
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
 
           # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
-          # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH (port 22)
+          # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH  
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
-      # 7. copy code and deploy
+      
+      # 3. copy code and deploy
       - name: Deploy app and start Gunicorn
         env:
           USER: ${{ secrets.EC2_USER }}
@@ -223,7 +224,7 @@ jobs:
           export LOGSTASH_PORT="${LOGSTASH_PORT}"
 
           # SSH into the EC2 instance and install dependencies and start Gunicorn
-          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'
+          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF
             # Install dependencies
             cd /home/${USER}/my-app/
             sudo apt-get update -y -y && sudo apt-get upgrade -y
@@ -231,44 +232,48 @@ jobs:
             sudo apt-get install gunicorn -y
             sudo apt-get install python3-flask -y
             pip install -r requirements.txt
-            # Start Gunicorn
-            sudo nohup gunicorn -w 4 -b 0.0.0.0:80 app:app > gunicorn.log 2>&1 &
-            echo "gunicorn log"
-            sudo cat gunicorn.log
+            echo "Creating necessary log directories..."
+            sudo mkdir -p logs
+            echo "starting Gunicorn"
+            sudo nohup gunicorn -w 4 -b 0.0.0.0:80 app:app \
+            > /home/${USER}/my-app/logs/access.log 2> /home/${USER}/my-app/logs/error.log &
 
             #install filebeat for logs
-            wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
-            sudo apt-get install apt-transport-https
-            echo "deb https://artifacts.elastic.co/packages/9.0/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-9.0.list
-            sudo apt-get update && sudo apt-get install filebeat
-            sudo systemctl enable filebeat
-
-            echo "Creating necessary log directories..."
-            sudo mkdir -p /var/log/myapp
+            if ! systemctl list-units --type=service --all | grep -q filebeat.service; then
+              wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+              sudo apt-get install apt-transport-https
+              echo "deb https://artifacts.elastic.co/packages/9.0/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-9.0.list
+              sudo apt-get update && sudo apt-get install filebeat
+              sudo systemctl enable filebeat
+              sudo systemctl start filebeat
+            else 
+              echo "Filebeat is already installed"
+              sudo systemctl restart filebeat
+            fi
 
             echo "Configuring Filebeat to read logs..."
-            sudo tee /etc/filebeat/filebeat.yml > /dev/null <<EOF
+            sudo tee /etc/filebeat/filebeat.yml > /dev/null << FILEBEAT
             filebeat.inputs:
               - type: log
                 enabled: true
                 paths:
-                  - /var/log/myapp/access.log
-                  - /var/log/myapp/error.log
+                  - /home/${USER}/my-app/logs/access.log
+                  - /home/${USER}/my-app/logs/error.log
                 fields:
                   app: my-flask-app
                 fields_under_root: true
 
             output.logstash:
-              hosts: ["http://${LOGSTASH_IP}:${LOGSTASH_PORT}"] # Change this to your Elasticsearch IP or domain
-              
-            EOF
+              hosts: ["http://${LOGSTASH_IP}:${LOGSTASH_PORT}"] # Change this to your Elasticsearch IP or domain 
+          FILEBEAT
 
-            echo "starting filebeat"
-            sudo systemctl start filebeat
-            sudo systemctl status filebeat
+          echo "restarting filebeat"
+          sudo systemctl restart filebeat
+          sudo systemctl status filebeat
 
           EOF
-          # 8. Clean-up tunnel
+
+        # 4. Clean-up tunnel
       - name: Cleanup SSH Tunnel
         if: always() # Runs even if previous steps fail
         run: |
@@ -284,7 +289,7 @@ jobs:
       # 1. Checkout Code from GitHub
       - name: Checkout Code
         uses: actions/checkout@v2
-      # 6. Set up SSH key and establish SSH Tunnel
+      # 2. Set up SSH key and establish SSH Tunnel
       - name: Set up SSH tunnel and deploy code
         env:
           PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
@@ -300,9 +305,9 @@ jobs:
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
 
           # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
-          # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH (port 22)
+          # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH  
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${ELK}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
-      # 7. deploy elk
+      # 3. deploy elk
       - name: Deploy and start elk stack
         env:
           USER: ${{ secrets.EC2_USER }}
@@ -316,7 +321,7 @@ jobs:
           export ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT }}
 
           # SSH into the EC2 instance and install elk and start it
-          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'          
+          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF          
             # Update package index
             sudo apt-get update -y -y && sudo apt-get upgrade -y
 
@@ -352,6 +357,7 @@ jobs:
               echo "Installing Kibana..."
               sudo apt-get update -y && sudo apt-get install kibana
               sudo systemctl enable kibana.service
+              sudo systemctl start kibana.service
 
               # Configure Kibana to listen on all interfaces
               sudo sed -i "s|^#\?server.host:.*|server.host: \"0.0.0.0\"|" /etc/kibana/kibana.yml
@@ -369,8 +375,8 @@ jobs:
 
             echo "passing token to kibana"
             sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$ENROLLMENT_TOKEN"
-            echo "starting kibana"
-            sudo systemctl start kibana
+            echo "restarting kibana"
+            sudo systemctl restart kibana
             sleep 10
 
             # Install Logstash
@@ -378,6 +384,7 @@ jobs:
               echo "Installing Logstash..."
               sudo apt-get update -y && sudo apt-get install logstash
               sudo systemctl enable logstash.service  
+              sudo systemctl start logstash.service
             else
               echo "Logstash already installed."
               sudo systemctl restart logstash
@@ -403,8 +410,8 @@ jobs:
                   }
                 }
           LOGSTASH_CONFIG
-          echo "Starting logstash"
-          sudo systemctl start logstash
+          echo "restarting logstash"
+          sudo systemctl restart logstash
 
             # checks
             sudo systemctl status elasticsearch
@@ -412,7 +419,7 @@ jobs:
             sudo systemctl status kibana
           EOF
 
-      # 8. Clean-up tunnel
+      # 4. Clean-up tunnel
       - name: Cleanup SSH Tunnel
         if: always() # Runs even if previous steps fail
         run: |

@@ -3,12 +3,12 @@ provider "aws" {
 }
 
 module "vpc" {
-  source = "./modules/networking"
+  source = "./modules/vpc"
   lb_sg  = module.lb.lb_sg
 }
 
 module "app_server" {
-  source          = "./ modules/compute"
+  source          = "./modules/ec2"
   instance_name   = var.names["app_instance"]
   subnet_id       = module.vpc.pr_sn
   security_groups = [module.lb.instance_sg]
@@ -18,7 +18,7 @@ module "app_server" {
 }
 
 module "jumper_server" {
-  source          = "./ modules/compute"
+  source          = "./modules/ec2"
   instance_name   = var.names["jumper_instance"]
   subnet_id       = module.vpc.pb_sn
   public_ip       = var.public_ip["yes"]
@@ -28,7 +28,7 @@ module "jumper_server" {
 }
 
 module "elk_server" {
-  source          = "./ modules/compute"
+  source          = "./modules/ec2"
   instance_name   = var.names["elk_instance"]
   subnet_id       = module.vpc.pr_sn1
   public_ip       = var.public_ip["no"]
@@ -39,7 +39,7 @@ module "elk_server" {
 }
 
 module "lb" {
-  source     = "./modules/loadbalancer"
+  source     = "./modules/lb"
   vpc_id     = module.vpc.vpc_id
   subnet_ids = [module.vpc.pb_sn1, module.vpc.pb_sn]
 }

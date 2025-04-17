@@ -43,7 +43,7 @@ variable "listener_rule_priority" {
 }
 
 variable "app_listener_rule_path" {
-  default = "/app/*"
+  default = "/"
 
 }
 
@@ -58,7 +58,7 @@ variable "elk_listener_rule_path" {
 }
 
 variable "elk_volume_size" {
-  default = 20
+  default = 15
 
 }
 

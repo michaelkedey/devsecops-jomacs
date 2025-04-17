@@ -351,6 +351,7 @@ jobs:
             if ! systemctl list-units --type=service --all | grep -q kibana.service; then
               echo "Installing Kibana..."
               sudo apt-get update -y && sudo apt-get install kibana
+              sudo systemctl enable kibana.service
 
               # Configure Kibana to listen on all interfaces
               sudo sed -i "s|^#\?server.host:.*|server.host: \"0.0.0.0\"|" /etc/kibana/kibana.yml
@@ -369,7 +370,6 @@ jobs:
             echo "passing token to kibana"
             sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$ENROLLMENT_TOKEN"
             echo "starting kibana"
-            sleep 10
             sudo systemctl start kibana
             sleep 10
 
@@ -377,8 +377,14 @@ jobs:
             if ! systemctl list-units --type=service --all | grep -q logstash.service; then
               echo "Installing Logstash..."
               sudo apt-get update -y && sudo apt-get install logstash
+              sudo systemctl enable logstash.service  
+            else
+              echo "Logstash already installed."
+              sudo systemctl restart logstash
+              sleep 10
+            fi
 
-              echo "Configuring logstash"
+            echo "Configuring logstash"
               sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH_CONFIG
                 input {
                   beats {
@@ -396,12 +402,9 @@ jobs:
                     index => "filebeat-%{+YYYY.MM.dd}"
                   }
                 }
-              LOGSTASH_CONFIG
-            else
-              echo "Logstash already installed."
-              sudo systemctl restart logstash
-              sleep 10
-            fi
+          LOGSTASH_CONFIG
+          echo "Starting logstash"
+          sudo systemctl start logstash
 
             # checks
             sudo systemctl status elasticsearch

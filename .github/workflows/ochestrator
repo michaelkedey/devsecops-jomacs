@@ -9,22 +9,12 @@ on:
         default: "apply"
         type: choice
         options:
-          - full-deploy
+          - apply
           - destroy
-          - infra-only
-          - scan-only
-          - build-only
-          - deploy-app-only
-          - deploy-elk-only
-          - infra+app
-          - infra+elk
-          - infra+app+elk
-          - scan+build
-          - scan+deploy-app
 
 jobs:
   terraform-apply:
-    if: contains(fromJson('["infra-only", "infra+app", "infra+elk", "infra+app+elk", "scan+infra", "full-deploy"]'), github.event.inputs.action) #if: ${{ github.event.inputs.action == 'apply' }}  
+    if: ${{ github.event.inputs.action == 'apply' }}  
     name: "Terraform-apply"
     runs-on: ubuntu-latest
     outputs:
@@ -82,7 +72,7 @@ jobs:
 
   scan:
     runs-on: ubuntu-latest
-    if: contains(fromJson('["scan-only", "scan+build", "scan+deploy-app", "scan+infra", "full-deploy"]'), github.event.inputs.action) #${{ github.event.inputs.action == 'apply' }}  
+    if: ${{ github.event.inputs.action == 'apply' }}  
     steps:
       # 1. Checkout Code from GitHub
       - name: Checkout Code
@@ -129,7 +119,7 @@ jobs:
 
   build:
     needs: scan # Ensure deploy only happens after the scan job
-    if: contains(fromJson('["build-only", "scan+build", "full-deploy"]'), github.event.inputs.action)  #if: ${{ github.event.inputs.action == 'apply' && success() }}
+    if: ${{ github.event.inputs.action == 'apply' && success() }}
     runs-on: ubuntu-latest
     steps:
     
@@ -183,7 +173,7 @@ jobs:
 
   deploy-app:
     needs: [terraform-apply, scan] # Ensure deploy only happens after the scan job
-    if: contains(fromJson('["deploy-app-only", "infra+app", "infra+app+elk", "scan+deploy-app", "full-deploy"]'), github.event.inputs.action)   #if: ${{ github.event.inputs.action == 'apply' && success() }}  # Only run if the scan job succeeds
+    if: ${{ github.event.inputs.action == 'apply' && success() }}  # Only run if the scan job succeeds
     runs-on: ubuntu-latest
     steps:
       # 1. Checkout Code from GitHub
@@ -214,15 +204,9 @@ jobs:
           USER: ${{ secrets.EC2_USER }}
           TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
           HOST: ${{ needs.terraform-apply.outputs.ec2_ip }}
-          LOGSTASH_IP: ${{ needs.terraform-apply.outputs.elk_ip }}
-          LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
         run: |
           rsync -avz -e "ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no" ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
           
-          # Export environment variables for the SSH session
-          export LOGSTASH_IP="${LOGSTASH_IP}"
-          export LOGSTASH_PORT="${LOGSTASH_PORT}"
-
           # SSH into the EC2 instance and install dependencies and start Gunicorn
           ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'
             # Install dependencies
@@ -236,38 +220,6 @@ jobs:
             sudo nohup gunicorn -w 4 -b 0.0.0.0:80 app:app > gunicorn.log 2>&1 &
             echo "gunicorn log"
             sudo cat gunicorn.log
-
-            #install filebeat for logs
-            wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
-            sudo apt-get install apt-transport-https
-            echo "deb https://artifacts.elastic.co/packages/9.0/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-9.0.list
-            sudo apt-get update && sudo apt-get install filebeat
-            sudo systemctl enable filebeat
-
-            echo "Creating necessary log directories..."
-            sudo mkdir -p /var/log/myapp
-
-            echo "Configuring Filebeat to read logs..."
-            sudo tee /etc/filebeat/filebeat.yml > /dev/null <<EOF
-            filebeat.inputs:
-              - type: log
-                enabled: true
-                paths:
-                  - /var/log/myapp/access.log
-                  - /var/log/myapp/error.log
-                fields:
-                  app: my-flask-app
-                fields_under_root: true
-
-            output.logstash:
-              hosts: ["http://${LOGSTASH_IP}:${LOGSTASH_PORT}"] # Change this to your Elasticsearch IP or domain
-              
-            EOF
-
-            echo "starting filebeat"
-            sudo systemctl start filebeat
-            sudo systemctl status filebeat
-
           EOF
           # 8. Clean-up tunnel
       - name: Cleanup SSH Tunnel
@@ -279,7 +231,7 @@ jobs:
 
   deploy-elk:
     needs: terraform-apply  # Ensure deploy only happens after the scan job
-    if: contains(fromJson('["deploy-elk-only", "infra+elk", "infra+app+elk", "full-deploy"]'), github.event.inputs.action)   #if: ${{ github.event.inputs.action == 'apply' && success() }}  # Only run if the app deploy job succeeds
+    if: ${{ github.event.inputs.action == 'apply' && success() }}  # Only run if the app deploy job succeeds
     runs-on: ubuntu-latest
     steps:
       # 1. Checkout Code from GitHub
@@ -310,12 +262,8 @@ jobs:
           TUNNEL: ${{ secrets.ELK_TUNNEL_PORT }}
           PASSWORD: ${{ secrets.KIBANA_PASSWORD }}
           ELK: ${{ needs.terraform-apply.outputs.elk_ip }}
-          LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
-          ELASTICSEARCH_PORT: ${{ secrets.ELASTICSEARCH_PORT }}
+          EBS: ${{ needs.terraform-apply.outputs.elk_ebs_name }}
         run: |
-          export LOGSTASH_PORT=${{ secrets.LOGSTASH_PORT }}
-          export ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT }}
-
           # SSH into the EC2 instance and install elk and start it
           ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'            
             # Update package index
@@ -378,26 +326,6 @@ jobs:
               echo "starting logstash"
               sleep 10
               sudo systemctl start logstash.service
-              echo "Configuring logstash"
-              sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null <<EOF
-              input {
-                beats {
-                  port => ${LOGSTASH_PORT}
-                }
-              }
-
-              filter {
-                # Optional: add filters here, like grok to parse logs
-              }
-
-              output {
-                elasticsearch {
-                  hosts => ["http://localhost:${ELASTICSEARCH_PORT}"]
-                  index => "filebeat-%{+YYYY.MM.dd}"
-                }
-              }
-              EOF
-              
             else
               echo "Logstash already installed."
               sudo systemctl restart logstash

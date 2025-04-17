@@ -39,6 +39,7 @@ variable "ports" {
     app        = 80
     custom_ssh = 8008
     elk        = 5601
+    elastic    = 5044
   }
   sensitive = true
   type      = map(number)

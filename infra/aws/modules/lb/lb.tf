@@ -163,6 +163,13 @@ resource "aws_security_group" "project_elk_sg" {
     security_groups = [aws_security_group.project_lb_sg.id]
   }
 
+    ingress {
+    from_port       = var.ports["logstash"]
+    to_port         = var.ports["logstash"]
+    protocol        = var.protocols[2]
+    security_groups = [aws_security_group.project_instance_sg.id]
+  }
+
   #this rule allows all traffic out
   egress {
     from_port   = var.ports["all"]

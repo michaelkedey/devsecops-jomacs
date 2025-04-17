@@ -24,7 +24,7 @@ on:
 
 jobs:
   terraform-apply:
-    if: contains(fromJson('["infra-only", "infra+app", "infra+elk", "infra+app+elk", "scan+infra", "full-deploy"]'), github.event.inputs.action) #if: ${{ github.event.inputs.action == 'apply' }}
+    if: contains(fromJson('["infra-only", "infra+app", "infra+elk", "infra+app+elk", "infra+scan+app", "full-deploy"]'), github.event.inputs.action) #if: ${{ github.event.inputs.action == 'apply' }}
     name: "Terraform-apply"
     runs-on: ubuntu-latest
     outputs:

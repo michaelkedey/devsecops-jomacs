@@ -163,7 +163,7 @@ resource "aws_security_group" "project_elk_sg" {
     security_groups = [aws_security_group.project_lb_sg.id]
   }
 
-    ingress {
+  ingress {
     from_port       = var.ports["logstash"]
     to_port         = var.ports["logstash"]
     protocol        = var.protocols[2]

@@ -53,7 +53,7 @@ variable "protocols" {
 }
 
 variable "lb_default_action" {
-  default = "fixed-response"
+  default = "forward"
   type    = string
 }
 

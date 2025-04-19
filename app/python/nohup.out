@@ -1,0 +1,39 @@
+[2025-04-19 10:50:25 +0000] [382079] [INFO] Starting gunicorn 23.0.0
+[2025-04-19 10:50:25 +0000] [382079] [INFO] Listening at: http://0.0.0.0:5000 (382079)
+[2025-04-19 10:50:25 +0000] [382079] [INFO] Using worker: sync
+[2025-04-19 10:50:25 +0000] [382080] [INFO] Booting worker with pid: 382080
+[2025-04-19 10:50:25 +0000] [382081] [INFO] Booting worker with pid: 382081
+[2025-04-19 10:50:25 +0000] [382082] [INFO] Booting worker with pid: 382082
+[2025-04-19 10:50:25 +0000] [382083] [INFO] Booting worker with pid: 382083
+[2025-04-19 10:50:42 +0000] [382079] [INFO] Handling signal: int
+[2025-04-19 10:50:42 +0000] [382081] [INFO] Worker exiting (pid: 382081)
+[2025-04-19 10:50:42 +0000] [382080] [INFO] Worker exiting (pid: 382080)
+[2025-04-19 10:50:42 +0000] [382083] [INFO] Worker exiting (pid: 382083)
+[2025-04-19 10:50:42 +0000] [382082] [INFO] Worker exiting (pid: 382082)
+[2025-04-19 10:50:42 +0000] [382079] [INFO] Shutting down: Master
+[2025-04-19 10:51:08 +0000] [382251] [INFO] Starting gunicorn 23.0.0
+[2025-04-19 10:51:08 +0000] [382251] [INFO] Listening at: http://0.0.0.0:5000 (382251)
+[2025-04-19 10:51:08 +0000] [382251] [INFO] Using worker: sync
+[2025-04-19 10:51:08 +0000] [382252] [INFO] Booting worker with pid: 382252
+[2025-04-19 10:51:08 +0000] [382253] [INFO] Booting worker with pid: 382253
+[2025-04-19 10:51:08 +0000] [382254] [INFO] Booting worker with pid: 382254
+[2025-04-19 10:51:08 +0000] [382255] [INFO] Booting worker with pid: 382255
+[2025-04-19 10:54:02 +0000] [382251] [INFO] Handling signal: term
+[2025-04-19 10:54:02 +0000] [382253] [INFO] Worker exiting (pid: 382253)
+[2025-04-19 10:54:02 +0000] [382254] [INFO] Worker exiting (pid: 382254)
+[2025-04-19 10:54:02 +0000] [382252] [INFO] Worker exiting (pid: 382252)
+[2025-04-19 10:54:02 +0000] [382255] [INFO] Worker exiting (pid: 382255)
+[2025-04-19 10:54:02 +0000] [382251] [INFO] Shutting down: Master
+[2025-04-19 10:54:12 +0000] [383061] [INFO] Starting gunicorn 23.0.0
+[2025-04-19 10:54:12 +0000] [383061] [INFO] Listening at: http://0.0.0.0:5000 (383061)
+[2025-04-19 10:54:12 +0000] [383061] [INFO] Using worker: sync
+[2025-04-19 10:54:12 +0000] [383062] [INFO] Booting worker with pid: 383062
+[2025-04-19 10:54:12 +0000] [383063] [INFO] Booting worker with pid: 383063
+[2025-04-19 10:54:12 +0000] [383064] [INFO] Booting worker with pid: 383064
+[2025-04-19 10:54:12 +0000] [383065] [INFO] Booting worker with pid: 383065
+[2025-04-19 10:54:41 +0000] [383061] [INFO] Handling signal: term
+[2025-04-19 10:54:41 +0000] [383063] [INFO] Worker exiting (pid: 383063)
+[2025-04-19 10:54:41 +0000] [383062] [INFO] Worker exiting (pid: 383062)
+[2025-04-19 10:54:41 +0000] [383064] [INFO] Worker exiting (pid: 383064)
+[2025-04-19 10:54:41 +0000] [383065] [INFO] Worker exiting (pid: 383065)
+[2025-04-19 10:54:41 +0000] [383061] [INFO] Shutting down: Master

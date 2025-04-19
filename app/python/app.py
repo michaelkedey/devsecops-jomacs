@@ -1,11 +1,9 @@
-# from flask import Flask
+# from flask import Flask, render_template
 
-# # Initialize the Flask application
 # app = Flask(__name__)
 
 # @app.route('/')
-# @app.route('/app')  # This line makes /app also map to the home() function
-# def home():
+# def index():
 #     return render_template('index.html')
 
 # if __name__ == '__main__':
@@ -15,9 +13,12 @@ from flask import Flask, render_template
 
 app = Flask(__name__)
 
+# Handle ALB's path prefix
 @app.route('/')
+@app.route('/app/')
+@app.route('/app/index')
 def index():
     return render_template('index.html')
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=False)

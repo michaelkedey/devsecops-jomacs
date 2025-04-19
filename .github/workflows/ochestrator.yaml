@@ -426,9 +426,19 @@ jobs:
               echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml
               echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml
               sudo sed -i "s|^#\?elasticsearch.hosts:.*|elasticsearch.hosts: [\"https://localhost:9200\"]|" /etc/kibana/kibana.yml
+              # Set elasticsearch.ssl.certificateAuthorities
+              grep -q '^elasticsearch.ssl.certificateAuthorities:' /etc/kibana/kibana.yml || \
+              echo 'elasticsearch.ssl.certificateAuthorities: ["/etc/elasticsearch/certs/http_ca.crt"]' | sudo tee -a /etc/kibana/kibana.yml
+              sudo sed -i '/^elasticsearch.username:/d' /etc/kibana/kibana.yml
+              echo 'elasticsearch.username: "kibana_system"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+              sudo sed -i "/^elasticsearch.password:/d" /etc/kibana/kibana.yml && \
+              echo "elasticsearch.password: \"$ELASTIC_PASSWORD\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+
 
               echo "Running Kibana setup with enrollment token...=========================================================="
               ssudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$TOKEN"
+              echo "permissions for kibana user on elasticsearch certs directory=============================================================="
+              sudo usermod -aG elasticsearch kibana
 
               sudo systemctl enable kibana
               sudo systemctl start kibana

@@ -378,9 +378,11 @@ jobs:
             # Update package index
             sudo apt-get update -y -y && sudo apt-get upgrade -y
 
+            echo "Installing Java ============================================================"
             # Install Java (required by Elasticsearch)
             sudo apt-get install -y openjdk-11-jdk
 
+            echo "Installing Elasticsearch ============================================================"
             if ! systemctl list-units --type=service --all | grep -q elasticsearch.service; then
               echo "Installing Elasticsearch..."
               # Download and install the public signing key
@@ -404,8 +406,9 @@ jobs:
             TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
             echo "Exporting the token to use later"
             export ENROLLMENT_TOKEN="$TOKEN"
-            cat "$TOKEN"
+            cat "$ENROLLMENT_TOKEN"
 
+            echo "Installing Kibana ============================================================"
             # Install Kibana
             if ! systemctl list-units --type=service --all | grep -q kibana.service; then
               echo "Installing Kibana..."
@@ -424,7 +427,7 @@ jobs:
             fi
 
             echo "passing token to kibana"
-            sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$TOKEN"
+            sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$ENROLLMENT_TOKEN"
             echo "restarting kibana"
             sudo systemctl start kibana
             sleep 10

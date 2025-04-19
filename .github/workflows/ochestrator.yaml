@@ -420,18 +420,18 @@ jobs:
               echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml
               echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml
               sudo sed -i "s|^#\?elasticsearch.hosts:.*|elasticsearch.hosts: [\"http://localhost:9200\"]|" /etc/kibana/kibana.yml
-
-              # ENROLL KIBANA BEFORE STARTING SERVICE
-              echo "Running Kibana setup with enrollment token..."
-              sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$ENROLLMENT_TOKEN"
-
-              # Now start Kibana
-              sudo systemctl enable kibana.service
-              sudo systemctl start kibana.service
             else
               echo "Kibana already installed."
               sudo systemctl restart kibana
             fi
+
+            # ENROLL KIBANA BEFORE STARTING SERVICE
+            echo "Running Kibana setup with enrollment token..."
+            sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$ENROLLMENT_TOKEN"
+
+            # Now start Kibana
+            sudo systemctl enable kibana.service
+            sudo systemctl restart kibana.service
             
           #   # Install Logstash
           #   if ! systemctl list-units --type=service --all | grep -q logstash.service; then

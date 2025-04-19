@@ -219,6 +219,7 @@ jobs:
 
           # Export environment variables for the SSH session
           export LOGSTASH_IP="${LOGSTASH_IP}"
+          export USER="${USER}"
           export LOGSTASH_PORT="${LOGSTASH_PORT}"
 
           # SSH into the EC2 instance and install dependencies and start Gunicorn
@@ -233,7 +234,7 @@ jobs:
             echo "Creating necessary log directories..."
             sudo mkdir -p logs
             echo "starting Gunicorn"
-            gunicorn -w 4 -b 0.0.0.0:5000 app:app \
+            nohup gunicorn -w 4 -b 0.0.0.0:5000 app:app \
             > /home/${USER}/my-app/logs/access.log 2> /home/${USER}/my-app/logs/error.log &
 
             echo "installing nginx for proxy"

@@ -70,23 +70,6 @@ variable "listener_rule_priority" {
   type = map(number)
 }
 
-variable "listener_rule_path" {
-  default = {
-    app = "/app"
-    elk = "/elk"
-  }
-}
-
-variable "lb_default_action_cn_type" {
-  default = "text/plain"
-  type    = string
-}
-
-variable "lb_default_action_message" {
-  default = "The load balancer works, to access the /app to access elk dashboard /elk"
-  type    = string
-}
-
 variable "lb_default_action_status_code" {
   default = "200"
   type    = string

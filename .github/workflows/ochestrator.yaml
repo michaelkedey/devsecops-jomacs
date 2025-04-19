@@ -403,40 +403,68 @@ jobs:
             fi
 
             echo "Getting enrollment token..."
+            # Wait for Elasticsearch to be ready
+            until curl --cacert /etc/elasticsearch/certs/http_ca.crt -s https://localhost:9200 >/dev/null; do
+              sleep 5
+            done
             TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
-
-            echo "exporting enrollment token"
-            export ENROLLMENT_TOKEN="$TOKEN"
+            echo "Enrollment token generated: $TOKEN"
 
             echo "Installing Kibana ============================================================"
-            # Install Kibana
             if ! systemctl list-units --type=service --all | grep -q kibana.service; then
               echo "Installing Kibana..."
-              sudo apt-get update -y && sudo apt-get install kibana
+              sudo apt-get update -y && sudo apt-get install kibana -y
 
-              # Configure Kibana to listen on all interfaces
+              # Configure Kibana
               sudo sed -i "s|^#\?server.host:.*|server.host: \"0.0.0.0\"|" /etc/kibana/kibana.yml
               echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml
               echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml
-              sudo sed -i "s|^#\?elasticsearch.hosts:.*|elasticsearch.hosts: [\"http://localhost:9200\"]|" /etc/kibana/kibana.yml
-              echo "passing token to kibana"
-              sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$ENROLLMENT_TOKEN"
-              echo "starting kibana"
+              sudo sed -i "s|^#\?elasticsearch.hosts:.*|elasticsearch.hosts: [\"https://localhost:9200\"]|" /etc/kibana/kibana.yml
+
+              echo "Running Kibana setup with enrollment token..."
+              sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$TOKEN"
+
               sudo systemctl enable kibana
-              sleep 10
               sudo systemctl start kibana
-              sleep 10
+              sleep 20 # Allow more time for first start
             else
-              echo "Kibana already installed."
+              echo "Kibana already installed. Restarting..."
               sudo systemctl restart kibana
             fi
+
+            # echo "Getting enrollment token..."
+            # TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
+
+            # echo "exporting enrollment token"
+            # export ENROLLMENT_TOKEN="$TOKEN"
+
+            # echo "Installing Kibana ============================================================"
+            # # Install Kibana
+            # if ! systemctl list-units --type=service --all | grep -q kibana.service; then
+            #   echo "Installing Kibana..."
+            #   sudo apt-get update -y && sudo apt-get install kibana
+
+            #   # Configure Kibana to listen on all interfaces
+            #   sudo sed -i "s|^#\?server.host:.*|server.host: \"0.0.0.0\"|" /etc/kibana/kibana.yml
+            #   echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml
+            #   echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml
+            #   sudo sed -i "s|^#\?elasticsearch.hosts:.*|elasticsearch.hosts: [\"https://localhost:9200\"]|" /etc/kibana/kibana.yml
+            #   echo "passing token to kibana"
+            #   sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$ENROLLMENT_TOKEN"
+            #   echo "starting kibana"
+            #   sudo systemctl enable kibana
+            #   sleep 10
+            #   sudo systemctl start kibana
+            #   sleep 10
+            # else
+            #   echo "Kibana already installed."
+            #   sudo systemctl restart kibana
+            # fi
 
             # # ENROLL KIBANA BEFORE STARTING SERVICE
             # echo "Running Kibana setup with enrollment token..."
             # sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$ENROLLMENT_TOKEN"
 
-            # # Now start Kibana
-            # sudo systemctl enable kibana.service
             # sudo systemctl restart kibana.service
             
           #   # Install Logstash

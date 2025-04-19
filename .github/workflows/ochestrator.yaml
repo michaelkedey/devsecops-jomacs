@@ -257,6 +257,8 @@ jobs:
             fi
 
             echo ">>> Creating Nginx config for APP"
+            sudo rm /etc/nginx/sites-available/default
+            sudo rm /etc/nginx/sites-enabled/default
             sudo tee /etc/nginx/sites-available/default > /dev/null <<NGINX
             server {
               listen 80 default_server;
@@ -278,7 +280,7 @@ jobs:
               }
             }       
           NGINX
-          
+
             echo "Enabling Nginx site"
             sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
             sudo nginx -t

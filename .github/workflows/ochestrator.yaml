@@ -403,7 +403,8 @@ jobs:
             fi
 
             echo "Getting enrollment token..."
-            TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
+            #TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
+            TOKEN=$(sudo bin/elasticsearch-create-enrollment-token -s kibana)
             echo "Exporting the token to use later"
             echo "$TOKEN"
             export ENROLLMENT_TOKEN="$TOKEN"

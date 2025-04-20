@@ -478,7 +478,7 @@ jobs:
             # checks
             sudo systemctl status elasticsearch
             #sudo systemctl status logstash
-            sudo systemctl status kibana
+            #sudo systemctl status kibana
 
             echo "Resetting elastic user password...====================================================================="
             RESET_OUTPUT=$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic --batch --auto)

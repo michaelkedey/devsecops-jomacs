@@ -395,6 +395,7 @@ jobs:
               sudo /bin/systemctl enable elasticsearch.service
               sleep 65
               sudo systemctl start elasticsearch.service
+              sleep 55
             else
               echo "Elasticsearch already installed."
               sudo systemctl restart elasticsearch
@@ -404,7 +405,7 @@ jobs:
             echo "Installing Kibana ============================================================"
             if ! systemctl list-units --type=service --all | grep -q kibana.service; then
               sudo apt-get update && sudo apt-get install kibana
-              TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
+              sleep 10
               sudo sed -i '/^#\?server\.host:/d' /etc/kibana/kibana.yml && \
               echo 'server.host: "0.0.0.0"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
 
@@ -419,7 +420,11 @@ jobs:
               # Set elasticsearch.hosts
               sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && \
               echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-
+              
+              echo "seting nrolment token ======================================================================================================================================="
+              TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
+              sleep 20
+              echo $TOKEN
               sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$TOKEN"
 
               sudo /bin/systemctl daemon-reload
@@ -432,43 +437,43 @@ jobs:
             fi
 
             
-            # Install Logstash
-            if ! systemctl list-units --type=service --all | grep -q logstash.service; then
-              echo "Installing Logstash..."
-              sudo apt-get update -y && sudo apt-get install logstash
-              sudo systemctl enable logstash.service  
-              sudo systemctl start logstash.service
-            else
-              echo "Logstash already installed."
-              sudo systemctl restart logstash
-              sleep 10
-            fi
+          #   echo "Installing Logstash ============================================================"
+          #   if ! systemctl list-units --type=service --all | grep -q logstash.service; then
+          #     echo "Installing Logstash..."
+          #     sudo apt-get update -y && sudo apt-get install logstash
+          #     sudo systemctl enable logstash.service  
+          #     sudo systemctl start logstash.service
+          #   else
+          #     echo "Logstash already installed."
+          #     sudo systemctl restart logstash
+          #     sleep 10
+          #   fi
 
-            echo "Configuring logstash"
-              sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH_CONFIG
-                input {
-                  beats {
-                    port => ${LOGSTASH_PORT}
-                  }
-                }
+          #   echo "Configuring logstash"
+          #     sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH_CONFIG
+          #       input {
+          #         beats {
+          #           port => ${LOGSTASH_PORT}
+          #         }
+          #       }
 
-                filter {
-                  # Optional: add filters here, like grok to parse logs
-                }
+          #       filter {
+          #         # Optional: add filters here, like grok to parse logs
+          #       }
 
-                output {
-                  elasticsearch {
-                    hosts => ["http://localhost:${ELASTICSEARCH_PORT}"]
-                    index => "filebeat-%{+YYYY.MM.dd}"
-                  }
-                }
-          LOGSTASH_CONFIG
-            echo "restarting logstash"
-            sudo systemctl restart logstash
+          #       output {
+          #         elasticsearch {
+          #           hosts => ["http://localhost:${ELASTICSEARCH_PORT}"]
+          #           index => "filebeat-%{+YYYY.MM.dd}"
+          #         }
+          #       }
+          # LOGSTASH_CONFIG
+          #   echo "restarting logstash"
+          #   sudo systemctl restart logstash
 
             # checks
             sudo systemctl status elasticsearch
-            sudo systemctl status logstash
+            #sudo systemctl status logstash
             sudo systemctl status kibana
 
             echo "Resetting elastic user password...====================================================================="
@@ -479,6 +484,9 @@ jobs:
           EOF
 
       - name: SCP elastic password from instance
+        env:
+          USER: ${{ secrets.EC2_USER }}
+          TUNNEL: ${{ secrets.ELK_TUNNEL_PORT }}
         run: |
           scp -i private_key.pem -P ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost:/tmp/elastic_password.txt ./elastic_password.txt
       

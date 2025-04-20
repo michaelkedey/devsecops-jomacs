@@ -397,15 +397,27 @@ jobs:
               sleep 30
               sudo systemctl start elasticsearch.service
               sleep 30
-              TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
+              TOKEN=$(sudo -E /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
               sleep 10
               export KIBANA_TOKEN=$TOKEN
               echo "Exported kibana_token: $KIBANA_TOKEN"
+              echo "token 1==========================================================="
             else
               echo "Elasticsearch already installed."
               sudo systemctl restart elasticsearch
               sleep 10
             fi
+
+            TOKEN=$(sudo -E /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
+            export KIBANA_TOKEN=$TOKEN
+            echo "Exported kibana_token: $KIBANA_TOKEN"
+            echo "token 2==========================================================="
+
+            sudo bash -c '/usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana' > /tmp/token.txt 2>&1
+            cat /tmp/token.txt
+            # export KIBANA_TOKEN=$TOKEN
+            # echo "Exported kibana_token: $KIBANA_TOKEN"
+            echo "token 3==========================================================="
 
             # echo "Installing Kibana ============================================================"
             # if ! systemctl list-units --type=service --all | grep -q kibana.service; then

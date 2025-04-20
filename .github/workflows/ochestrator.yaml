@@ -477,11 +477,6 @@ jobs:
             sudo systemctl status logstash
             sudo systemctl status kibana
 
-            echo "Resetting elastic user password...====================================================================="
-            RESET_OUTPUT=$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic --batch --auto)
-            ELASTIC_PASSWORD=$(echo "$RESET_OUTPUT" | grep -oP '(?<=New value: ).*')
-            # Save the password to a file
-            echo "$ELASTIC_PASSWORD" > /tmp/elastic_password.txt
           EOF
 
       # 4. Clean-up tunnel

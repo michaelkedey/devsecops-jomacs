@@ -397,9 +397,12 @@ jobs:
               sleep 30
               sudo systemctl start elasticsearch.service
               sleep 30
-              sudo bash -c '/usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana' > /tmp/token.txt 2>&1
-              TOKEN=$(cat /tmp/token.txt)
-              sleep 7
+              # sudo bash -c '/usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana' > /tmp/token.txt 2>&1
+              # TOKEN=$(cat /tmp/token.txt)
+              TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
+              sleep 10
+              export KIBANA_TOKEN=$TOKEN
+              echo "Exported kibana_token: $KIBANA_TOKEN"
               echo "Exported kibana_token: $TOKEN"
               echo "token 1==========================================================="
             else

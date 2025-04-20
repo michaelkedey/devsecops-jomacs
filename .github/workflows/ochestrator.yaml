@@ -388,12 +388,13 @@ jobs:
               sudo apt-get install apt-transport-https
               echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/9.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-9.x.list
               sudo apt-get update && sudo apt-get install elasticsearch
+              sleep 15
               sudo sed -i '/^#\?cluster\.name:/d' /etc/elasticsearch/elasticsearch.yml && echo 'cluster.name: "elk"' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
               sudo sed -i '/^#\?network\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'network.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
               sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
               sudo /bin/systemctl daemon-reload
               sudo /bin/systemctl enable elasticsearch.service
-              sleep 65
+              sleep 60
               sudo systemctl start elasticsearch.service
             else
               echo "Elasticsearch already installed."
@@ -420,7 +421,7 @@ jobs:
               sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && \
               echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
               
-              echo "seting nrolment token ======================================================================================================================================="
+              echo "seting enrolment token ======================================================================================================================================="
               TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
               sleep 20
               echo "Generated enrollment token: $TOKEN"

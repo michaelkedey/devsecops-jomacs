@@ -394,9 +394,9 @@ jobs:
               sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
               sudo /bin/systemctl daemon-reload
               sudo /bin/systemctl enable elasticsearch.service
-              sleep 30
+              sleep 120
               sudo systemctl start elasticsearch.service
-              sleep 30
+              sleep 120
               TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
               sleep 21
               echo "Generated enrollment token: $TOKEN"
@@ -476,29 +476,29 @@ jobs:
           #   sudo systemctl restart logstash
 
             # checks
-            sudo systemctl status elasticsearch
+            #sudo systemctl status elasticsearch
             #sudo systemctl status logstash
             #sudo systemctl status kibana
 
-            echo "Resetting elastic user password...====================================================================="
-            RESET_OUTPUT=$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic --batch --auto)
-            ELASTIC_PASSWORD=$(echo "$RESET_OUTPUT" | grep -oP '(?<=New value: ).*')
-            # Save the password to a file
-            echo "$ELASTIC_PASSWORD" > /tmp/elastic_password.txt
+            # echo "Resetting elastic user password...====================================================================="
+            # RESET_OUTPUT=$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic --batch --auto)
+            # ELASTIC_PASSWORD=$(echo "$RESET_OUTPUT" | grep -oP '(?<=New value: ).*')
+            # # Save the password to a file
+            # echo "$ELASTIC_PASSWORD" > /tmp/elastic_password.txt
           EOF
 
-      - name: SCP elastic password from instance
-        env:
-          USER: ${{ secrets.EC2_USER }}
-          TUNNEL: ${{ secrets.ELK_TUNNEL_PORT }}
-        run: |
-          scp -i private_key.pem -P ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost:/tmp/elastic_password.txt ./elastic_password.txt
+      # - name: SCP elastic password from instance
+      #   env:
+      #     USER: ${{ secrets.EC2_USER }}
+      #     TUNNEL: ${{ secrets.ELK_TUNNEL_PORT }}
+      #   run: |
+      #     scp -i private_key.pem -P ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost:/tmp/elastic_password.txt ./elastic_password.txt
       
-      - name: Upload elastic password
-        uses: actions/upload-artifact@v4
-        with:
-          name: elastic-password
-          path: ./elastic_password.txt
+      # - name: Upload elastic password
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: elastic-password
+      #     path: ./elastic_password.txt
 
       # 4. Clean-up tunnel
       - name: Cleanup SSH Tunnel

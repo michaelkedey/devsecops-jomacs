@@ -394,11 +394,11 @@ jobs:
               sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
               sudo /bin/systemctl daemon-reload
               sudo /bin/systemctl enable elasticsearch.service
-              sleep 120
+              sleep 30
               sudo systemctl start elasticsearch.service
-              sleep 120
-              TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
-              sleep 21
+              sleep 30
+              TOKEN=$(sudo bash -c '/usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana')
+              sleep 10
               echo "Generated enrollment token: $TOKEN"
             else
               echo "Elasticsearch already installed."

@@ -374,7 +374,7 @@ jobs:
           export ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT }}
 
           # SSH into the EC2 instance and install elk and start it
-          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF          
+          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'          
             # Update package index
             sudo apt-get update -y -y && sudo apt-get upgrade -y
 

@@ -397,119 +397,92 @@ jobs:
               sleep 30
               sudo systemctl start elasticsearch.service
               sleep 30
-              # sudo bash -c '/usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana' > /tmp/token.txt 2>&1
-              # TOKEN=$(cat /tmp/token.txt)
-              TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
-              sleep 10
-              export KIBANA_TOKEN=$TOKEN
-              echo "Exported kibana_token: $KIBANA_TOKEN"
-              echo "Exported kibana_token: $TOKEN"
-              echo "token 1==========================================================="
             else
               echo "Elasticsearch already installed."
               sudo systemctl restart elasticsearch
               sleep 10
             fi
 
-            # sudo bash -c '/usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana' > /tmp/token.txt 2>&1
-            # cat /tmp/token.txt
-            # # export KIBANA_TOKEN=$TOKEN
-            # # echo "Exported kibana_token: $KIBANA_TOKEN"
-            # echo "token 3==========================================================="
+            echo "Installing Kibana ============================================================"
+            if ! systemctl list-units --type=service --all | grep -q kibana.service; then
+              sudo apt-get update && sudo apt-get install kibana
+              sleep 10
+              sudo sed -i '/^#\?server\.host:/d' /etc/kibana/kibana.yml && \
+              echo 'server.host: "0.0.0.0"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
 
-            # echo "Installing Kibana ============================================================"
-            # if ! systemctl list-units --type=service --all | grep -q kibana.service; then
-            #   sudo apt-get update && sudo apt-get install kibana
-            #   sleep 10
-            #   sudo sed -i '/^#\?server\.host:/d' /etc/kibana/kibana.yml && \
-            #   echo 'server.host: "0.0.0.0"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+              # Set server.basePath
+              sudo sed -i '/^#\?server\.basePath:/d' /etc/kibana/kibana.yml && \
+              echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
 
-            #   # Set server.basePath
-            #   sudo sed -i '/^#\?server\.basePath:/d' /etc/kibana/kibana.yml && \
-            #   echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+              # Set server.rewriteBasePath
+              sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && \
+              echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
 
-            #   # Set server.rewriteBasePath
-            #   sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && \
-            #   echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-
-            #   # Set elasticsearch.hosts
-            #   sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && \
-            #   echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+              # Set elasticsearch.hosts
+              sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && \
+              echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
               
-            #   echo "seting enrolment token ======================================================================================================================================="
-            #   TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
-            #   sleep 20
-            #   echo "Generated enrollment token: $TOKEN"
-            #   sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$TOKEN"
+              echo "seting enrolment token ======================================================================================================================================="
+              TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
+              sleep 20
+              echo "applying token to kibana setup ======================================================================================================================================="
+              sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$TOKEN"
 
-            #   sudo /bin/systemctl daemon-reload
-            #   sudo /bin/systemctl enable kibana.service
-            #   sleep 10
-            #   sudo systemctl start kibana.service
-            # else
-            #   echo "Kibana already installed. Restarting..."
-            #   sudo systemctl restart kibana
-            # fi
+              sudo /bin/systemctl daemon-reload
+              sudo /bin/systemctl enable kibana.service
+              sleep 10
+              sudo systemctl start kibana.service
+            else
+              echo "Kibana already installed. Restarting..."
+              sudo systemctl restart kibana
+            fi
 
             
-          #   echo "Installing Logstash ============================================================"
-          #   if ! systemctl list-units --type=service --all | grep -q logstash.service; then
-          #     echo "Installing Logstash..."
-          #     sudo apt-get update -y && sudo apt-get install logstash
-          #     sudo systemctl enable logstash.service  
-          #     sudo systemctl start logstash.service
-          #   else
-          #     echo "Logstash already installed."
-          #     sudo systemctl restart logstash
-          #     sleep 10
-          #   fi
+            echo "Installing Logstash ============================================================"
+            if ! systemctl list-units --type=service --all | grep -q logstash.service; then
+              echo "Installing Logstash..."
+              sudo apt-get update -y && sudo apt-get install logstash
+              sudo systemctl enable logstash.service  
+              sudo systemctl start logstash.service
+            else
+              echo "Logstash already installed."
+              sudo systemctl restart logstash
+              sleep 10
+            fi
 
-          #   echo "Configuring logstash"
-          #     sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH_CONFIG
-          #       input {
-          #         beats {
-          #           port => ${LOGSTASH_PORT}
-          #         }
-          #       }
+            echo "Configuring logstash"
+              sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH_CONFIG
+                input {
+                  beats {
+                    port => ${LOGSTASH_PORT}
+                  }
+                }
 
-          #       filter {
-          #         # Optional: add filters here, like grok to parse logs
-          #       }
+                filter {
+                  # Optional: add filters here, like grok to parse logs
+                }
 
-          #       output {
-          #         elasticsearch {
-          #           hosts => ["http://localhost:${ELASTICSEARCH_PORT}"]
-          #           index => "filebeat-%{+YYYY.MM.dd}"
-          #         }
-          #       }
-          # LOGSTASH_CONFIG
-          #   echo "restarting logstash"
-          #   sudo systemctl restart logstash
+                output {
+                  elasticsearch {
+                    hosts => ["http://localhost:${ELASTICSEARCH_PORT}"]
+                    index => "filebeat-%{+YYYY.MM.dd}"
+                  }
+                }
+          LOGSTASH_CONFIG
+            echo "restarting logstash"
+            sudo systemctl restart logstash
 
-            # checks
-            #sudo systemctl status elasticsearch
-            #sudo systemctl status logstash
-            #sudo systemctl status kibana
+            checks
+            sudo systemctl status elasticsearch
+            sudo systemctl status logstash
+            sudo systemctl status kibana
 
-            # echo "Resetting elastic user password...====================================================================="
-            # RESET_OUTPUT=$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic --batch --auto)
-            # ELASTIC_PASSWORD=$(echo "$RESET_OUTPUT" | grep -oP '(?<=New value: ).*')
-            # # Save the password to a file
-            # echo "$ELASTIC_PASSWORD" > /tmp/elastic_password.txt
+            echo "Resetting elastic user password...====================================================================="
+            RESET_OUTPUT=$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic --batch --auto)
+            ELASTIC_PASSWORD=$(echo "$RESET_OUTPUT" | grep -oP '(?<=New value: ).*')
+            # Save the password to a file
+            echo "$ELASTIC_PASSWORD" > /tmp/elastic_password.txt
           EOF
-
-      # - name: SCP elastic password from instance
-      #   env:
-      #     USER: ${{ secrets.EC2_USER }}
-      #     TUNNEL: ${{ secrets.ELK_TUNNEL_PORT }}
-      #   run: |
-      #     scp -i private_key.pem -P ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost:/tmp/elastic_password.txt ./elastic_password.txt
-      
-      # - name: Upload elastic password
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: elastic-password
-      #     path: ./elastic_password.txt
 
       # 4. Clean-up tunnel
       - name: Cleanup SSH Tunnel

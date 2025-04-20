@@ -395,7 +395,6 @@ jobs:
               sudo /bin/systemctl enable elasticsearch.service
               sleep 65
               sudo systemctl start elasticsearch.service
-              sleep 55
             else
               echo "Elasticsearch already installed."
               sudo systemctl restart elasticsearch
@@ -424,7 +423,7 @@ jobs:
               echo "seting nrolment token ======================================================================================================================================="
               TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
               sleep 20
-              echo $TOKEN
+              echo "Generated enrollment token: $TOKEN"
               sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$TOKEN"
 
               sudo /bin/systemctl daemon-reload

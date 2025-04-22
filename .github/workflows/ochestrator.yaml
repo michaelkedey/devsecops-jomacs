@@ -223,6 +223,7 @@ jobs:
           LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
           APP_PORT: ${{ secrets.APP_PORT }}
         run: |
+          set -e
           rsync -avz -e "ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no" ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
 
           # Export environment variables for the SSH session
@@ -280,7 +281,7 @@ jobs:
 
               # Reverse proxy for Flask app
               location /app/ {
-                proxy_pass http://127.0.0.1:\{APP_PORT}/;
+                proxy_pass http://127.0.0.1:5000/;
 
                 proxy_set_header Host \$host;
                 proxy_set_header X-Real-IP \$remote_addr;
@@ -553,6 +554,7 @@ jobs:
           LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
           ELASTICSEARCH_PORT: ${{ secrets.ELASTICSEARCH_PORT }}
         run: |
+          set -e
           export LOGSTASH_PORT=${{ secrets.LOGSTASH_PORT }}
           export ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT }}
 
@@ -726,6 +728,7 @@ jobs:
           LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
           ELASTICSEARCH_PORT: ${{ secrets.ELASTICSEARCH_PORT }}
         run: |
+          set -e
           export LOGSTASH_PORT=${{ secrets.LOGSTASH_PORT }}
           export ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT }}
 

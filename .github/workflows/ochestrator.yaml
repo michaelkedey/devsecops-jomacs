@@ -681,18 +681,34 @@ jobs:
       # 1. Checkout Code from GitHub
       - name: Checkout Code
         uses: actions/checkout@v2
-      # 2. Set up SSH key and establish SSH Tunnel
-      - name: Set up SSH tunnel and deploy code
+
+      - name: Download Terraform outputs from S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          mkdir -p terraform-outputs
+          aws s3 cp s3://sedem-terra333-bucket/devsecops-jomacs/tf-outputs-latest.json terraform-outputs/outputs.json
+      
+      - name: Parse Terraform Outputs and establish SSH tunnel
         env:
           PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          BASTION: ${{ needs.terraform-apply.outputs.bastion_ip }}
-          ELK: ${{ needs.terraform-apply.outputs.elk_ip }}
           USER: ${{ secrets.EC2_USER }}
           PORT: ${{ secrets.SSH_PORT }}
           TUNNEL: ${{ secrets.ELK_TUNNEL_PORT }}
         run: |
-          echo "waiting for instances to be ready"
-          sleep 60
+          set -e
+          sudo apt-get update && sudo apt-get install -y jq
+          cat terraform-outputs/outputs.json
+
+          bastion_ip=$(jq -r '.bastion_public_ip.value' terraform-outputs/outputs.json)
+          BASTION=${bastion_ip}
+          #echo "BASTION=${bastion_ip}" >> $GITHUB_ENV
+
+          elk_ip=$(jq -r '.elk_private_ip.value' terraform-outputs/outputs.json)
+          ELK=${elk_ip}
+          #echo "HOST=${elk_ip}" >> $GITHUB_ENV
 
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
 
@@ -704,8 +720,6 @@ jobs:
         env:
           USER: ${{ secrets.EC2_USER }}
           TUNNEL: ${{ secrets.ELK_TUNNEL_PORT }}
-          PASSWORD: ${{ secrets.KIBANA_PASSWORD }}
-          ELK: ${{ needs.terraform-apply.outputs.elk_ip }}
           LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
           ELASTICSEARCH_PORT: ${{ secrets.ELASTICSEARCH_PORT }}
         run: |

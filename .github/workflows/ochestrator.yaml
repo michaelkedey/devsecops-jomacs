@@ -330,7 +330,6 @@ jobs:
           echo "restarting filebeat"
           sudo systemctl restart filebeat
 
-
           sudo systemctl status filebeat
           sudo systemctl status nginx
 
@@ -504,7 +503,6 @@ jobs:
           echo "restarting filebeat"
           sudo systemctl restart filebeat
 
-
           sudo systemctl status filebeat
           sudo systemctl status nginx
 
@@ -644,13 +642,18 @@ jobs:
                 }
 
                 filter {
-                  # Optional: add filters here, like grok to parse logs
+                  grok {
+                    match => { "message" => "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level}: %{GREEDYDATA:msg}" }
+                  }
+                  date {
+                    match => ["timestamp", "ISO8601"]
+                  }
                 }
 
                 output {
                   elasticsearch {
                     hosts => ["http://localhost:${ELASTICSEARCH_PORT}"]
-                    index => "filebeat-%{+YYYY.MM.dd}"
+                    index => "flask-logs-%{+YYYY.MM.dd}"
                   }
                 }
           LOGSTASH_CONFIG
@@ -812,13 +815,18 @@ jobs:
                 }
 
                 filter {
-                  # Optional: add filters here, like grok to parse logs
+                  grok {
+                    match => { "message" => "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level}: %{GREEDYDATA:msg}" }
+                  }
+                  date {
+                    match => ["timestamp", "ISO8601"]
+                  }
                 }
 
                 output {
                   elasticsearch {
                     hosts => ["http://localhost:${ELASTICSEARCH_PORT}"]
-                    index => "filebeat-%{+YYYY.MM.dd}"
+                    index => "flask-logs-%{+YYYY.MM.dd}"
                   }
                 }
           LOGSTASH_CONFIG

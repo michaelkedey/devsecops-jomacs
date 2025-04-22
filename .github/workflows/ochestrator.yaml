@@ -233,7 +233,7 @@ jobs:
           export APP_PORT="${APP_PORT}"
 
           # SSH into the EC2 instance and install dependencies and start Gunicorn
-          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF
+          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF | tee deploy-app.log 
             # Install dependencies
             cd /home/${USER}/my-app/
             sudo apt-get update -y -y && sudo apt-get upgrade -y
@@ -336,6 +336,19 @@ jobs:
 
           EOF
 
+      - name: Encrypt and upload logs to s3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
+        run: |
+
+          echo" Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets ===================================================================================================================================="
+          gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 deploy-app.log 
+          aws s3 cp outputs.json s3://sedem-terra333-bucket/devsecops-jomacs/logs/deploy-app.log 
+          rm deploy-app.log 
+
         # 4. Clean-up tunnel
       - name: Cleanup SSH Tunnel
         if: always() # Runs even if previous steps fail
@@ -402,7 +415,7 @@ jobs:
 
           rsync -avz -e "ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no" ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
 
-          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF
+          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF | tee deploy-app-only.log 
             export LOGSTASH_IP="${LOGSTASH_IP}"
             export LOGSTASH_PORT="${LOGSTASH_PORT}"
             export APP_PORT="${APP_PORT}"
@@ -509,6 +522,19 @@ jobs:
 
           EOF
 
+      - name: Encrypt and upload logs to s3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
+        run: |
+
+          echo" Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets ===================================================================================================================================="
+          gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 deploy-app-only.log 
+          aws s3 cp outputs.json s3://sedem-terra333-bucket/devsecops-jomacs/logs/deploy-app-only.log 
+          rm deploy-app-only.log 
+
         # 4. Clean-up tunnel
       - name: Cleanup SSH Tunnel
         if: always() # Runs even if previous steps fail
@@ -559,7 +585,7 @@ jobs:
           export ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT }}
 
           # SSH into the EC2 instance and install elk and start it
-          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'          
+          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF' | tee deploy-elk.log          
             # Update package index
             sudo apt-get update -y -y && sudo apt-get upgrade -y
 
@@ -673,6 +699,19 @@ jobs:
 
           EOF
 
+      - name: Encrypt and upload logs to s3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
+        run: |
+
+          echo" Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets ===================================================================================================================================="
+          gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 deploy-elk.log 
+          aws s3 cp outputs.json s3://sedem-terra333-bucket/devsecops-jomacs/logs/deploy-elk.log 
+          rm deploy-elk.log 
+
       # 4. Clean-up tunnel
       - name: Cleanup SSH Tunnel
         if: always() # Runs even if previous steps fail
@@ -737,7 +776,7 @@ jobs:
           export ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT }}
 
           # SSH into the EC2 instance and install elk and start it
-          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF'          
+          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF' | tee deploy-elk-only.log         
             # Update package index
             sudo apt-get update -y -y && sudo apt-get upgrade -y
 
@@ -746,37 +785,37 @@ jobs:
             sudo apt-get install -y openjdk-11-jdk
 
             echo "Installing Elasticsearch ================================================================================================================================="
-            #if ! systemctl list-units --type=service --all | grep -q elasticsearch.service; then
-            wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
-            sudo apt-get install apt-transport-https
-            echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/9.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-9.x.list
-            sudo apt-get update && sudo apt-get install elasticsearch
-            sleep 15
-            sudo sed -i '/^#\?cluster\.name:/d' /etc/elasticsearch/elasticsearch.yml && echo 'cluster.name: "elk"' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
-            sudo sed -i '/^#\?network\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'network.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
-            sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
-            sudo /bin/systemctl daemon-reload
-            sudo /bin/systemctl enable elasticsearch.service
-            sleep 30
-            sudo systemctl start elasticsearch.service
-            sleep 30
+            if ! systemctl list-units --type=service --all | grep -q elasticsearch.service; then
+              wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
+              sudo apt-get install apt-transport-https
+              echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/9.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-9.x.list
+              sudo apt-get update && sudo apt-get install elasticsearch
+              sleep 15
+              sudo sed -i '/^#\?cluster\.name:/d' /etc/elasticsearch/elasticsearch.yml && echo 'cluster.name: "elk"' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
+              sudo sed -i '/^#\?network\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'network.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
+              sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
+              sudo /bin/systemctl daemon-reload
+              sudo /bin/systemctl enable elasticsearch.service
+              sleep 30
+              sudo systemctl start elasticsearch.service
+              sleep 30
+                
+              echo "Generating the Elasticsearch password for the 'elastic' user===================================================================================================================================="
+              ELASTIC_PASSWORD=$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | awk '/New value:/ {print $NF}')
+              sleep 15
+              echo "$ELASTIC_PASSWORD" > elastic_password.txt
               
-            echo "Generating the Elasticsearch password for the 'elastic' user===================================================================================================================================="
-            ELASTIC_PASSWORD=$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | awk '/New value:/ {print $NF}')
-            sleep 15
-            echo "$ELASTIC_PASSWORD" > elastic_password.txt
-            
-            echo "FILE_TRANSFER_START"
-            base64 elastic_password.txt
-            echo "FILE_TRANSFER_END"
+              echo "FILE_TRANSFER_START"
+              base64 elastic_password.txt
+              echo "FILE_TRANSFER_END"
 
-            rm elastic_password.txt
-              
-            # else
-            #   echo "Elasticsearch already installed."
-            #   sudo systemctl restart elasticsearch
-            #   sleep 10
-            # fi
+              rm elastic_password.txt
+                
+            else
+              echo "Elasticsearch already installed."
+              sudo systemctl restart elasticsearch
+              sleep 10
+            fi
 
             echo "Installing Kibana ================================================================================================================================="
             if ! systemctl list-units --type=service --all | grep -q kibana.service; then
@@ -863,11 +902,27 @@ jobs:
 
           EOF
 
-          # Extract and decode the file on GitHub Runner
-          awk '/FILE_TRANSFER_START/{flag=1;next} /FILE_TRANSFER_END/{flag=0} flag' output.log | base64 -d > elastic_password.txt
-          aws s3 cp elastic_password.txt s3://sedem-terra333-bucket/devsecops-jomacs/elastic_password.txt
-          rm output.log
+      - name: Encrypt and upload logs to s3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
+        run: |
+          echo "Extracting and encoding elasticsearch password from heredoc=============================================================================================================================================================="
+          awk '/FILE_TRANSFER_START/{flag=1;next} /FILE_TRANSFER_END/{flag=0} flag' deploy-elk-only.log  | base64 -d > elastic_password.txt
+          aws secretsmanager put-secret-value \
+          --secret-id elasticsearch_password \
+          --secret-string file://elastic_password.txt \
+          --region ${AWS_REGION}
+
+          echo" Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets ===================================================================================================================================="
+          gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 deploy-elk-only.log 
+          aws s3 cp outputs.json s3://sedem-terra333-bucket/devsecops-jomacs/logs/deploy-elk-only.log 
+
+          rm deploy-elk-only.log 
           rm elastic_password.txt
+          
 
       # 4. Clean-up tunnel
       - name: Cleanup SSH Tunnel

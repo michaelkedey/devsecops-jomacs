@@ -85,8 +85,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
         run: |
-          aws s3 cp infra/aws/outputs.json s3://sedem-terra333-bucket/devsecops-jomacs/tf-outputs-latest.json
-
+          aws s3 cp outputs.json s3://sedem-terra333-bucket/devsecops-jomacs/tf-outputs-latest.json
 
   scan:
     runs-on: ubuntu-latest

@@ -72,7 +72,6 @@ jobs:
           echo "bastion_ip=$(jq -r '.bastion_public_ip.value' outputs.json)" >> $GITHUB_OUTPUT
           echo "ec2_ip=$(jq -r '.ec2_private_ip.value' outputs.json)" >> $GITHUB_OUTPUT
           echo "elk_ip=$(jq -r '.elk_private_ip.value' outputs.json)" >> $GITHUB_OUTPUT
-          echo $bastion_ip
 
       - name: Upload Terraform Outputs
         uses: actions/upload-artifact@v4
@@ -338,53 +337,61 @@ jobs:
           echo "SSH tunnel terminated"
 
   deploy-app-only:
-    needs: scan # Ensure deploy only happens after the scan job
-    if: contains(fromJson('["scan+deploy-app-only", "scan+deploy-app-only+deploy-elk-only"]'), github.event.inputs.action) #if: ${{ github.event.inputs.action == 'apply' && success() }}  # Only run if the scan job succeeds
+    needs: scan
+    if: contains(fromJson('["scan+deploy-app-only", "scan+deploy-app-only+deploy-elk-only"]'), github.event.inputs.action)
     runs-on: ubuntu-latest
     steps:
-      # 1. Checkout Code from GitHub
       - name: Checkout Code
         uses: actions/checkout@v2
 
-      # 2. Set up SSH key and establish SSH Tunnel
-      - name: Set up SSH tunnel and deploy code
+      - name: Download Terraform Outputs
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-outputs
+          path: ./terraform-outputs
+
+      - name: Parse Terraform Outputs and establish SSH tunnel
         env:
           PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          BASTION: ${{ needs.terraform-apply.outputs.bastion_ip }}
-          HOST: ${{ needs.terraform-apply.outputs.ec2_ip }}
           USER: ${{ secrets.EC2_USER }}
           PORT: ${{ secrets.SSH_PORT }}
           TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
         run: |
-          echo "waiting for instances to be ready"
-          sleep 60
+          set -e
+
+          sudo apt-get update && sudo apt-get install -y jq
+          cat terraform-outputs/outputs.json
+
+          bastion_ip=$(jq -r '.bastion_public_ip.value' terraform-outputs/outputs.json)
+          ec2_ip=$(jq -r '.ec2_private_ip.value' terraform-outputs/outputs.json)
+          elk_ip=$(jq -r '.elk_private_ip.value' terraform-outputs/outputs.json)
+
+          echo "BASTION=$bastion_ip" >> $GITHUB_ENV
+          echo "HOST=$ec2_ip" >> $GITHUB_ENV
+          echo "LOGSTASH_IP=$elk_ip" >> $GITHUB_ENV
 
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
 
-          # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
-          # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH  
+          echo "Establishing SSH tunnel..."
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
-      
-      # 3. copy code and deploy
+
       - name: Deploy app and start Gunicorn
         env:
           USER: ${{ secrets.EC2_USER }}
           TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
-          HOST: ${{ needs.terraform-apply.outputs.ec2_ip }}
-          LOGSTASH_IP: ${{ needs.terraform-apply.outputs.elk_ip }}
+          LOGSTASH_IP: ${{ env.LOGSTASH_IP }}
           LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
           APP_PORT: ${{ secrets.APP_PORT }}
         run: |
+          set -e
+
           rsync -avz -e "ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no" ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
 
-          # Export environment variables for the SSH session
-          export LOGSTASH_IP="${LOGSTASH_IP}"
-          export USER="${USER}"
-          export LOGSTASH_PORT="${LOGSTASH_PORT}"
-          export APP_PORT="${APP_PORT}"
-
-          # SSH into the EC2 instance and install dependencies and start Gunicorn
           ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF
+            export LOGSTASH_IP="${LOGSTASH_IP}"
+            export LOGSTASH_PORT="${LOGSTASH_PORT}"
+            export APP_PORT="${APP_PORT}"
+
             # Install dependencies
             cd /home/${USER}/my-app/
             sudo apt-get update -y -y && sudo apt-get upgrade -y

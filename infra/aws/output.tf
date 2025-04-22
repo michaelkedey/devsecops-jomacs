@@ -23,24 +23,24 @@ output "instance_id" {
 }
 
 output "lb_sg" {
-  value = module.lb.lb_sg
+  value = module.loadbalancer.lb_sg
 }
 
 output "instance_sg" {
-  value = module.lb.instance_sg
+  value = module.loadbalancer.instance_sg
 }
 
 output "elk_sg" {
-  value = module.lb.elk_sg
+  value = module.loadbalancer.elk_sg
 }
 
 
 output "bastion_sg" {
-  value = module.lb.bastion_sg
+  value = module.loadbalancer.bastion_sg
 }
 
 output "lb_dns" {
-  value = module.lb.lb_dns
+  value = module.loadbalancer.lb_dns
 }
 
 output "bastion_public_ip" {

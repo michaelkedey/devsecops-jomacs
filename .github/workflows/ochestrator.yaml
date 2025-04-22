@@ -245,7 +245,7 @@ jobs:
             sudo chmod +x /home/${USER}/my-app
             sudo chmod +x /home/${USER}/my-app/static
 
-            echo "installing nginx for proxy"
+            echo "installing nginx for proxy ================================================================================================================================="
             if ! systemctl list-units --type=service --all | grep -q nginx.service; then
               sudo apt-get update -y && sudo apt-get upgrade -y
               sudo apt-get install nginx -y
@@ -256,10 +256,10 @@ jobs:
               sudo systemctl restart nginx
             fi
 
-            echo ">>> Creating Nginx config for APP"
+            echo "Creating Nginx config for APP ================================================================================================================================="
             sudo rm /etc/nginx/sites-available/default
             sudo rm /etc/nginx/sites-enabled/default
-            sudo tee /etc/nginx/sites-available/default > /dev/null << "NGINX"
+            sudo tee /etc/nginx/sites-available/default > /dev/null << NGINX
             server {
               listen 80 default_server;
               server_name _;
@@ -273,7 +273,7 @@ jobs:
 
               # Reverse proxy for Flask app
               location /app/ {
-                proxy_pass http://127.0.0.1:5000/;
+                proxy_pass http://127.0.0.1:${APP_PORT}/;
 
                 proxy_set_header Host \$host;
                 proxy_set_header X-Real-IP \$remote_addr;
@@ -284,13 +284,13 @@ jobs:
       
           NGINX
 
-            echo "Enabling Nginx site"
+            echo "Enabling Nginx site ================================================================================================================================="
             sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
             sudo nginx -t
             sudo systemctl restart nginx
             sudo systemctl status nginx
 
-            echo "install filebeat for logs"
+            echo "install filebeat for logs ================================================================================================================================="
             if ! systemctl list-units --type=service --all | grep -q filebeat.service; then
               wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
               sudo apt-get install apt-transport-https
@@ -304,7 +304,7 @@ jobs:
               sudo systemctl restart filebeat
             fi
 
-            echo "Configuring Filebeat to read logs..."
+            echo "Configuring Filebeat to read logs...================================================================================================================================="
             sudo tee /etc/filebeat/filebeat.yml > /dev/null << FILEBEAT
             filebeat.inputs:
               - type: log
@@ -322,7 +322,10 @@ jobs:
 
           echo "restarting filebeat"
           sudo systemctl restart filebeat
+
+
           sudo systemctl status filebeat
+          sudo systemctl status nginx
 
           EOF
 
@@ -378,11 +381,11 @@ jobs:
             # Update package index
             sudo apt-get update -y -y && sudo apt-get upgrade -y
 
-            echo "Installing Java ============================================================"
+            echo "Installing Java ================================================================================================================================="
             # Install Java (required by Elasticsearch)
             sudo apt-get install -y openjdk-11-jdk
 
-            echo "Installing Elasticsearch ============================================================"
+            echo "Installing Elasticsearch ================================================================================================================================="
             if ! systemctl list-units --type=service --all | grep -q elasticsearch.service; then
               wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
               sudo apt-get install apt-transport-https
@@ -403,7 +406,7 @@ jobs:
               sleep 10
             fi
 
-            echo "Installing Kibana ============================================================"
+            echo "Installing Kibana ================================================================================================================================="
             if ! systemctl list-units --type=service --all | grep -q kibana.service; then
               sudo apt-get update && sudo apt-get install kibana
               sleep 10
@@ -438,7 +441,7 @@ jobs:
             fi
 
             
-            echo "Installing Logstash ============================================================"
+            echo "Installing Logstash ================================================================================================================================="
             if ! systemctl list-units --type=service --all | grep -q logstash.service; then
               echo "Installing Logstash..."
               sudo apt-get update -y && sudo apt-get install logstash

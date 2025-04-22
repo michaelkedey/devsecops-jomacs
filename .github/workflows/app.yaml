@@ -112,3 +112,23 @@ jobs:
           # Kill tunnel process using port ${TUNNEL}
           pkill -f "ssh.*${TUNNEL}:.*${{ inputs.ec2_ip }}"
           echo "SSH tunnel terminated"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

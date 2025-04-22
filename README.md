@@ -9,20 +9,21 @@
 ### 1. Secure CI/CD Pipeline with Automated Scanning
 
 #### [cicd](./cicd/)
-[![Full Infra + App Deploy](https://github.com/michaelkedey/devsecops-jomacs/actions/workflows/ochestrator.yaml/badge.svg)](https://github.com/michaelkedey/devsecops-jomacs/actions/workflows/ochestrator.yaml)
+[![Full Infra + App Deploy + ELK Deploy](https://github.com/michaelkedey/devsecops-jomacs/actions/workflows/ochestrator.yaml/badge.svg)](https://github.com/michaelkedey/devsecops-jomacs/actions/workflows/ochestrator.yaml)
 
  ![workflow](./images/cicddddddddddddddddddddddddddddddd.png)
 
 - **[infra.yaml](./cicd/infra.yaml)**
   - designed to to create the necessary AWS resources for the pipeline,including;
-      * vpc with private and public subnets in multiple availability zones
-      * private application server, in a private subnet
-      * jumper server in a public subnet fo secure acces to the private server
-      * loadbalancer for public access to the app via dns
-      * nat gateway for outbound access from the private subnet
-      * internet gateway for public access to the loadbalancer
-      * custom ssh ports for secure access to both servers
-    * this workflow is trgiggerd either automatically via changes in the `infra/aws` directory on branch `main` and manually by selecting either an aplly or destroy job
+      * a vpc with private and public subnets in multiple availability zones
+      * a private application server, in a private subnet
+      * a private elk server, in another private subnet
+      * a jumper server in a public subnet fo secure acces to the private servers
+      * a loadbalancer for public access to the private servers via dns
+      * a nat gateway for outbound access from the private subnets
+      * an internet gateway for public access to the loadbalancer
+      * custom ssh ports for secure access to all servers
+    * this workflow is trgiggerd either automatically via changes in the `infra/aws` directory on branch `main`, or manually, by selecting either an aplly or destroy job
 - **[app.yaml](./cicd/app.yaml):** designed to securely deploy the application to the private server, employing multiple strategies to ensure the application is deployed securely, including;
     * safety scan for vulnerabilities 
         * [safety-scan.json](./app/python/scan-reports/safety-report.json)

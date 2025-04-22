@@ -374,12 +374,12 @@ jobs:
           cat terraform-outputs/outputs.json
 
           bastion_ip=$(jq -r '.bastion_public_ip.value' terraform-outputs/outputs.json)
-          #BASTION=${bastion_ip}
-          echo "BASTION=${bastion_ip}" >> $GITHUB_ENV
+          BASTION=${bastion_ip}
+          #echo "BASTION=${bastion_ip}" >> $GITHUB_ENV
 
           ec2_ip=$(jq -r '.ec2_private_ip.value' terraform-outputs/outputs.json)
-          #HOST=${ec2_ip}
-          echo "HOST=${ec2_ip}" >> $GITHUB_ENV
+          HOST=${ec2_ip}
+          #echo "HOST=${ec2_ip}" >> $GITHUB_ENV
 
           elk_ip=$(jq -r '.elk_private_ip.value' terraform-outputs/outputs.json)
           #LOGSTASH_IP=${elk_ip}

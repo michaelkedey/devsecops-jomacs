@@ -382,6 +382,12 @@ jobs:
           echo "LOGSTASH_IP=$elk_ip" >> $GITHUB_ENV
 
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
+          
+          echo "BASTION: ${BASTION}"
+          echo "HOST: ${HOST}"
+          echo "PORT: ${PORT}"
+          echo "TUNNEL: ${TUNNEL}"
+
 
           echo "Establishing SSH tunnel..."
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f

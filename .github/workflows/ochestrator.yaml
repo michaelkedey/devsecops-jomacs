@@ -267,7 +267,7 @@ jobs:
             echo "Creating Nginx config for APP ================================================================================================================================="
             sudo rm /etc/nginx/sites-available/default
             sudo rm /etc/nginx/sites-enabled/default
-            sudo tee /etc/nginx/sites-available/default > /dev/null << NGINX
+            sudo tee /etc/nginx/sites-available/default > /dev/null << 'NGINX'
             server {
               listen 80 default_server;
               server_name _;

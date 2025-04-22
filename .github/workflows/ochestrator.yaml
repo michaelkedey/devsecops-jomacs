@@ -82,7 +82,7 @@ jobs:
 
   scan:
     runs-on: ubuntu-latest
-    if: contains(fromJson('["scan-only", "scan+build", "infra+scan+app", "infra+scan+app+elk", "scan+deploy-app-only+deploy-elk-only", "full-deploy"]'), github.event.inputs.action) #${{ github.event.inputs.action == 'apply' }}
+    if: contains(fromJson('["scan-only", "scan+build", "infra+scan+app", "infra+scan+app+elk", "scan+deploy-app-only", "scan+deploy-app-only+deploy-elk-only", "full-deploy"]'), github.event.inputs.action) #${{ github.event.inputs.action == 'apply' }}
     steps:
       # 1. Checkout Code from GitHub
       - name: Checkout Code

@@ -814,7 +814,7 @@ jobs:
 
             
             echo "Installing Logstash ================================================================================================================================="
-            #if ! systemctl list-units --type=service --all | grep -q logstash.service; then
+            if ! systemctl list-units --type=service --all | grep -q logstash.service; then
               echo "Installing Logstash..."
               sudo apt-get update -y && sudo apt-get install logstash
               sudo systemctl enable logstash.service  

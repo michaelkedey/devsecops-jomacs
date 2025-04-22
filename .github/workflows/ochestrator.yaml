@@ -73,11 +73,20 @@ jobs:
           echo "ec2_ip=$(jq -r '.ec2_private_ip.value' outputs.json)" >> $GITHUB_OUTPUT
           echo "elk_ip=$(jq -r '.elk_private_ip.value' outputs.json)" >> $GITHUB_OUTPUT
 
-      - name: Upload Terraform Outputs
+      - name: Upload Terraform Outputs to Github Aretefacts
         uses: actions/upload-artifact@v4
         with:
           name: terraform-outputs
           path: infra/aws/outputs.json
+
+      - name: Upload Terraform outputs to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws s3 cp infra/aws/outputs.json s3://sedem-terra333-bucket/devsecops-jomacs/tf-outputs-latest.json
+
 
   scan:
     runs-on: ubuntu-latest
@@ -334,6 +343,7 @@ jobs:
         run: |
           # Kill tunnel process using port ${TUNNEL}
           pkill -f "ssh.*${TUNNEL}:.*${HOST}"
+          rm -f private_key.pem
           echo "SSH tunnel terminated"
 
   deploy-app-only:
@@ -344,11 +354,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
 
-      - name: Download Terraform Outputs
-        uses: actions/download-artifact@v4
-        with:
-          name: terraform-outputs
-          path: ./terraform-outputs
+      - name: Download Terraform outputs from S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          mkdir -p terraform-outputs
+          aws s3 cp s3://sedem-terra333-bucket/devsecops-jomacs/tf-outputs-latest.json terraform-outputs/outputs.json
 
       - name: Parse Terraform Outputs and establish SSH tunnel
         env:
@@ -358,7 +371,6 @@ jobs:
           TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
         run: |
           set -e
-
           sudo apt-get update && sudo apt-get install -y jq
           cat terraform-outputs/outputs.json
 
@@ -501,6 +513,7 @@ jobs:
         run: |
           # Kill tunnel process using port ${TUNNEL}
           pkill -f "ssh.*${TUNNEL}:.*${HOST}"
+          rm -f private_key.pem
           echo "SSH tunnel terminated"
 
   deploy-elk:
@@ -654,6 +667,7 @@ jobs:
         run: |
           # Kill tunnel process using port ${TUNNEL}
           pkill -f "ssh.*${TUNNEL}:.*${ELK}"
+          rm -f private_key.pem
           echo "SSH tunnel terminated"
 
 
@@ -807,6 +821,7 @@ jobs:
         run: |
           # Kill tunnel process using port ${TUNNEL}
           pkill -f "ssh.*${TUNNEL}:.*${ELK}"
+          rm -f private_key.pem
           echo "SSH tunnel terminated"
 
   terraform-destroy:

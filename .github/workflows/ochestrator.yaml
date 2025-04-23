@@ -912,14 +912,16 @@ jobs:
           echo "Extracting and encoding elasticsearch password from heredoc=============================================================================================================================================================="
           awk '/FILE_TRANSFER_START/{flag=1;next} /FILE_TRANSFER_END/{flag=0} flag' deploy-elk-only.log  | base64 -d > elastic_password.txt
           gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 elastic_password.txt
-          aws s3 cp elastic_password.txt s3://sedem-terra333-bucket/devsecops-jomacs/elastic_password.txt
+          aws s3 cp elastic_password.txt.gpg s3://sedem-terra333-bucket/devsecops-jomacs/elastic_password.txt.gpg
 
           echo "Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets ===================================================================================================================================="
           gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 deploy-elk-only.log 
-          aws s3 cp deploy-elk-only.log  s3://sedem-terra333-bucket/devsecops-jomacs/logs/deploy-elk-only.log 
+          aws s3 cp deploy-elk-only.log.gpg  s3://sedem-terra333-bucket/devsecops-jomacs/logs/deploy-elk-only.log.gpg
 
           rm deploy-elk-only.log 
+          rm deploy-elk-only.log.gpg
           rm elastic_password.txt
+          rm elastic_password.txt.gpg
           
 
       # 4. Clean-up tunnel

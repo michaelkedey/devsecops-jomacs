@@ -69,6 +69,6 @@ module "elk_tg_and_ln_rules" {
   tg_port                = var.ports["elk"]
 }
 
-module "elasticsearch_password" {
-  source = "./modules/secrets_manager"
-}
+# module "elasticsearch_password" {
+#   source = "./modules/secrets_manager"
+# }

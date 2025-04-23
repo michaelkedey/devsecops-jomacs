@@ -13,6 +13,10 @@ inputs:
   EC2_USER:
     description: 'EC2 User for SSH connection'
     required: true
+
+  EC2_SSH_KEY:
+    description: 'EC2 ssh key for SSH connection'
+    required: true
  
   SSH_TUNNEL_PORT:
     description: 'SSH Tunnel Port'
@@ -65,7 +69,7 @@ runs:
       run: |
         set -e
         echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
-        
+
         rsync -avz -e "ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no" ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
 
         ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF | tee ${{ inputs.log_file }}  

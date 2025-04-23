@@ -226,6 +226,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           DEVSECOPS_GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
 
 
   prepare-app-deploy-only:
@@ -286,6 +287,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           DEVSECOPS_GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
 
   prepare-elk-deploy-only:
     if: contains(fromJson('["deploy-elk-only", "scan+deploy-app-only+deploy-elk-only"]'), github.event.inputs.action)

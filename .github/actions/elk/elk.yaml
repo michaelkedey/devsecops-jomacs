@@ -167,6 +167,7 @@ runs:
           sudo systemctl status logstash
           sudo systemctl status kibana
         EOF
+      shell: bash
 
     - name: Encrypt and upload logs to s3
       env:
@@ -193,6 +194,7 @@ runs:
         rm ${{ inputs.log_file }}.gpg
         rm elastic_password.txt
         rm elastic_password.txt.gpg
+      shell: bash
 
     # 4. Clean-up tunnel
     - name: Cleanup SSH Tunnel
@@ -202,6 +204,7 @@ runs:
         pkill -f "ssh.*${TUNNEL}:.*${ELK}"
         rm -f private_key.pem
         echo "SSH tunnel terminated"
+      shell: bash 
 
 
 

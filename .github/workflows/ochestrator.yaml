@@ -214,7 +214,7 @@ jobs:
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
 
       - name: app-deploy
-        uses: ./.github/actions/app.yaml@main
+        uses: ./.github/actions/app
         with:
           logstash_ip: ${{ needs.terraform-apply.outputs.elk_ip }}
           log_file: "app-deploy.log"
@@ -266,7 +266,7 @@ jobs:
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
 
       - name: app-deploy-only
-        uses: ./.github/actions/app.yaml@main
+        uses: ./.github/actions/app
         with:
           logstash_ip: ${{ env.LOGSTASH_IP }}
           log_file: "app-deploy-only.log"
@@ -317,7 +317,7 @@ jobs:
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${ELK}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
         
       - name: elk-deploy-only
-        uses: ./.github/actions/elk.yaml@main
+        uses: ./.github/actions/elk
         with:
           log_file: "elk-deploy-only.log"
 
@@ -349,11 +349,11 @@ jobs:
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${ELK}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
 
       - name: elk-deploy
-        uses: ./.github/actions/elk.yaml@main
+        uses: ./.github/actions/elk
         with:
           log_file: "elk-deploy.log"
         
-        
+
   terraform-destroy:
     name: "Terraform Destroy"
     runs-on: ubuntu-latest

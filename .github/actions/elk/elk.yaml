@@ -3,8 +3,55 @@ description: Deploy and configure the ELK stack
 
 inputs:
   log_file:
+    description: 'Name of the log file.'
     required: true
     type: string
+
+  EC2_USER:
+    description: 'EC2 username for SSH connection.'
+    required: true
+    type: string
+
+  ELK_TUNNEL_PORT:
+    description: 'Port used for SSH tunneling to the ELK instance.'
+    required: true
+    type: string
+
+  LOGSTASH_PORT:
+    description: 'Port for Logstash input.'
+    required: true
+    type: string
+
+  ELASTICSEARCH_PORT:
+    description: 'Port for Elasticsearch service.'
+    required: true
+    type: string
+
+  EC2_SSH_KEY:
+    description: 'Private key for EC2 SSH access.'
+    required: true
+    type: string
+
+  AWS_ACCESS_KEY_ID:
+    description: 'AWS Access Key ID for uploading logs.'
+    required: true
+    type: string
+
+  AWS_SECRET_ACCESS_KEY:
+    description: 'AWS Secret Access Key for uploading logs.'
+    required: true
+    type: string
+
+  AWS_REGION:
+    description: 'AWS region for S3 uploads.'
+    required: true
+    type: string
+
+  DEVSECOPS_GPG_PASSPHRASE:
+    description: 'GPG passphrase used for encrypting files.'
+    required: true
+    type: string
+
 
 runs:
   using: "composite"
@@ -16,16 +63,16 @@ runs:
     # 3. deploy elk
     - name: Deploy and start elk stack
       env:
-        USER: ${{ secrets.EC2_USER }}
-        TUNNEL: ${{ secrets.ELK_TUNNEL_PORT }}
-        LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
-        ELASTICSEARCH_PORT: ${{ secrets.ELASTICSEARCH_PORT }}
-        PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+        USER: ${{  inputs.EC2_USER }}
+        TUNNEL: ${{  inputs.ELK_TUNNEL_PORT }}
+        LOGSTASH_PORT: ${{  inputs.LOGSTASH_PORT }}
+        ELASTICSEARCH_PORT: ${{  inputs.ELASTICSEARCH_PORT }}
+        PRIVATE_KEY: ${{ inputs.EC2_SSH_KEY }}
         LOGS_SEPARATOR: "========================================================================================================================================================================================================================================="
       run: |
         set -e
-        export LOGSTASH_PORT=${{ secrets.LOGSTASH_PORT }}
-        export ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT }}
+        export LOGSTASH_PORT=${{  inputs.LOGSTASH_PORT }}
+        export ELASTICSEARCH_PORT=${{  inputs.ELASTICSEARCH_PORT }}
         export LOGS_SEPARATOR=${LOGS_SEPARATOR}
 
         echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
@@ -171,10 +218,10 @@ runs:
 
     - name: Encrypt and upload logs to s3
       env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: ${{ secrets.AWS_REGION }}
-        GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
+        AWS_ACCESS_KEY_ID: ${{  inputs.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{  inputs.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{  inputs.AWS_REGION }}
+        GPG_PASSPHRASE: ${{  inputs.DEVSECOPS_GPG_PASSPHRASE }}
         LOGS_SEPARATOR: "========================================================================================================================================================================================================================================="
       run: |
         echo "${LOGS_SEPARATOR}"
@@ -184,7 +231,7 @@ runs:
         aws s3 cp elastic_password.txt.gpg s3://sedem-terra333-bucket/devsecops-jomacs/elastic_password.txt.gpg
 
         echo "${LOGS_SEPARATOR}"
-        echo "Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets.==="
+        echo "Encrypting and uploading the log file using the GPG passphrase stored in GitHub  inputs.==="
         gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 ${{ inputs.log_file }} 
         aws s3 cp ${{ inputs.log_file }}.gpg  s3://sedem-terra333-bucket/devsecops-jomacs/logs/${{ inputs.log_file }}.gpg
 
@@ -198,6 +245,8 @@ runs:
 
     # 4. Clean-up tunnel
     - name: Cleanup SSH Tunnel
+      env:
+        TUNNEL: ${{  inputs.ELK_TUNNEL_PORT }}
       if: always() # Runs even if previous steps fail
       run: |
         # Kill tunnel process using port ${TUNNEL}
@@ -249,17 +298,17 @@ runs:
 #         # 3. deploy elk
 #         - name: Deploy and start elk stack
 #           env:
-#             USER: ${{ secrets.EC2_USER }}
-#             TUNNEL: ${{ secrets.ELK_TUNNEL_PORT }}
-#             LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
-#             ELASTICSEARCH_PORT: ${{ secrets.ELASTICSEARCH_PORT }}
-#             PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+#             USER: ${{  inputs.EC2_USER }}
+#             TUNNEL: ${{  inputs.ELK_TUNNEL_PORT }}
+#             LOGSTASH_PORT: ${{  inputs.LOGSTASH_PORT }}
+#             ELASTICSEARCH_PORT: ${{  inputs.ELASTICSEARCH_PORT }}
+#             PRIVATE_KEY: ${{  inputs.EC2_SSH_KEY }}
 #             LOGS_SEPARATOR: "========================================================================================================================================================================================================================================="
             
 #           run: |
 #             set -e
-#             export LOGSTASH_PORT=${{ secrets.LOGSTASH_PORT }}
-#             export ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT }}
+#             export LOGSTASH_PORT=${{  inputs.LOGSTASH_PORT }}
+#             export ELASTICSEARCH_PORT=${{  inputs.ELASTICSEARCH_PORT }}
 #             export LOGS_SEPARATOR=${LOGS_SEPARATOR}
 
 #             echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
@@ -404,10 +453,10 @@ runs:
 
 #         - name: Encrypt and upload logs to s3
 #           env:
-#             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-#             AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-#             AWS_REGION: ${{ secrets.AWS_REGION }}
-#             GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
+#             AWS_ACCESS_KEY_ID: ${{  inputs.AWS_ACCESS_KEY_ID }}
+#             AWS_SECRET_ACCESS_KEY: ${{  inputs.AWS_SECRET_ACCESS_KEY }}
+#             AWS_REGION: ${{  inputs.AWS_REGION }}
+#             GPG_PASSPHRASE: ${{  inputs.DEVSECOPS_GPG_PASSPHRASE }}
 #             LOGS_SEPARATOR: "========================================================================================================================================================================================================================================="
 #           run: |
 #             echo "${LOGS_SEPARATOR}"
@@ -417,7 +466,7 @@ runs:
 #             aws s3 cp elastic_password.txt.gpg s3://sedem-terra333-bucket/devsecops-jomacs/elastic_password.txt.gpg
 
 #             echo "${LOGS_SEPARATOR}"
-#             echo "Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets.==="
+#             echo "Encrypting and uploading the log file using the GPG passphrase stored in GitHub  inputs.==="
 #             gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 ${{ inputs.log_file }} 
 #             aws s3 cp ${{ inputs.log_file }}.gpg  s3://sedem-terra333-bucket/devsecops-jomacs/logs/${{ inputs.log_file }}.gpg
 

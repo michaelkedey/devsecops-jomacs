@@ -185,7 +185,7 @@ jobs:
           echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
           docker push michaelkedey/jomacsdevsecops:latest
 
-  deploy-app:
+  prepare-app-deploy:
     needs: [terraform-apply, scan] # Ensure deploy only happens after the scan job
     if: contains(fromJson('["infra+scan+app", "infra+scan+app+elk ", "full-deploy"]'), github.event.inputs.action) #if: ${{ github.event.inputs.action == 'apply' && success() }}  # Only run if the scan job succeeds
     runs-on: ubuntu-latest
@@ -212,153 +212,15 @@ jobs:
           # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
           # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH  
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
-      
-      # 3. copy code and deploy
-      - name: Deploy app and start Gunicorn
-        env:
-          USER: ${{ secrets.EC2_USER }}
-          TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
-          HOST: ${{ needs.terraform-apply.outputs.ec2_ip }}
-          LOGSTASH_IP: ${{ needs.terraform-apply.outputs.elk_ip }}
-          LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
-          APP_PORT: ${{ secrets.APP_PORT }}
-        run: |
-          set -e
-          rsync -avz -e "ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no" ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
 
-          # Export environment variables for the SSH session
-          export LOGSTASH_IP="${LOGSTASH_IP}"
-          export USER="${USER}"
-          export LOGSTASH_PORT="${LOGSTASH_PORT}"
-          export APP_PORT="${APP_PORT}"
+      - name: app-deploy
+        uses: ./.github/workflows/deploys/app.yaml@main
+        with:
+          logstash_ip: ${{ needs.terraform-apply.outputs.elk_ip }}
+          log_file: "app-deploy.log"
 
-          # SSH into the EC2 instance and install dependencies and start Gunicorn
-          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF | tee deploy-app.log 
-            # Install dependencies
-            cd /home/${USER}/my-app/
-            sudo apt-get update -y -y && sudo apt-get upgrade -y
-            sudo apt-get install python3-pip -y
-            sudo apt-get install gunicorn -y
-            sudo apt-get install python3-flask -y
-            pip install -r requirements.txt
-            echo "Creating necessary log directories..."
-            sudo mkdir -p logs
-            sudo chown $USER:$USER logs
-            echo "starting Gunicorn"
-            nohup gunicorn -w 4 -b 127.0.0.1:${APP_PORT} app:app \
-            > /home/$USER/my-app/logs/access.log 2> /home/$USER/my-app/logs/error.log &
 
-            echo "Nginx Permissions"
-            sudo chmod +x /home/${USER}
-            sudo chmod +x /home/${USER}/my-app
-            sudo chmod +x /home/${USER}/my-app/static
-
-            echo "installing nginx for proxy ================================================================================================================================="
-            if ! systemctl list-units --type=service --all | grep -q nginx.service; then
-              sudo apt-get update -y && sudo apt-get upgrade -y
-              sudo apt-get install nginx -y
-              sudo systemctl enable nginx 
-              sudo systemctl start nginx
-            else 
-              echo "Nginx is already installed"
-              sudo systemctl restart nginx
-            fi
-
-            echo "Creating Nginx config for APP ================================================================================================================================="
-            sudo rm /etc/nginx/sites-available/default
-            sudo rm /etc/nginx/sites-enabled/default
-            sudo tee /etc/nginx/sites-available/default > /dev/null << 'NGINX'
-            server {
-              listen 80 default_server;
-              server_name _;
-
-              # Static files
-              location /app/static/ {
-                alias /home/ubuntu/my-app/static/;
-                expires 30d;
-                access_log off;
-              }
-
-              # Reverse proxy for Flask app
-              location /app/ {
-                proxy_pass http://127.0.0.1:5000/;
-
-                proxy_set_header Host \$host;
-                proxy_set_header X-Real-IP \$remote_addr;
-                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                proxy_set_header X-Forwarded-Proto \$scheme;
-              }
-            }
-      
-          NGINX
-
-            echo "Enabling Nginx site ================================================================================================================================="
-            sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
-            sudo nginx -t
-            sudo systemctl restart nginx
-            sudo systemctl status nginx
-
-            echo "install filebeat for logs ================================================================================================================================="
-            if ! systemctl list-units --type=service --all | grep -q filebeat.service; then
-              wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
-              sudo apt-get install apt-transport-https
-              # Add Elastic 8.x APT repo
-              echo "deb https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
-              sudo apt-get update && sudo apt-get install filebeat
-              sudo systemctl enable filebeat
-              sudo systemctl start filebeat
-            else 
-              echo "Filebeat is already installed"
-              sudo systemctl restart filebeat
-            fi
-
-            echo "Configuring Filebeat to read logs...================================================================================================================================="
-            sudo tee /etc/filebeat/filebeat.yml > /dev/null << FILEBEAT
-            filebeat.inputs:
-              - type: log
-                enabled: true
-                paths:
-                  - /home/${USER}/my-app/logs/access.log
-                  - /home/${USER}/my-app/logs/error.log
-                fields:
-                  app: my-flask-app
-                fields_under_root: true
-
-            output.logstash:
-              hosts: ["http://${LOGSTASH_IP}:${LOGSTASH_PORT}"] 
-          FILEBEAT
-
-          echo "restarting filebeat"
-          sudo systemctl restart filebeat
-
-          sudo systemctl status filebeat
-          sudo systemctl status nginx
-
-          EOF
-
-      - name: Encrypt and upload logs to s3
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
-        run: |
-
-          echo "Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets ===================================================================================================================================="
-          gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 deploy-app.log 
-          aws s3 cp outputs.json s3://sedem-terra333-bucket/devsecops-jomacs/logs/deploy-app.log 
-          rm deploy-app.log 
-
-        # 4. Clean-up tunnel
-      - name: Cleanup SSH Tunnel
-        if: always() # Runs even if previous steps fail
-        run: |
-          # Kill tunnel process using port ${TUNNEL}
-          pkill -f "ssh.*${TUNNEL}:.*${HOST}"
-          rm -f private_key.pem
-          echo "SSH tunnel terminated"
-
-  deploy-app-only:
+  prepare-app-deploy-only:
     needs: scan
     if: contains(fromJson('["scan+deploy-app-only", "scan+deploy-app-only+deploy-elk-only"]'), github.event.inputs.action)
     runs-on: ubuntu-latest
@@ -387,15 +249,15 @@ jobs:
           cat terraform-outputs/outputs.json
 
           bastion_ip=$(jq -r '.bastion_public_ip.value' terraform-outputs/outputs.json)
-          BASTION=${bastion_ip}
-          #echo "BASTION=${bastion_ip}" >> $GITHUB_ENV
-
           ec2_ip=$(jq -r '.ec2_private_ip.value' terraform-outputs/outputs.json)
-          HOST=${ec2_ip}
-          #echo "HOST=${ec2_ip}" >> $GITHUB_ENV
-
           elk_ip=$(jq -r '.elk_private_ip.value' terraform-outputs/outputs.json)
+
+          BASTION=${bastion_ip}
+          HOST=${ec2_ip}
           #LOGSTASH_IP=${elk_ip}
+
+          #echo "BASTION=${bastion_ip}" >> $GITHUB_ENV
+          #echo "HOST=${ec2_ip}" >> $GITHUB_ENV
           echo "LOGSTASH_IP=${elk_ip}" >> $GITHUB_ENV
 
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
@@ -403,148 +265,63 @@ jobs:
           echo "Establishing SSH tunnel..."
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
 
-      - name: Deploy app and start Gunicorn
-        env:
-          USER: ${{ secrets.EC2_USER }}
-          TUNNEL: ${{ secrets.SSH_TUNNEL_PORT }}
-          LOGSTASH_IP: ${{ env.LOGSTASH_IP }}
-          LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
-          APP_PORT: ${{ secrets.APP_PORT }}
-        run: |
-          set -e
+      - name: app-deploy-only
+        uses: ./.github/workflows/deploys/app.yaml@main
+        with:
+          logstash_ip: ${{ env.LOGSTASH_IP }}
+          log_file: "app-deploy-only.log"
 
-          rsync -avz -e "ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no" ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
+  prepare-elk-deploy-only:
+    if: contains(fromJson('["deploy-elk-only", "scan+deploy-app-only+deploy-elk-only"]'), github.event.inputs.action)
+    runs-on: ubuntu-latest
+    outputs:
+      bastion_ip: ${{ steps.parse-outputs.outputs.bastion_ip }}
+      elk_ip: ${{ steps.parse-outputs.outputs.elk_ip }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF | tee deploy-app-only.log 
-            export LOGSTASH_IP="${LOGSTASH_IP}"
-            export LOGSTASH_PORT="${LOGSTASH_PORT}"
-            export APP_PORT="${APP_PORT}"
-
-            # Install dependencies
-            cd /home/${USER}/my-app/
-            sudo apt-get update -y -y && sudo apt-get upgrade -y
-            sudo apt-get install python3-pip -y
-            sudo apt-get install gunicorn -y
-            sudo apt-get install python3-flask -y
-            pip install -r requirements.txt
-            echo "Creating necessary log directories..."
-            sudo mkdir -p logs
-            sudo chown $USER:$USER logs
-            echo "starting Gunicorn"
-            nohup gunicorn -w 4 -b 127.0.0.1:${APP_PORT} app:app \
-            > /home/$USER/my-app/logs/access.log 2> /home/$USER/my-app/logs/error.log &
-
-            echo "Nginx Permissions"
-            sudo chmod +x /home/${USER}
-            sudo chmod +x /home/${USER}/my-app
-            sudo chmod +x /home/${USER}/my-app/static
-
-            echo "installing nginx for proxy ================================================================================================================================="
-            if ! systemctl list-units --type=service --all | grep -q nginx.service; then
-              sudo apt-get update -y && sudo apt-get upgrade -y
-              sudo apt-get install nginx -y
-              sudo systemctl enable nginx 
-              sudo systemctl start nginx
-            else 
-              echo "Nginx is already installed"
-              sudo systemctl restart nginx
-            fi
-
-            echo "Creating Nginx config for APP ================================================================================================================================="
-            sudo rm /etc/nginx/sites-available/default
-            sudo rm /etc/nginx/sites-enabled/default
-            sudo tee /etc/nginx/sites-available/default > /dev/null << 'NGINX'
-            server {
-              listen 80 default_server;
-              server_name _;
-
-              # Static files
-              location /app/static/ {
-                alias /home/ubuntu/my-app/static/;
-                expires 30d;
-                access_log off;
-              }
-
-              # Reverse proxy for Flask app
-              location /app/ {
-                proxy_pass http://127.0.0.1:5000/;
-
-                proxy_set_header Host \$host;
-                proxy_set_header X-Real-IP \$remote_addr;
-                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                proxy_set_header X-Forwarded-Proto \$scheme;
-              }
-            }
-      
-          NGINX
-
-            echo "Enabling Nginx site ================================================================================================================================="
-            sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
-            sudo nginx -t
-            sudo systemctl restart nginx
-            sudo systemctl status nginx
-
-            echo "install filebeat for logs ================================================================================================================================="
-            if ! systemctl list-units --type=service --all | grep -q filebeat.service; then
-              wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
-              sudo apt-get install apt-transport-https
-              # Add Elastic 8.x APT repo
-              echo "deb https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
-              sudo apt-get update && sudo apt-get install filebeat
-              sudo systemctl enable filebeat
-              sudo systemctl start filebeat
-            else 
-              echo "Filebeat is already installed"
-              sudo systemctl restart filebeat
-            fi
-
-            echo "Configuring Filebeat to read logs...================================================================================================================================="
-            sudo tee /etc/filebeat/filebeat.yml > /dev/null << FILEBEAT
-            filebeat.inputs:
-              - type: log
-                enabled: true
-                paths:
-                  - /home/${USER}/my-app/logs/access.log
-                  - /home/${USER}/my-app/logs/error.log
-                fields:
-                  app: my-flask-app
-                fields_under_root: true
-
-            output.logstash:
-              hosts: ["http://${LOGSTASH_IP}:${LOGSTASH_PORT}"] 
-          FILEBEAT
-
-          echo "restarting filebeat"
-          sudo systemctl restart filebeat
-
-          sudo systemctl status filebeat
-          sudo systemctl status nginx
-
-          EOF
-
-      - name: Encrypt and upload logs to s3
+      - name: Download Terraform outputs from S3
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
-          GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
         run: |
+          mkdir -p terraform-outputs
+          aws s3 cp s3://sedem-terra333-bucket/devsecops-jomacs/tf-outputs-latest.json terraform-outputs/outputs.json
 
-          echo "Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets ===================================================================================================================================="
-          gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 deploy-app-only.log 
-          aws s3 cp outputs.json s3://sedem-terra333-bucket/devsecops-jomacs/logs/deploy-app-only.log 
-          rm deploy-app-only.log 
-
-        # 4. Clean-up tunnel
-      - name: Cleanup SSH Tunnel
-        if: always() # Runs even if previous steps fail
+      - name: Parse Terraform Outputs
+        id: parse-outputs
+        env:
+          PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+          USER: ${{ secrets.EC2_USER }}
+          PORT: ${{ secrets.SSH_PORT }}
+          TUNNEL: ${{ secrets.ELK_TUNNEL_PORT }}
         run: |
-          # Kill tunnel process using port ${TUNNEL}
-          pkill -f "ssh.*${TUNNEL}:.*${HOST}"
-          rm -f private_key.pem
-          echo "SSH tunnel terminated"
+          set -e
+          sudo apt-get update && sudo apt-get install -y jq
+          
+          bastion_ip=$(jq -r '.bastion_public_ip.value' terraform-outputs/outputs.json)
+          elk_ip=$(jq -r '.elk_private_ip.value' terraform-outputs/outputs.json)
 
-  deploy-elk:
+          BASTION=${bastion_ip}
+          ELK=${elk_ip}
+
+          #echo "BASTION=${bastion_ip}" >> $GITHUB_ENV
+          #echo "HOST=${elk_ip}" >> $GITHUB_ENV
+
+          echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
+
+          # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
+          # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH  
+          ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${ELK}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
+        
+      - name: elk-deploy-only
+        uses: ./.github/workflows/deploys/elk.yaml@main
+        with:
+          log_file: "elk-deploy-only.log"
+
+  prepare-elk-deploy:
     needs: terraform-apply # Ensure deploy only happens after the scan job
     if: contains(fromJson('["infra+elk", "infra+scan+app+elk", "full-deploy"]'), github.event.inputs.action) #if: ${{ github.event.inputs.action == 'apply' && success() }}  # Only run if the app deploy job succeeds
     runs-on: ubuntu-latest
@@ -570,368 +347,11 @@ jobs:
           # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
           # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH  
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${ELK}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
-      # 3. deploy elk
-      - name: Deploy and start elk stack
-        env:
-          USER: ${{ secrets.EC2_USER }}
-          TUNNEL: ${{ secrets.ELK_TUNNEL_PORT }}
-          PASSWORD: ${{ secrets.KIBANA_PASSWORD }}
-          ELK: ${{ needs.terraform-apply.outputs.elk_ip }}
-          LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
-          ELASTICSEARCH_PORT: ${{ secrets.ELASTICSEARCH_PORT }}
-        run: |
-          set -e
-          export LOGSTASH_PORT=${{ secrets.LOGSTASH_PORT }}
-          export ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT }}
 
-          # SSH into the EC2 instance and install elk and start it
-          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF' | tee deploy-elk.log          
-            # Update package index
-            sudo apt-get update -y -y && sudo apt-get upgrade -y
-
-            echo "Installing Java ================================================================================================================================="
-            # Install Java (required by Elasticsearch)
-            sudo apt-get install -y openjdk-11-jdk
-
-            echo "Installing Elasticsearch ================================================================================================================================="
-            if ! systemctl list-units --type=service --all | grep -q elasticsearch.service; then
-              wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
-              sudo apt-get install apt-transport-https
-              echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/9.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-9.x.list
-              sudo apt-get update && sudo apt-get install elasticsearch
-              sleep 15
-              sudo sed -i '/^#\?cluster\.name:/d' /etc/elasticsearch/elasticsearch.yml && echo 'cluster.name: "elk"' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
-              sudo sed -i '/^#\?network\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'network.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
-              sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
-              sudo /bin/systemctl daemon-reload
-              sudo /bin/systemctl enable elasticsearch.service
-              sleep 30
-              sudo systemctl start elasticsearch.service
-              sleep 30
-            else
-              echo "Elasticsearch already installed."
-              sudo systemctl restart elasticsearch
-              sleep 10
-            fi
-
-            echo "Installing Kibana ================================================================================================================================="
-            if ! systemctl list-units --type=service --all | grep -q kibana.service; then
-              sudo apt-get update && sudo apt-get install kibana
-              sleep 10
-              sudo sed -i '/^#\?server\.host:/d' /etc/kibana/kibana.yml && \
-              echo 'server.host: "0.0.0.0"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-
-              # Set server.basePath
-              sudo sed -i '/^#\?server\.basePath:/d' /etc/kibana/kibana.yml && \
-              echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-
-              # Set server.rewriteBasePath
-              sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && \
-              echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-
-              # Set elasticsearch.hosts
-              sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && \
-              echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-              
-              echo "seting enrolment token ======================================================================================================================================="
-              TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
-              sleep 20
-              echo "applying token to kibana setup ======================================================================================================================================="
-              sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$TOKEN"
-
-              sudo /bin/systemctl daemon-reload
-              sudo /bin/systemctl enable kibana.service
-              sleep 10
-              sudo systemctl start kibana.service
-            else
-              echo "Kibana already installed. Restarting..."
-              sudo systemctl restart kibana
-            fi
-
-            
-            echo "Installing Logstash ================================================================================================================================="
-            if ! systemctl list-units --type=service --all | grep -q logstash.service; then
-              echo "Installing Logstash..."
-              sudo apt-get update -y && sudo apt-get install logstash
-              sudo systemctl enable logstash.service  
-              sudo systemctl start logstash.service
-            else
-              echo "Logstash already installed."
-              sudo systemctl restart logstash
-              sleep 10
-            fi
-
-            echo "Configuring logstash"
-              sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH_CONFIG
-                input {
-                  beats {
-                    port => ${LOGSTASH_PORT}
-                  }
-                }
-
-                filter {
-                  grok {
-                    match => { "message" => "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level}: %{GREEDYDATA:msg}" }
-                  }
-                  date {
-                    match => ["timestamp", "ISO8601"]
-                  }
-                }
-
-                output {
-                  elasticsearch {
-                    hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
-                    index => "flask-logs-%{+YYYY.MM.dd}"
-                    user => "elastic"
-                    password => "${ELASTICSEARCH_PASSWORD}"
-                    ssl => true
-                    cacert => "/etc/elasticsearch/certs/http_ca.crt"
-                  }
-                }
-          LOGSTASH_CONFIG
-            echo "restarting logstash"
-            sudo systemctl restart logstash
-
-            checks
-            sudo systemctl status elasticsearch
-            sudo systemctl status logstash
-            sudo systemctl status kibana
-
-          EOF
-
-      - name: Encrypt and upload logs to s3
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
-        run: |
-
-          echo "Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets ===================================================================================================================================="
-          gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 deploy-elk.log 
-          aws s3 cp outputs.json s3://sedem-terra333-bucket/devsecops-jomacs/logs/deploy-elk.log 
-          rm deploy-elk.log 
-
-      # 4. Clean-up tunnel
-      - name: Cleanup SSH Tunnel
-        if: always() # Runs even if previous steps fail
-        run: |
-          # Kill tunnel process using port ${TUNNEL}
-          pkill -f "ssh.*${TUNNEL}:.*${ELK}"
-          rm -f private_key.pem
-          echo "SSH tunnel terminated"
-
-
-  deploy-elk-only:
-    if: contains(fromJson('["deploy-elk-only", "scan+deploy-app-only+deploy-elk-only"]'), github.event.inputs.action) #if: ${{ github.event.inputs.action == 'apply' && success() }}  # Only run if the app deploy job succeeds
-    runs-on: ubuntu-latest
-    steps:
-      # 1. Checkout Code from GitHub
-      - name: Checkout Code
-        uses: actions/checkout@v2
-
-      - name: Download Terraform outputs from S3
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-        run: |
-          mkdir -p terraform-outputs
-          aws s3 cp s3://sedem-terra333-bucket/devsecops-jomacs/tf-outputs-latest.json terraform-outputs/outputs.json
-      
-      - name: Parse Terraform Outputs and establish SSH tunnel
-        env:
-          PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          USER: ${{ secrets.EC2_USER }}
-          PORT: ${{ secrets.SSH_PORT }}
-          TUNNEL: ${{ secrets.ELK_TUNNEL_PORT }}
-        run: |
-          set -e
-          sudo apt-get update && sudo apt-get install -y jq
-          cat terraform-outputs/outputs.json
-
-          bastion_ip=$(jq -r '.bastion_public_ip.value' terraform-outputs/outputs.json)
-          BASTION=${bastion_ip}
-          #echo "BASTION=${bastion_ip}" >> $GITHUB_ENV
-
-          elk_ip=$(jq -r '.elk_private_ip.value' terraform-outputs/outputs.json)
-          ELK=${elk_ip}
-          #echo "HOST=${elk_ip}" >> $GITHUB_ENV
-
-          echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
-
-          # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
-          # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH  
-          ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${ELK}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
-      # 3. deploy elk
-      - name: Deploy and start elk stack
-        env:
-          USER: ${{ secrets.EC2_USER }}
-          TUNNEL: ${{ secrets.ELK_TUNNEL_PORT }}
-          LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
-          ELASTICSEARCH_PORT: ${{ secrets.ELASTICSEARCH_PORT }}
-        run: |
-          set -e
-          export LOGSTASH_PORT=${{ secrets.LOGSTASH_PORT }}
-          export ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT }}
-
-          # SSH into the EC2 instance and install elk and start it
-          ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF' | tee deploy-elk-only.log         
-            # Update package index
-            sudo apt-get update -y -y && sudo apt-get upgrade -y
-
-            echo "Installing Java ================================================================================================================================="
-            # Install Java (required by Elasticsearch)
-            sudo apt-get install -y openjdk-11-jdk
-
-            echo "Installing Elasticsearch ================================================================================================================================="
-            if ! systemctl list-units --type=service --all | grep -q elasticsearch.service; then
-              wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
-              sudo apt-get install apt-transport-https
-              echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/9.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-9.x.list
-              sudo apt-get update && sudo apt-get install elasticsearch
-              sleep 15
-              sudo sed -i '/^#\?cluster\.name:/d' /etc/elasticsearch/elasticsearch.yml && echo 'cluster.name: "elk"' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
-              sudo sed -i '/^#\?network\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'network.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
-              sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
-              sudo /bin/systemctl daemon-reload
-              sudo /bin/systemctl enable elasticsearch.service
-              sleep 30
-              sudo systemctl start elasticsearch.service
-              sleep 30
-                
-              echo "Generating the Elasticsearch password for the 'elastic' user===================================================================================================================================="
-              ELASTIC_PASSWORD=$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | awk '/New value:/ {print $NF}')
-              sleep 15
-              echo "$ELASTIC_PASSWORD" > elastic_password.txt
-              
-              echo "FILE_TRANSFER_START"
-              base64 elastic_password.txt
-              echo "FILE_TRANSFER_END"
-
-              rm elastic_password.txt
-                
-            else
-              echo "Elasticsearch already installed."
-              sudo systemctl restart elasticsearch
-              sleep 10
-            fi
-
-            echo "Installing Kibana ================================================================================================================================="
-            if ! systemctl list-units --type=service --all | grep -q kibana.service; then
-              sudo apt-get update && sudo apt-get install kibana
-              sleep 10
-              sudo sed -i '/^#\?server\.host:/d' /etc/kibana/kibana.yml && \
-              echo 'server.host: "0.0.0.0"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-
-              # Set server.basePath
-              sudo sed -i '/^#\?server\.basePath:/d' /etc/kibana/kibana.yml && \
-              echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-
-              # Set server.rewriteBasePath
-              sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && \
-              echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-
-              # Set elasticsearch.hosts
-              sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && \
-              echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-              
-              echo "seting enrolment token ======================================================================================================================================="
-              TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
-              sleep 20
-              echo "applying token to kibana setup ======================================================================================================================================="
-              sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$TOKEN"
-
-              sudo /bin/systemctl daemon-reload
-              sudo /bin/systemctl enable kibana.service
-              sleep 10
-              sudo systemctl start kibana.service
-            else
-              echo "Kibana already installed. Restarting..."
-              sudo systemctl restart kibana
-            fi
-
-            
-            echo "Installing Logstash ================================================================================================================================="
-            if ! systemctl list-units --type=service --all | grep -q logstash.service; then
-              echo "Installing Logstash..."
-              sudo apt-get update -y && sudo apt-get install logstash
-              sudo systemctl enable logstash.service  
-              sudo systemctl start logstash.service
-            else
-              echo "Logstash already installed."
-              sudo systemctl restart logstash
-              sleep 10
-            fi
-
-            echo "Configuring logstash"
-              sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH_CONFIG
-                input {
-                  beats {
-                    port => ${LOGSTASH_PORT}
-                  }
-                }
-
-                filter {
-                  grok {
-                    match => { "message" => "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level}: %{GREEDYDATA:msg}" }
-                  }
-                  date {
-                    match => ["timestamp", "ISO8601"]
-                  }
-                }
-
-                output {
-                  elasticsearch {
-                    hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
-                    index => "flask-logs-%{+YYYY.MM.dd}"
-                    user => "elastic"
-                    password => "${ELASTIC_PASSWORD}"
-                    ssl => true
-                    cacert => "/etc/elasticsearch/certs/http_ca.crt"
-                  }
-                }
-          LOGSTASH_CONFIG
-            echo "restarting logstash"
-            sudo systemctl restart logstash
-
-            checks
-            sudo systemctl status elasticsearch
-            sudo systemctl status logstash
-            sudo systemctl status kibana
-
-          EOF
-
-      - name: Encrypt and upload logs to s3
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
-        run: |
-          echo "Extracting and encoding elasticsearch password from heredoc=============================================================================================================================================================="
-          awk '/FILE_TRANSFER_START/{flag=1;next} /FILE_TRANSFER_END/{flag=0} flag' deploy-elk-only.log  | base64 -d > elastic_password.txt
-          gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 elastic_password.txt
-          aws s3 cp elastic_password.txt.gpg s3://sedem-terra333-bucket/devsecops-jomacs/elastic_password.txt.gpg
-
-          echo "Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets ===================================================================================================================================="
-          gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 deploy-elk-only.log 
-          aws s3 cp deploy-elk-only.log.gpg  s3://sedem-terra333-bucket/devsecops-jomacs/logs/deploy-elk-only.log.gpg
-
-          rm deploy-elk-only.log 
-          rm deploy-elk-only.log.gpg
-          rm elastic_password.txt
-          rm elastic_password.txt.gpg
-          
-
-      # 4. Clean-up tunnel
-      - name: Cleanup SSH Tunnel
-        if: always() # Runs even if previous steps fail
-        run: |
-          # Kill tunnel process using port ${TUNNEL}
-          pkill -f "ssh.*${TUNNEL}:.*${ELK}"
-          rm -f private_key.pem
-          echo "SSH tunnel terminated"
+      - name: elk-deploy
+        uses: ./.github/workflows/deploys/elk.yaml@main
+        with:
+          log_file: "elk-deploy.log"
 
   terraform-destroy:
     name: "Terraform Destroy"

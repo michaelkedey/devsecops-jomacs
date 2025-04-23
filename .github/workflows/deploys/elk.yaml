@@ -1,0 +1,207 @@
+name: Deploy ELK Stack
+
+on:
+  workflow_call:  # Only callable by other workflows
+    inputs:
+      log_file:
+        required: true
+        type: string
+
+jobs:
+  elk-deploy:
+      runs-on: ubuntu-latest
+      steps:
+        # 1. Checkout Code from GitHub
+        - name: Checkout Code
+          uses: actions/checkout@v2
+
+        # 3. deploy elk
+        - name: Deploy and start elk stack
+          env:
+            USER: ${{ secrets.EC2_USER }}
+            TUNNEL: ${{ secrets.ELK_TUNNEL_PORT }}
+            LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
+            ELASTICSEARCH_PORT: ${{ secrets.ELASTICSEARCH_PORT }}
+            PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+            LOGS_SEPARATOR: "========================================================================================================================================================================================================================================="
+            
+          run: |
+            set -e
+            export LOGSTASH_PORT=${{ secrets.LOGSTASH_PORT }}
+            export ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT }}
+            export LOGS_SEPARATOR=${LOGS_SEPARATOR}
+
+            echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
+
+            # SSH into the EC2 instance and install elk and start it
+            ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF' | tee ${{ inputs.log_file }}         
+              echo "${LOGS_SEPARATOR}"
+
+              # Update package index
+              echo "updating system"
+              sudo apt-get update -y && sudo apt-get upgrade -y
+
+              echo "Installing Java."
+              # Install Java (required by Elasticsearch)
+              echo "${LOGS_SEPARATOR}"
+              sudo apt-get install -y openjdk-11-jdk
+
+              echo "Installing Elasticsearch."
+              echo "${LOGS_SEPARATOR}"
+              if ! systemctl list-units --type=service --all | grep -q elasticsearch.service; then
+                wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
+                sudo apt-get install apt-transport-https
+                echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/9.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-9.x.list
+                sudo apt-get update && sudo apt-get install elasticsearch
+                sleep 15
+                sudo sed -i '/^#\?cluster\.name:/d' /etc/elasticsearch/elasticsearch.yml && echo 'cluster.name: "elk"' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
+                sudo sed -i '/^#\?network\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'network.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
+                sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
+                sudo /bin/systemctl daemon-reload
+                sudo /bin/systemctl enable elasticsearch.service
+                sleep 30
+                sudo systemctl start elasticsearch.service
+                sleep 30
+                  
+                echo "Generating the Elasticsearch password for the 'elastic' user."
+                echo "${LOGS_SEPARATOR}"
+                ELASTIC_PASSWORD=$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | awk '/New value:/ {print $NF}')
+                sleep 15
+                echo "$ELASTIC_PASSWORD" > elastic_password.txt
+                
+                echo "FILE_TRANSFER_START"
+                base64 elastic_password.txt
+                echo "FILE_TRANSFER_END"
+
+                rm elastic_password.txt
+                  
+              else
+                echo "Elasticsearch already installed."
+                sudo systemctl restart elasticsearch
+                sleep 10
+              fi
+
+              echo "Installing Kibana."
+              echo "${LOGS_SEPARATOR}"
+              if ! systemctl list-units --type=service --all | grep -q kibana.service; then
+                sudo apt-get update && sudo apt-get install kibana
+                sleep 10
+                sudo sed -i '/^#\?server\.host:/d' /etc/kibana/kibana.yml && \
+                echo 'server.host: "0.0.0.0"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+
+                # Set server.basePath
+                sudo sed -i '/^#\?server\.basePath:/d' /etc/kibana/kibana.yml && \
+                echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+
+                # Set server.rewriteBasePath
+                sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && \
+                echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+
+                # Set elasticsearch.hosts
+                sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && \
+                echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+                
+                echo "${LOGS_SEPARATOR}"
+                echo "seting enrolment token."
+                TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
+                sleep 20
+
+                echo "${LOGS_SEPARATOR}"
+                echo "applying token to kibana setup."
+                sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$TOKEN"
+
+                sudo /bin/systemctl daemon-reload
+                sudo /bin/systemctl enable kibana.service
+                sleep 10
+                sudo systemctl start kibana.service
+              else
+                echo "Kibana already installed. Restarting..."
+                sudo systemctl restart kibana
+              fi
+
+              echo "${LOGS_SEPARATOR}"
+              echo "Installing Logstash."
+              if ! systemctl list-units --type=service --all | grep -q logstash.service; then
+                echo "Installing Logstash..."
+                sudo apt-get update -y && sudo apt-get install logstash
+                sudo systemctl enable logstash.service  
+                sudo systemctl start logstash.service
+
+                echo "${LOGS_SEPARATOR}"
+                echo "Configuring logstash"
+                sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH_CONFIG
+                  input {
+                    beats {
+                      port => ${LOGSTASH_PORT}
+                    }
+                  }
+
+                  filter {
+                    grok {
+                      match => { "message" => "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level}: %{GREEDYDATA:msg}" }
+                    }
+                    date {
+                      match => ["timestamp", "ISO8601"]
+                    }
+                  }
+
+                  output {
+                    elasticsearch {
+                      hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
+                      index => "flask-logs-%{+YYYY.MM.dd}"
+                      user => "elastic"
+                      password => "${ELASTIC_PASSWORD}"
+                      ssl => true
+                      cacert => "/etc/elasticsearch/certs/http_ca.crt"
+                    }
+                  }
+            LOGSTASH_CONFIG
+              echo "restarting logstash"
+              sudo systemctl restart logstash
+
+              else
+                echo "Logstash already installed."
+                sudo systemctl restart logstash
+                sleep 10
+              fi
+
+              checks
+              sudo systemctl status elasticsearch
+              sudo systemctl status logstash
+              sudo systemctl status kibana
+            EOF
+
+        - name: Encrypt and upload logs to s3
+          env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_REGION: ${{ secrets.AWS_REGION }}
+            GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
+            LOGS_SEPARATOR: "========================================================================================================================================================================================================================================="
+          run: |
+            echo "${LOGS_SEPARATOR}"
+            echo "Extracting and encoding elasticsearch password from heredoc."
+            awk '/FILE_TRANSFER_START/{flag=1;next} /FILE_TRANSFER_END/{flag=0} flag' ${{ inputs.log_file }}  | base64 -d > elastic_password.txt
+            gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 elastic_password.txt
+            aws s3 cp elastic_password.txt.gpg s3://sedem-terra333-bucket/devsecops-jomacs/elastic_password.txt.gpg
+
+            echo "${LOGS_SEPARATOR}"
+            echo "Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets.==="
+            gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 ${{ inputs.log_file }} 
+            aws s3 cp ${{ inputs.log_file }}.gpg  s3://sedem-terra333-bucket/devsecops-jomacs/logs/${{ inputs.log_file }}.gpg
+
+            echo "${LOGS_SEPARATOR}"
+            echo "removing generated files"
+            rm ${{ inputs.log_file }} 
+            rm ${{ inputs.log_file }}.gpg
+            rm elastic_password.txt
+            rm elastic_password.txt.gpg
+            
+        # 4. Clean-up tunnel
+        - name: Cleanup SSH Tunnel
+          if: always() # Runs even if previous steps fail
+          run: |
+            # Kill tunnel process using port ${TUNNEL}
+            pkill -f "ssh.*${TUNNEL}:.*${ELK}"
+            rm -f private_key.pem
+            echo "SSH tunnel terminated"

@@ -344,7 +344,7 @@ jobs:
           GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
         run: |
 
-          echo" Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets ===================================================================================================================================="
+          echo "Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets ===================================================================================================================================="
           gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 deploy-app.log 
           aws s3 cp outputs.json s3://sedem-terra333-bucket/devsecops-jomacs/logs/deploy-app.log 
           rm deploy-app.log 
@@ -530,7 +530,7 @@ jobs:
           GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
         run: |
 
-          echo" Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets ===================================================================================================================================="
+          echo "Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets ===================================================================================================================================="
           gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 deploy-app-only.log 
           aws s3 cp outputs.json s3://sedem-terra333-bucket/devsecops-jomacs/logs/deploy-app-only.log 
           rm deploy-app-only.log 
@@ -707,7 +707,7 @@ jobs:
           GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
         run: |
 
-          echo" Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets ===================================================================================================================================="
+          echo "Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets ===================================================================================================================================="
           gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 deploy-elk.log 
           aws s3 cp outputs.json s3://sedem-terra333-bucket/devsecops-jomacs/logs/deploy-elk.log 
           rm deploy-elk.log 
@@ -916,7 +916,7 @@ jobs:
           --secret-string file://elastic_password.txt \
           --region ${AWS_REGION}
 
-          echo" Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets ===================================================================================================================================="
+          echo "Encrypting and uploading the log file using the GPG passphrase stored in GitHub secrets ===================================================================================================================================="
           gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 deploy-elk-only.log 
           aws s3 cp outputs.json s3://sedem-terra333-bucket/devsecops-jomacs/logs/deploy-elk-only.log 
 

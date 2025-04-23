@@ -214,7 +214,7 @@ jobs:
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
 
       - name: app-deploy
-        uses: ./.github/workflows/deploys/app.yaml@main
+        uses: michaelkedey/devsecops-jomacs/.github/workflows/deploys/app.yaml@main
         with:
           logstash_ip: ${{ needs.terraform-apply.outputs.elk_ip }}
           log_file: "app-deploy.log"
@@ -266,7 +266,7 @@ jobs:
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
 
       - name: app-deploy-only
-        uses: ./.github/workflows/deploys/app.yaml@main
+        uses: michaelkedey/devsecops-jomacs/.github/workflows/deploys/app.yaml@main
         with:
           logstash_ip: ${{ env.LOGSTASH_IP }}
           log_file: "app-deploy-only.log"
@@ -317,7 +317,7 @@ jobs:
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${ELK}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
         
       - name: elk-deploy-only
-        uses: ./.github/workflows/deploys/elk.yaml@main
+        uses: michaelkedey/devsecops-jomacs/.github/workflows/deploys/elk.yaml@main
         with:
           log_file: "elk-deploy-only.log"
 
@@ -349,7 +349,7 @@ jobs:
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${ELK}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
 
       - name: elk-deploy
-        uses: ./.github/workflows/deploys/elk.yaml@main
+        uses: michaelkedey/devsecops-jomacs/.github/workflows/deploys/elk.yaml@main
         with:
           log_file: "elk-deploy.log"
 

@@ -219,9 +219,13 @@ jobs:
           logstash_ip: ${{ needs.terraform-apply.outputs.elk_ip }}
           log_file: "app-deploy.log"
           EC2_USER: ${{ secrets.EC2_USER }}
-          SSH_TUNNEL_PORT: ${{ secrets.ELK_TUNNEL_PORT }}
+          SSH_TUNNEL_PORT: ${{ secrets.SSH_TUNNEL_PORT }}
           LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
           APP_PORT: ${{ secrets.APP_PORT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          DEVSECOPS_GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
 
 
   prepare-app-deploy-only:
@@ -275,13 +279,13 @@ jobs:
           logstash_ip: ${{ env.LOGSTASH_IP }}
           log_file: "app-deploy-only.log"
           EC2_USER: ${{ secrets.EC2_USER }}
-          SSH_TUNNEL_PORT: ${{ secrets.ELK_TUNNEL_PORT }}
+          SSH_TUNNEL_PORT: ${{ secrets.SSH_TUNNEL_PORT }}
           LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
           APP_PORT: ${{ secrets.APP_PORT }}
-          # AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          # AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          # AWS_REGION: ${{ secrets.AWS_REGION }}
-          # DEVSECOPS_GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          DEVSECOPS_GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
 
   prepare-elk-deploy-only:
     if: contains(fromJson('["deploy-elk-only", "scan+deploy-app-only+deploy-elk-only"]'), github.event.inputs.action)
@@ -332,6 +336,16 @@ jobs:
         uses: ./.github/actions/elk
         with:
           log_file: "elk-deploy-only.log"
+          EC2_USER: ${{ secrets.EC2_USER }}
+          ELK_TUNNEL_PORT: ${{ secrets.ELK_TUNNEL_PORT }}
+          LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
+          ELASTICSEARCH_PORT: ${{ secrets.ELASTICSEARCH_PORT }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          DEVSECOPS_GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
+
 
   prepare-elk-deploy:
     needs: terraform-apply # Ensure deploy only happens after the scan job
@@ -363,8 +377,17 @@ jobs:
       - name: elk-deploy
         uses: ./.github/actions/elk
         with:
-          log_file: "elk-deploy.log"
-        
+          log_file: "elk-deploy-only.log"
+          EC2_USER: ${{ secrets.EC2_USER }}
+          ELK_TUNNEL_PORT: ${{ secrets.ELK_TUNNEL_PORT }}
+          LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
+          ELASTICSEARCH_PORT: ${{ secrets.ELASTICSEARCH_PORT }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          DEVSECOPS_GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
+
 
   terraform-destroy:
     name: "Terraform Destroy"

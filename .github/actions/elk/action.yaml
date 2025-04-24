@@ -293,8 +293,10 @@ runs:
         echo "${LOGS_SEPARATOR}"
         echo "Extracting and encoding elasticsearch password from heredoc."
         awk '/FILE_TRANSFER_START/{flag=1;next} /FILE_TRANSFER_END/{flag=0} flag' ${{ inputs.log_file }}  | base64 -d > elastic_password.txt
+        cat elastic_password.txt
         gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 elastic_password.txt
         aws s3 cp elastic_password.txt.gpg s3://sedem-terra333-bucket/devsecops-jomacs/elastic_password.txt.gpg
+        aws s3 cp elastic_password.txt.gpg s3://sedem-terra333-bucket/devsecops-jomacs/elastic_password.txt
 
         echo "${LOGS_SEPARATOR}"
         echo "Encrypting and uploading the log file using the GPG passphrase stored in GitHub  inputs.==="

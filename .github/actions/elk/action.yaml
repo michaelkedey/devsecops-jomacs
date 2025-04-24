@@ -110,10 +110,7 @@ runs:
 
             echo "$ELASTIC_PASSWORD" > elastic_password.txt
             gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 elastic_password.txt
-            echo "FILE_TRANSFER_START"
-            base64 elastic_password.txt.gpg
-            echo "FILE_TRANSFER_END"
-            rm elastic_password.txt elastic_password.txt.gpg
+            rm elastic_password.txt
             
           else
             echo "Elasticsearch already installed, settings configs"
@@ -129,10 +126,7 @@ runs:
 
             echo "$ELASTIC_PASSWORD" > elastic_password.txt
             gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 elastic_password.txt
-            echo "FILE_TRANSFER_START"
-            base64 elastic_password.txt.gpg
-            echo "FILE_TRANSFER_END"
-            rm elastic_password.txt elastic_password.txt.gpg
+            rm elastic_password.txt
 
             sudo systemctl restart elasticsearch
             
@@ -296,6 +290,20 @@ runs:
         EOF
       shell: bash
 
+    - name: Copy encrypted password from EC2 and upload
+      env:
+        USER: ${{  inputs.EC2_USER }}
+        TUNNEL: ${{  inputs.ELK_TUNNEL_PORT }}
+        PRIVATE_KEY: ${{ inputs.EC2_SSH_KEY }}
+        AWS_ACCESS_KEY_ID: ${{  inputs.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{  inputs.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{  inputs.AWS_REGION }}
+      run: |
+        echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
+        scp -i private_key.pem -P ${{ inputs.ELK_TUNNEL_PORT }} -o StrictHostKeyChecking=no ${USER}@localhost:/home/${USER}/elastic_password.txt.gpg
+        aws s3 cp elastic_password.txt.gpg s3://sedem-terra333-bucket/devsecops-jomacs/elastic_password.txt.gpg
+      shell: bash
+
     - name: Encrypt and upload logs to s3
       env:
         AWS_ACCESS_KEY_ID: ${{  inputs.AWS_ACCESS_KEY_ID }}
@@ -304,10 +312,10 @@ runs:
         GPG_PASSPHRASE: ${{  inputs.DEVSECOPS_GPG_PASSPHRASE }}
         LOGS_SEPARATOR: "=================================================================================================================================================================================="
       run: |
-        echo "${LOGS_SEPARATOR}"
-        echo "Extracting, encoding and uploading the elasticsearch password from heredoc."
-        awk '/FILE_TRANSFER_START/{flag=1;next} /FILE_TRANSFER_END/{flag=0} flag' ${{ inputs.log_file }} | base64 -d > elastic_password.txt.gpg
-        aws s3 cp elastic_password.txt.gpg s3://sedem-terra333-bucket/devsecops-jomacs/elastic_password.txt.gpg
+        # echo "${LOGS_SEPARATOR}"
+        # echo "Extracting, encoding and uploading the elasticsearch password from heredoc."
+        # awk '/FILE_TRANSFER_START/{flag=1;next} /FILE_TRANSFER_END/{flag=0} flag' ${{ inputs.log_file }} > elastic_password.txt.gpg
+        # aws s3 cp elastic_password.txt.gpg s3://sedem-terra333-bucket/devsecops-jomacs/elastic_password.txt.gpg
 
         echo "${LOGS_SEPARATOR}"
         echo "Encrypting and uploading the log file using the GPG passphrase"

@@ -62,12 +62,14 @@ runs:
         LOGSTASH_PORT: ${{  inputs.LOGSTASH_PORT }}
         ELASTICSEARCH_PORT: ${{  inputs.ELASTICSEARCH_PORT }}
         PRIVATE_KEY: ${{ inputs.EC2_SSH_KEY }}
+        GPG_PASSPHRASE: ${{  inputs.DEVSECOPS_GPG_PASSPHRASE }}
         LOGS_SEPARATOR: "=================================================================================================================================================================================="
       run: |
         set -e
         export LOGSTASH_PORT=${{  inputs.LOGSTASH_PORT }}
         export ELASTICSEARCH_PORT=${{  inputs.ELASTICSEARCH_PORT }}
         export LOGS_SEPARATOR=${LOGS_SEPARATOR}
+        export GPG_PASSPHRASE=${GPG_PASSPHRASE}
 
         echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
 
@@ -105,13 +107,13 @@ runs:
             echo "${LOGS_SEPARATOR}"
             ELASTIC_PASSWORD=$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | awk '/New value:/ {print $NF}')
             sleep 15
-            echo "$ELASTIC_PASSWORD" > elastic_password.txt
-            
-            echo "FILE_TRANSFER_START"
-            base64 elastic_password.txt
-            echo "FILE_TRANSFER_END"
 
-            rm elastic_password.txt
+            echo "$ELASTIC_PASSWORD" > elastic_password.txt
+            gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 elastic_password.txt
+            echo "FILE_TRANSFER_START"
+            base64 elastic_password.txt.gpg
+            echo "FILE_TRANSFER_END"
+            rm elastic_password.txt elastic_password.txt.gpg
             
           else
             echo "Elasticsearch already installed, settings configs"
@@ -124,14 +126,14 @@ runs:
             echo "${LOGS_SEPARATOR}"
             ELASTIC_PASSWORD=$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | awk '/New value:/ {print $NF}')
             sleep 15
-            echo "$ELASTIC_PASSWORD" > elastic_password.txt
-            
-            echo "FILE_TRANSFER_START"
-            base64 elastic_password.txt
-            echo "FILE_TRANSFER_END"
 
-            rm elastic_password.txt
-            
+            echo "$ELASTIC_PASSWORD" > elastic_password.txt
+            gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 elastic_password.txt
+            echo "FILE_TRANSFER_START"
+            base64 elastic_password.txt.gpg
+            echo "FILE_TRANSFER_END"
+            rm elastic_password.txt elastic_password.txt.gpg
+
             sudo systemctl restart elasticsearch
             
           fi
@@ -303,23 +305,20 @@ runs:
         LOGS_SEPARATOR: "=================================================================================================================================================================================="
       run: |
         echo "${LOGS_SEPARATOR}"
-        echo "Extracting and encoding elasticsearch password from heredoc."
-        awk '/FILE_TRANSFER_START/{flag=1;next} /FILE_TRANSFER_END/{flag=0} flag' ${{ inputs.log_file }}  | base64 -d > elastic_password.txt
-        cat elastic_password.txt
-        gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 elastic_password.txt
+        echo "Extracting, encoding and uploading the elasticsearch password from heredoc."
+        awk '/FILE_TRANSFER_START/{flag=1;next} /FILE_TRANSFER_END/{flag=0} flag' ${{ inputs.log_file }} | base64 -d > elastic_password.txt.gpg
         aws s3 cp elastic_password.txt.gpg s3://sedem-terra333-bucket/devsecops-jomacs/elastic_password.txt.gpg
-        aws s3 cp elastic_password.txt.gpg s3://sedem-terra333-bucket/devsecops-jomacs/elastic_password.txt
 
         echo "${LOGS_SEPARATOR}"
-        echo "Encrypting and uploading the log file using the GPG passphrase stored in GitHub  inputs.==="
+        echo "Encrypting and uploading the log file using the GPG passphrase"
         gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 ${{ inputs.log_file }} 
         aws s3 cp ${{ inputs.log_file }}.gpg  s3://sedem-terra333-bucket/devsecops-jomacs/logs/${{ inputs.log_file }}.gpg
 
         echo "${LOGS_SEPARATOR}"
         echo "removing generated files"
-        rm ${{ inputs.log_file }} 
+
         rm ${{ inputs.log_file }}.gpg
-        rm elastic_password.txt
+        rm ${{ inputs.log_file }}
         rm elastic_password.txt.gpg
       shell: bash
 

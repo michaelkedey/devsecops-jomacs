@@ -131,6 +131,7 @@
 │   ├── python
 │   │   ├── app.py
 │   │   ├── appspec.yaml
+│   │   ├── nohup.out
 │   │   ├── __pycache__
 │   │   │   └── app.cpython-310.pyc
 │   │   ├── requirements.txt
@@ -169,6 +170,10 @@
 │   │   │   │   ├── output.tf
 │   │   │   │   ├── providers.tf
 │   │   │   │   └── vars.tf
+│   │   │   ├── listener_and_tgs
+│   │   │   │   ├── output.tf
+│   │   │   │   ├── tg.tf
+│   │   │   │   └── vars.tf
 │   │   │   ├── loadbalancer
 │   │   │   │   ├── lb.tf
 │   │   │   │   ├── outputs.tf
@@ -179,10 +184,9 @@
 │   │   │   │   ├── providers.tf
 │   │   │   │   ├── vars.tf
 │   │   │   │   └── vpc.tf
-│   │   │   └── tg_and_ln_rules
-│   │   │       ├── output.tf
-│   │   │       ├── tg.tf
-│   │   │       └── vars.tf
+│   │   │   └── secrets_manager
+│   │   │       ├── secrets.tf
+│   │   │       └── variables.tf
 │   │   ├── output.tf
 │   │   ├── providers.tf
 │   │   └── vars.tf
@@ -206,8 +210,10 @@
 │           ├── provider.tf
 │           ├── README.md
 │           └── vars.tf
+├── password.txt
 └── README.md
 
-27 directories, 58 files
+28 directories, 62 files
+
 
 ```

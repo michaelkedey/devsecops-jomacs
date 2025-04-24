@@ -229,7 +229,7 @@ runs:
 
 
           #checks
-          sleep 10
+          sleep 20
           sudo systemctl status elasticsearch
           sudo systemctl status logstash
           sudo systemctl status kibana

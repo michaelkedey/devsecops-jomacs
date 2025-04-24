@@ -111,7 +111,8 @@ runs:
 
           echo "Generating the Elasticsearch password for the 'elastic' user."
           echo "${LOGS_SEPARATOR}"
-          sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | awk '/New value:/ {print $NF}' > elastic_password.txt
+          sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | awk -F': ' '/New value:/ {print $2}' > elastic_password.txt
+
           sleep 15
 
           echo "${LOGS_SEPARATOR}"
@@ -254,11 +255,7 @@ runs:
         GPG_PASSPHRASE: ${{  inputs.DEVSECOPS_GPG_PASSPHRASE }}
         LOGS_SEPARATOR: "=================================================================================================================================================================================="
       run: |
-        # echo "${LOGS_SEPARATOR}"
-        # echo "Extracting, encoding and uploading the elasticsearch password from heredoc."
-        # awk '/FILE_TRANSFER_START/{flag=1;next} /FILE_TRANSFER_END/{flag=0} flag' ${{ inputs.log_file }} > elastic_password.txt.gpg
-        # aws s3 cp elastic_password.txt.gpg s3://sedem-terra333-bucket/devsecops-jomacs/elastic_password.txt.gpg
-
+        
         echo "${LOGS_SEPARATOR}"
         echo "Encrypting and uploading the log file using the GPG passphrase"
         gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 ${{ inputs.log_file }} 

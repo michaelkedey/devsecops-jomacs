@@ -151,7 +151,7 @@ runs:
           echo "${LOGS_SEPARATOR}"
           echo "setting kibana reporting key."
           # Generate a random 32-byte string, base64 encode it, and save to a file
-          openssl rand -base64 32 > /path/to/kibana_reporting_key.txt
+          openssl rand -base64 32 > kibana_reporting_key.txt
 
           sudo sed -i '/^#\?xpack\.reporting\.encryptionKey:/d' /etc/kibana/kibana.yml && \
           echo "xpack.reporting.encryptionKey: \"$(cat kibana_reporting_key.txt)\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
@@ -170,16 +170,19 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "setting enrolment token."
-          TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
+          #TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
+          sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana > kibana_enrollment.token
           sleep 20
           
           echo "${LOGS_SEPARATOR}"
           echo "applying token to kibana setup."
-          sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$TOKEN"
-            
+          #sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$TOKEN"
+          sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$(cat kibana_enrollment.token)"
+
           echo "restarting kibana"
           sudo systemctl restart kibana.service
           rm kibana_reporting_key.txt
+          rm kibana_enrollment.token
 
 
           echo "${LOGS_SEPARATOR}"

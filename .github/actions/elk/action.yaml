@@ -42,10 +42,6 @@ inputs:
     description: 'GPG passphrase used for encrypting files.'
     required: true
 
-  KIBANA_REPORTING_KEY:
-    description: 'kibana reporitng key.'
-    required: true
-
 
 runs:
   using: "composite"
@@ -111,14 +107,12 @@ runs:
 
           echo "Generating the Elasticsearch password for the 'elastic' user."
           echo "${LOGS_SEPARATOR}"
-          #sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | sed -n 's/^New value: //p' > elastic_password.txt
-          sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b 2>&1 | sed -n 's/^New value: //p' | tr -d '\n' > elastic_password.txt
+          sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | sed -n 's/^New value: //p' > elastic_password.txt
           sleep 15
 
           echo "${LOGS_SEPARATOR}"
           echo "gpg encryption of password"
           gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 elastic_password.txt
-          elastic_password.txt
 
           echo "restarting elasticsearch"
           sudo systemctl restart elasticsearch
@@ -132,15 +126,6 @@ runs:
             sudo /bin/systemctl daemon-reload
             sudo /bin/systemctl enable kibana.service
             sleep 10
-            
-            echo "${LOGS_SEPARATOR}"
-            echo "setting enrolment token."
-            TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
-            sleep 20
-            
-            echo "${LOGS_SEPARATOR}"
-            echo "applying token to kibana setup."
-            sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$TOKEN"
             sudo systemctl start kibana.service
           else
             echo "Kibana already installed."
@@ -158,24 +143,23 @@ runs:
           # Set server.rewriteBasePath
           sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && \
           echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-
-          # Set kibana reporting key
-          # Remove any existing reporting key lines
-          sudo sed -i '/^#\?xpack\.reporting\.encryptionKey:/d' /etc/kibana/kibana.yml && \
-          # Add the new key
-          echo "xpack.reporting.encryptionKey: \"${KIBANA_REPORTING_KEY}\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
           
           # Set elasticsearch.hosts
           sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && \
-          echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-          
-          sudo sed -i '/^#\?elasticsearch\.username:/d' /etc/kibana/kibana.yml && \
-          echo 'elasticsearch.username: "elastic"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null          
 
-          sudo sed -i '/^#\?elasticsearch\.password:/d' /etc/kibana/kibana.yml && \
-          
+          echo "${LOGS_SEPARATOR}"
+          echo "setting kibana reporting key."
+          # Generate a random 32-byte string, base64 encode it, and save to a file
+          openssl rand -base64 32 > /path/to/kibana_reporting_key.txt
 
-          echo "configuring kibana certs"
+          sudo sed -i '/^#\?xpack\.reporting\.encryptionKey:/d' /etc/kibana/kibana.yml && \
+          echo "xpack.reporting.encryptionKey: \"$(cat kibana_reporting_key.txt)\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+         
+          sudo sed -i '/^#\?xpack\.encryptedSavedObjects\.encryptionKey:/d' /etc/kibana/kibana.yml && \
+          echo "xpack.encryptedSavedObjects.encryptionKey: \"$(cat kibana_reporting_key.txt)\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          
+          echo "configuring kibana certs" 
           sudo mkdir -p /etc/kibana/certs
           sudo cp /etc/elasticsearch/certs/http_ca.crt /etc/kibana/certs/
           sudo chown root:kibana /etc/kibana/certs/http_ca.crt
@@ -184,8 +168,18 @@ runs:
           sudo sed -i '/^#\?elasticsearch\.ssl\.certificateAuthorities:/d' /etc/kibana/kibana.yml
           echo 'elasticsearch.ssl.certificateAuthorities: ["/etc/kibana/certs/http_ca.crt"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
 
+          echo "${LOGS_SEPARATOR}"
+          echo "setting enrolment token."
+          TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
+          sleep 20
+          
+          echo "${LOGS_SEPARATOR}"
+          echo "applying token to kibana setup."
+          sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$TOKEN"
+            
           echo "restarting kibana"
           sudo systemctl restart kibana.service
+          rm kibana_reporting_key.txt
 
 
           echo "${LOGS_SEPARATOR}"

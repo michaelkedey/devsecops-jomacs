@@ -104,7 +104,7 @@ runs:
           fi
 
           echo "${LOGS_SEPARATOR}"
-          echo "detting elsaticsearch configs"
+          echo "setting elsaticsearch configs"
           sudo sed -i '/^#\?cluster\.name:/d' /etc/elasticsearch/elasticsearch.yml && echo 'cluster.name: "elk"' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
           sudo sed -i '/^#\?network\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'network.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
           sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
@@ -113,9 +113,12 @@ runs:
           echo "${LOGS_SEPARATOR}"
           ELASTIC_PASSWORD=$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | awk '/New value:/ {print $NF}')
           sleep 15
+
+          echo "${LOGS_SEPARATOR}"
+          echo "gpg encryption of password"
           echo "$ELASTIC_PASSWORD" > elastic_password.txt
           gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 elastic_password.txt
-          rm elastic_password.txt
+          #rm elastic_password.txt
 
           sudo systemctl restart elasticsearch
 
@@ -232,7 +235,15 @@ runs:
         AWS_REGION: ${{  inputs.AWS_REGION }}
       run: |
         echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
+
+        echo "${LOGS_SEPARATOR}"
+        echo "scp the gpg encrypted password"
         scp -i private_key.pem -P ${{ inputs.ELK_TUNNEL_PORT }} -o StrictHostKeyChecking=no ${USER}@localhost:/home/${USER}/elastic_password.txt.gpg .
+        scp -i private_key.pem -P ${{ inputs.ELK_TUNNEL_PORT }} -o StrictHostKeyChecking=no ${USER}@localhost:/home/${USER}/elastic_password.txt .
+        echo "cating password" 
+        cat elastic_password.txt
+
+        echo "upload password to s3"
         aws s3 cp elastic_password.txt.gpg s3://sedem-terra333-bucket/devsecops-jomacs/elastic_password.txt.gpg
       shell: bash
 

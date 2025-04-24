@@ -65,7 +65,7 @@ runs:
         LOGSTASH_PORT: ${{ inputs.LOGSTASH_PORT }}
         APP_PORT: ${{ inputs.APP_PORT }}
         PRIVATE_KEY: ${{ inputs.EC2_SSH_KEY }}
-        LOGS_SEPARATOR: "========================================================================================================================================================================================================================================="
+        LOGS_SEPARATOR: "========================================================================================================================================================================================================="
       run: |
         set -e
         echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
@@ -76,6 +76,7 @@ runs:
           export LOGSTASH_IP="${LOGSTASH_IP}"
           export LOGSTASH_PORT="${LOGSTASH_PORT}"
           export APP_PORT="${APP_PORT}"
+          export LOGS_SEPARATOR="${LOGS_SEPARATOR}"
 
           echo "${LOGS_SEPARATOR}"
           # Install dependencies

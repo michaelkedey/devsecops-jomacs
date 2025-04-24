@@ -87,6 +87,7 @@ jobs:
         run: |
           aws s3 cp outputs.json s3://sedem-terra333-bucket/devsecops-jomacs/tf-outputs-latest.json
 
+
   scan:
     runs-on: ubuntu-latest
     if: contains(fromJson('["scan-only", "scan+build", "infra+scan+app", "infra+scan+app+elk", "scan+deploy-app-only", "scan+deploy-app-only+deploy-elk-only", "full-deploy"]'), github.event.inputs.action) #${{ github.event.inputs.action == 'apply' }}
@@ -131,6 +132,7 @@ jobs:
         with:
           name: safety-report
           path: ./app/python/safety-report.json
+
 
   build:
     needs: scan # Ensure deploy only happens after the scan job
@@ -185,7 +187,8 @@ jobs:
           echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
           docker push michaelkedey/jomacsdevsecops:latest
 
-  prepare-app-deploy:
+
+  app-deploy:
     needs: [terraform-apply, scan] # Ensure deploy only happens after the scan job
     if: contains(fromJson('["infra+scan+app", "infra+scan+app+elk ", "full-deploy"]'), github.event.inputs.action) #if: ${{ github.event.inputs.action == 'apply' && success() }}  # Only run if the scan job succeeds
     runs-on: ubuntu-latest
@@ -213,7 +216,7 @@ jobs:
           # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH  
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
 
-      - name: app-deploy
+      - name: deploy-app
         uses: ./.github/actions/app
         with:
           logstash_ip: ${{ needs.terraform-apply.outputs.elk_ip }}
@@ -229,7 +232,7 @@ jobs:
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
 
 
-  prepare-app-deploy-only:
+  app-deploy-only:
     needs: scan
     if: contains(fromJson('["scan+deploy-app-only", "scan+deploy-app-only+deploy-elk-only"]'), github.event.inputs.action)
     runs-on: ubuntu-latest
@@ -274,7 +277,7 @@ jobs:
           echo "Establishing SSH tunnel..."
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
 
-      - name: app-deploy-only
+      - name: deploy-app-only
         uses: ./.github/actions/app
         with:
           logstash_ip: ${{ env.LOGSTASH_IP }}
@@ -289,7 +292,8 @@ jobs:
           DEVSECOPS_GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
 
-  prepare-elk-deploy-only:
+
+  elk-deploy-only:
     if: contains(fromJson('["deploy-elk-only", "scan+deploy-app-only+deploy-elk-only"]'), github.event.inputs.action)
     runs-on: ubuntu-latest
     outputs:
@@ -334,7 +338,7 @@ jobs:
           # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH  
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${ELK}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
         
-      - name: elk-deploy-only
+      - name: deploy-elk-only
         uses: ./.github/actions/elk
         with:
           log_file: "elk-deploy-only.log"
@@ -349,7 +353,7 @@ jobs:
           DEVSECOPS_GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
 
 
-  prepare-elk-deploy:
+  elk-deploy:
     needs: terraform-apply # Ensure deploy only happens after the scan job
     if: contains(fromJson('["infra+elk", "infra+scan+app+elk", "full-deploy"]'), github.event.inputs.action) #if: ${{ github.event.inputs.action == 'apply' && success() }}  # Only run if the app deploy job succeeds
     runs-on: ubuntu-latest
@@ -376,7 +380,7 @@ jobs:
           # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH  
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${ELK}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
 
-      - name: elk-deploy
+      - name: deploy-elk
         uses: ./.github/actions/elk
         with:
           log_file: "elk-deploy-only.log"

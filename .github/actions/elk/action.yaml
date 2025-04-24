@@ -6,51 +6,45 @@ inputs:
     description: 'Name of the log file.'
     required: true
      
-
   EC2_USER:
     description: 'EC2 username for SSH connection.'
     required: true
      
-
   ELK_TUNNEL_PORT:
     description: 'Port used for SSH tunneling to the ELK instance.'
     required: true
      
-
   LOGSTASH_PORT:
     description: 'Port for Logstash input.'
     required: true
      
-
   ELASTICSEARCH_PORT:
     description: 'Port for Elasticsearch service.'
     required: true
      
-
   EC2_SSH_KEY:
     description: 'Private key for EC2 SSH access.'
     required: true
      
-
   AWS_ACCESS_KEY_ID:
     description: 'AWS Access Key ID for uploading logs.'
     required: true
      
-
   AWS_SECRET_ACCESS_KEY:
     description: 'AWS Secret Access Key for uploading logs.'
     required: true
      
-
   AWS_REGION:
     description: 'AWS region for S3 uploads.'
     required: true
      
-
   DEVSECOPS_GPG_PASSPHRASE:
     description: 'GPG passphrase used for encrypting files.'
     required: true
-     
+
+  KIBANA_REPORTING_KEY:
+    description: 'kibana reporitng key.'
+    required: true
 
 
 runs:
@@ -141,6 +135,18 @@ runs:
             sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && \
             echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
 
+            # Set kibana reporting key
+            # Remove any existing reporting key lines
+            sudo sed -i '/^#\?xpack\.reporting\.encryptionKey:/d' /etc/kibana/kibana.yml && \
+            # Add the new key
+            echo "xpack.reporting.encryptionKey: \"${KIBANA_REPORTING_KEY}\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+
+            sudo sed -i '/^#\?elasticsearch\.ssl\.certificateAuthorities:/d' /etc/kibana/kibana.yml
+            echo 'elasticsearch.ssl.certificateAuthorities: ["/etc/elasticsearch/certs/http_ca.crt"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+
+            sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && \
+            echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+
             # Set elasticsearch.hosts
             sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && \
             echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
@@ -222,7 +228,7 @@ runs:
         AWS_SECRET_ACCESS_KEY: ${{  inputs.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: ${{  inputs.AWS_REGION }}
         GPG_PASSPHRASE: ${{  inputs.DEVSECOPS_GPG_PASSPHRASE }}
-        LOGS_SEPARATOR: "========================================================================================================================================================================================================================================="
+        LOGS_SEPARATOR: "======================================================================================================================================================================================================="
       run: |
         echo "${LOGS_SEPARATOR}"
         echo "Extracting and encoding elasticsearch password from heredoc."
@@ -303,7 +309,7 @@ runs:
 #             LOGSTASH_PORT: ${{  inputs.LOGSTASH_PORT }}
 #             ELASTICSEARCH_PORT: ${{  inputs.ELASTICSEARCH_PORT }}
 #             PRIVATE_KEY: ${{  inputs.EC2_SSH_KEY }}
-#             LOGS_SEPARATOR: "========================================================================================================================================================================================================================================="
+#              LOGS_SEPARATOR: "======================================================================================================================================================================================================="
             
 #           run: |
 #             set -e
@@ -457,7 +463,7 @@ runs:
 #             AWS_SECRET_ACCESS_KEY: ${{  inputs.AWS_SECRET_ACCESS_KEY }}
 #             AWS_REGION: ${{  inputs.AWS_REGION }}
 #             GPG_PASSPHRASE: ${{  inputs.DEVSECOPS_GPG_PASSPHRASE }}
-#             LOGS_SEPARATOR: "========================================================================================================================================================================================================================================="
+#              LOGS_SEPARATOR: "======================================================================================================================================================================================================="
 #           run: |
 #             echo "${LOGS_SEPARATOR}"
 #             echo "Extracting and encoding elasticsearch password from heredoc."

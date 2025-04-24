@@ -351,6 +351,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           DEVSECOPS_GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
+          KIBANA_REPORTING_KEY: ${{ secrets.KIBANA_REPORTING_KEY }}
 
 
   elk-deploy:
@@ -393,6 +394,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           DEVSECOPS_GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
+          KIBANA_REPORTING_KEY: ${{ secrets.KIBANA_REPORTING_KEY }}
 
 
   terraform-destroy:

@@ -66,6 +66,7 @@ runs:
         export ELASTICSEARCH_PORT=${{  inputs.ELASTICSEARCH_PORT }}
         export LOGS_SEPARATOR=${LOGS_SEPARATOR}
         export GPG_PASSPHRASE=${GPG_PASSPHRASE}
+        export TOKEN
 
         echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
 
@@ -113,6 +114,7 @@ runs:
           echo "${LOGS_SEPARATOR}"
           echo "gpg encryption of password"
           gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 elastic_password.txt
+          rm elastic_password.txt
 
           echo "restarting elasticsearch"
           sudo systemctl restart elasticsearch
@@ -170,14 +172,14 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "setting enrolment token."
-          #TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
-          sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana > kibana_enrollment.token
+          TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
+          #sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana > kibana_enrollment.token
           sleep 20
           
           echo "${LOGS_SEPARATOR}"
           echo "applying token to kibana setup."
-          #sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$TOKEN"
-          sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$(cat kibana_enrollment.token)"
+          sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$TOKEN"
+          #sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$(cat kibana_enrollment.token)"
 
           echo "restarting kibana"
           sudo systemctl restart kibana.service
@@ -230,7 +232,7 @@ runs:
           sudo systemctl restart logstash
 
 
-          checks
+          #checks
           sleep 10
           sudo systemctl status elasticsearch
           sudo systemctl status logstash

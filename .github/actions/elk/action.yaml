@@ -165,7 +165,35 @@ runs:
             sleep 10
             sudo systemctl start kibana.service
           else
-            echo "Kibana already installed. Restarting..."
+            echo "Kibana already installed. Applying configs and Restarting..."
+            echo "${LOGS_SEPARATOR}"
+            sudo sed -i '/^#\?server\.host:/d' /etc/kibana/kibana.yml && \
+            echo 'server.host: "0.0.0.0"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+
+            # Set server.basePath
+            sudo sed -i '/^#\?server\.basePath:/d' /etc/kibana/kibana.yml && \
+            echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+
+            # Set server.rewriteBasePath
+            sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && \
+            echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+
+            # Set kibana reporting key
+            # Remove any existing reporting key lines
+            sudo sed -i '/^#\?xpack\.reporting\.encryptionKey:/d' /etc/kibana/kibana.yml && \
+            # Add the new key
+            echo "xpack.reporting.encryptionKey: \"${KIBANA_REPORTING_KEY}\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+
+            sudo sed -i '/^#\?elasticsearch\.ssl\.certificateAuthorities:/d' /etc/kibana/kibana.yml
+            echo 'elasticsearch.ssl.certificateAuthorities: ["/etc/elasticsearch/certs/http_ca.crt"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+
+            sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && \
+            echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+
+            # Set elasticsearch.hosts
+            sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && \
+            echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+            
             sudo systemctl restart kibana
           fi
 
@@ -210,9 +238,36 @@ runs:
             sudo systemctl restart logstash
 
           else
-            echo "Logstash already installed."
+            echo "Logstash already installed, updating config and Restart"
+            echo "${LOGS_SEPARATOR}"
+            sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH_CONFIG
+              input {
+                beats {
+                  port => ${LOGSTASH_PORT}
+                }
+              }
+
+              filter {
+                grok {
+                  match => { "message" => "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level}: %{GREEDYDATA:msg}" }
+                }
+                date {
+                  match => ["timestamp", "ISO8601"]
+                }
+              }
+
+              output {
+                elasticsearch {
+                  hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
+                  index => "flask-logs-%{+YYYY.MM.dd}"
+                  user => "elastic"
+                  password => "${ELASTIC_PASSWORD}"
+                  ssl => true
+                  cacert => "/etc/elasticsearch/certs/http_ca.crt"
+                }
+              }
+        LOGSTASH_CONFIG
             sudo systemctl restart logstash
-            sleep 10
           fi
 
           checks
@@ -228,7 +283,7 @@ runs:
         AWS_SECRET_ACCESS_KEY: ${{  inputs.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: ${{  inputs.AWS_REGION }}
         GPG_PASSPHRASE: ${{  inputs.DEVSECOPS_GPG_PASSPHRASE }}
-        LOGS_SEPARATOR: "======================================================================================================================================================================================================="
+        LOGS_SEPARATOR: "=================================================================================================================================================================================="
       run: |
         echo "${LOGS_SEPARATOR}"
         echo "Extracting and encoding elasticsearch password from heredoc."
@@ -309,7 +364,7 @@ runs:
 #             LOGSTASH_PORT: ${{  inputs.LOGSTASH_PORT }}
 #             ELASTICSEARCH_PORT: ${{  inputs.ELASTICSEARCH_PORT }}
 #             PRIVATE_KEY: ${{  inputs.EC2_SSH_KEY }}
-#              LOGS_SEPARATOR: "======================================================================================================================================================================================================="
+#              LOGS_SEPARATOR: "=================================================================================================================================================================================="
             
 #           run: |
 #             set -e
@@ -463,7 +518,7 @@ runs:
 #             AWS_SECRET_ACCESS_KEY: ${{  inputs.AWS_SECRET_ACCESS_KEY }}
 #             AWS_REGION: ${{  inputs.AWS_REGION }}
 #             GPG_PASSPHRASE: ${{  inputs.DEVSECOPS_GPG_PASSPHRASE }}
-#              LOGS_SEPARATOR: "======================================================================================================================================================================================================="
+#              LOGS_SEPARATOR: "=================================================================================================================================================================================="
 #           run: |
 #             echo "${LOGS_SEPARATOR}"
 #             echo "Extracting and encoding elasticsearch password from heredoc."

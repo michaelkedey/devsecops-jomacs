@@ -153,13 +153,13 @@ runs:
           echo "${LOGS_SEPARATOR}"
           echo "setting kibana reporting key."
           # Generate a random 32-byte string, base64 encode it, and save to a file
-          openssl rand -base64 32 > kibana_reporting_key.txt
+          KIBANA_KEY=\$(sudo openssl rand -base64 32)
 
           sudo sed -i '/^#\?xpack\.reporting\.encryptionKey:/d' /etc/kibana/kibana.yml && \
-          echo "xpack.reporting.encryptionKey: \"$(cat kibana_reporting_key.txt)\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          echo "xpack.reporting.encryptionKey: \"${KIBANA_KEY}\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
          
           sudo sed -i '/^#\?xpack\.encryptedSavedObjects\.encryptionKey:/d' /etc/kibana/kibana.yml && \
-          echo "xpack.encryptedSavedObjects.encryptionKey: \"$(cat kibana_reporting_key.txt)\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          echo "xpack.encryptedSavedObjects.encryptionKey: \"${KIBANA_KEY}\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
           
           echo "configuring kibana certs" 
           sudo mkdir -p /etc/kibana/certs
@@ -181,7 +181,6 @@ runs:
 
           echo "restarting kibana"
           sudo systemctl restart kibana.service
-          rm kibana_reporting_key.txt
 
 
           echo "${LOGS_SEPARATOR}"

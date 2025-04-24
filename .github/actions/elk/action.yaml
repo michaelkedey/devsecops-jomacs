@@ -71,7 +71,7 @@ runs:
         echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
 
         # SSH into the EC2 instance and install elk and start it
-        ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF | tee ${{ inputs.log_file }}         
+        ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF' | tee ${{ inputs.log_file }}         
           echo "${LOGS_SEPARATOR}"
 
           # Update package index

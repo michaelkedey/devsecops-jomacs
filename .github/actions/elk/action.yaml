@@ -59,6 +59,7 @@ runs:
         ELASTICSEARCH_PORT: ${{  inputs.ELASTICSEARCH_PORT }}
         PRIVATE_KEY: ${{ inputs.EC2_SSH_KEY }}
         GPG_PASSPHRASE: ${{  inputs.DEVSECOPS_GPG_PASSPHRASE }}
+        TOKEN: "place_holder"
         LOGS_SEPARATOR: "=================================================================================================================================================================================="
       run: |
         set -e
@@ -66,12 +67,12 @@ runs:
         export ELASTICSEARCH_PORT=${{  inputs.ELASTICSEARCH_PORT }}
         export LOGS_SEPARATOR=${LOGS_SEPARATOR}
         export GPG_PASSPHRASE=${GPG_PASSPHRASE}
-        export TOKEN
+        export TOKEN=${TOKEN}
 
         echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
 
         # SSH into the EC2 instance and install elk and start it
-        ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << 'EOF' | tee ${{ inputs.log_file }}         
+        ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF | tee ${{ inputs.log_file }}         
           echo "${LOGS_SEPARATOR}"
 
           # Update package index

@@ -111,12 +111,11 @@ runs:
 
           echo "Generating the Elasticsearch password for the 'elastic' user."
           echo "${LOGS_SEPARATOR}"
-          ELASTIC_PASSWORD=$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | awk '/New value:/ {print $NF}')
+          sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | awk '/New value:/ {print $NF}' > elastic_password.txt
           sleep 15
 
           echo "${LOGS_SEPARATOR}"
           echo "gpg encryption of password"
-          echo "$ELASTIC_PASSWORD" > elastic_password.txt
           gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 elastic_password.txt
           #rm elastic_password.txt
 

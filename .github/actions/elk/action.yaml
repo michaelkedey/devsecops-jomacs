@@ -234,6 +234,7 @@ runs:
 
 
           checks
+          sleep 10
           sudo systemctl status elasticsearch
           sudo systemctl status logstash
           sudo systemctl status kibana

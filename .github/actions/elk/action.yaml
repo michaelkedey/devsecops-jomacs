@@ -62,16 +62,16 @@ runs:
         LOGS_SEPARATOR: "=================================================================================================================================================================================="
       run: |
         set -e
-        # export LOGSTASH_PORT=${{  inputs.LOGSTASH_PORT }}
-        # export ELASTICSEARCH_PORT=${{  inputs.ELASTICSEARCH_PORT }}
-        # export LOGS_SEPARATOR=${LOGS_SEPARATOR}
-        # export GPG_PASSPHRASE=${GPG_PASSPHRASE}
-        # export TOKEN=${TOKEN}
+        export LOGSTASH_PORT=${{  inputs.LOGSTASH_PORT }}
+        export ELASTICSEARCH_PORT=${{  inputs.ELASTICSEARCH_PORT }}
+        export LOGS_SEPARATOR=${LOGS_SEPARATOR}
+        export GPG_PASSPHRASE=${GPG_PASSPHRASE}
+        #export TOKEN=${TOKEN}
 
         echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
 
         # SSH into the EC2 instance and install elk and start it
-        ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost /bin/bash << EOF | tee ${{ inputs.log_file }}         
+        ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF | tee ${{ inputs.log_file }}         
           echo "${LOGS_SEPARATOR}"
 
           # Update package index
@@ -172,20 +172,16 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "setting enrolment token."
-          TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
-          echo \$TOKEN
-          #sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana > kibana_enrollment.token
+          TOKEN=\$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
           sleep 20
           
           echo "${LOGS_SEPARATOR}"
           echo "applying token to kibana setup."
           sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "\$TOKEN"
-          #sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$(cat kibana_enrollment.token)"
 
           echo "restarting kibana"
           sudo systemctl restart kibana.service
           rm kibana_reporting_key.txt
-          rm kibana_enrollment.token
 
 
           echo "${LOGS_SEPARATOR}"

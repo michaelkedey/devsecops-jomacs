@@ -111,15 +111,15 @@ runs:
 
           echo "Generating the Elasticsearch password for the 'elastic' user."
           echo "${LOGS_SEPARATOR}"
-          sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | awk -F': ' '/New value:/ {print $2}' > elastic_password.txt
-
+          sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | sed -n 's/^New value: //p' > elastic_password.txt
           sleep 15
 
           echo "${LOGS_SEPARATOR}"
           echo "gpg encryption of password"
           gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 elastic_password.txt
-          #rm elastic_password.txt
+          rm elastic_password.txt
 
+          echo "restarting elasticsearch"
           sudo systemctl restart elasticsearch
 
 
@@ -171,6 +171,7 @@ runs:
           sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && \
           echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
           
+          echo "restarting kibana"
           sudo systemctl restart kibana.service
 
 
@@ -215,6 +216,7 @@ runs:
             }
         LOGSTASH_CONFIG
 
+          echo "restarting logstash"
           sudo systemctl restart logstash
 
 

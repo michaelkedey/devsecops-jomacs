@@ -59,227 +59,228 @@ runs:
         ELASTICSEARCH_PORT: ${{  inputs.ELASTICSEARCH_PORT }}
         PRIVATE_KEY: ${{ inputs.EC2_SSH_KEY }}
         GPG_PASSPHRASE: ${{  inputs.DEVSECOPS_GPG_PASSPHRASE }}
-        TOKEN: "place_holder"
         LOGS_SEPARATOR: "=================================================================================================================================================================================="
       run: |
         set -e
+        # export LOGSTASH_PORT=${{  inputs.LOGSTASH_PORT }}
+        # export ELASTICSEARCH_PORT=${{  inputs.ELASTICSEARCH_PORT }}
+        # export LOGS_SEPARATOR=${LOGS_SEPARATOR}
+        # export GPG_PASSPHRASE=${GPG_PASSPHRASE}
+        # export TOKEN=${TOKEN}
+
         echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
 
         # SSH into the EC2 instance and install elk and start it
-        ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost /bin/bash << EOF | tee ${{ inputs.log_file }}         
-          
-          echo "cating sepeartpr"
-          echo "${LOGS_SEPARATOR}"
-          LOGS_SEPARATOR="AMINA"
+        ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost /bin/bash << 'EOF' | tee ${{ inputs.log_file }}         
           echo "${LOGS_SEPARATOR}"
 
-        #   # Update package index
-        #   echo "updating system"
-        #   sudo apt-get update -y && sudo apt-get upgrade -y
+          # Update package index
+          echo "updating system"
+          sudo apt-get update -y && sudo apt-get upgrade -y
 
-        #   echo "Installing Java."
-        #   # Install Java (required by Elasticsearch)
-        #   echo "${LOGS_SEPARATOR}"
-        #   sudo apt-get install -y openjdk-11-jdk
+          echo "Installing Java."
+          # Install Java (required by Elasticsearch)
+          echo "${LOGS_SEPARATOR}"
+          sudo apt-get install -y openjdk-11-jdk
 
-        #   echo "Installing Elasticsearch."
-        #   echo "${LOGS_SEPARATOR}"
-        #   if ! systemctl list-units --type=service --all | grep -q elasticsearch.service; then
-        #     wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
-        #     sudo apt-get install apt-transport-https
-        #     echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/9.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-9.x.list
-        #     sudo apt-get update && sudo apt-get install elasticsearch
-        #     sleep 15
-        #     sudo /bin/systemctl daemon-reload
-        #     sudo /bin/systemctl enable elasticsearch.service
-        #     sleep 30
-        #     sudo systemctl start elasticsearch.service
-        #     sleep 30
-        #   else
-        #     echo "Elasticsearch already installed."            
-        #   fi
+          echo "Installing Elasticsearch."
+          echo "${LOGS_SEPARATOR}"
+          if ! systemctl list-units --type=service --all | grep -q elasticsearch.service; then
+            wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
+            sudo apt-get install apt-transport-https
+            echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/9.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-9.x.list
+            sudo apt-get update && sudo apt-get install elasticsearch
+            sleep 15
+            sudo /bin/systemctl daemon-reload
+            sudo /bin/systemctl enable elasticsearch.service
+            sleep 30
+            sudo systemctl start elasticsearch.service
+            sleep 30
+          else
+            echo "Elasticsearch already installed."            
+          fi
 
-        #   echo "${LOGS_SEPARATOR}"
-        #   echo "setting elsaticsearch configs"
-        #   sudo sed -i '/^#\?cluster\.name:/d' /etc/elasticsearch/elasticsearch.yml && echo 'cluster.name: "elk"' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
-        #   sudo sed -i '/^#\?network\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'network.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
-        #   sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
+          echo "${LOGS_SEPARATOR}"
+          echo "setting elsaticsearch configs"
+          sudo sed -i '/^#\?cluster\.name:/d' /etc/elasticsearch/elasticsearch.yml && echo 'cluster.name: "elk"' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
+          sudo sed -i '/^#\?network\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'network.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
+          sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
 
-        #   echo "Generating the Elasticsearch password for the 'elastic' user."
-        #   echo "${LOGS_SEPARATOR}"
-        #   sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | sed -n 's/^New value: //p' > elastic_password.txt
-        #   sleep 15
+          echo "Generating the Elasticsearch password for the 'elastic' user."
+          echo "${LOGS_SEPARATOR}"
+          sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | sed -n 's/^New value: //p' > elastic_password.txt
+          sleep 15
 
-        #   echo "${LOGS_SEPARATOR}"
-        #   echo "gpg encryption of password"
-        #   gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 elastic_password.txt
-        #   rm elastic_password.txt
+          echo "${LOGS_SEPARATOR}"
+          echo "gpg encryption of password"
+          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 elastic_password.txt
+          rm elastic_password.txt
 
-        #   echo "restarting elasticsearch"
-        #   sudo systemctl restart elasticsearch
+          echo "restarting elasticsearch"
+          sudo systemctl restart elasticsearch
 
 
-        #   echo "Installing Kibana."
-        #   echo "${LOGS_SEPARATOR}"
-        #   if ! systemctl list-units --type=service --all | grep -q kibana.service; then
-        #     sudo apt-get update && sudo apt-get install kibana
-        #     sleep 10
-        #     sudo /bin/systemctl daemon-reload
-        #     sudo /bin/systemctl enable kibana.service
-        #     sleep 10
-        #     sudo systemctl start kibana.service
-        #   else
-        #     echo "Kibana already installed."
-        #   fi
+          echo "Installing Kibana."
+          echo "${LOGS_SEPARATOR}"
+          if ! systemctl list-units --type=service --all | grep -q kibana.service; then
+            sudo apt-get update && sudo apt-get install kibana
+            sleep 10
+            sudo /bin/systemctl daemon-reload
+            sudo /bin/systemctl enable kibana.service
+            sleep 10
+            sudo systemctl start kibana.service
+          else
+            echo "Kibana already installed."
+          fi
 
-        #   echo "${LOGS_SEPARATOR}"
-        #   echo "setting kibana configs"
-        #   sudo sed -i '/^#\?server\.host:/d' /etc/kibana/kibana.yml && \
-        #   echo 'server.host: "0.0.0.0"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          echo "${LOGS_SEPARATOR}"
+          echo "setting kibana configs"
+          sudo sed -i '/^#\?server\.host:/d' /etc/kibana/kibana.yml && \
+          echo 'server.host: "0.0.0.0"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
 
-        #   # Set server.basePath
-        #   sudo sed -i '/^#\?server\.basePath:/d' /etc/kibana/kibana.yml && \
-        #   echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          # Set server.basePath
+          sudo sed -i '/^#\?server\.basePath:/d' /etc/kibana/kibana.yml && \
+          echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
 
-        #   # Set server.rewriteBasePath
-        #   sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && \
-        #   echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          # Set server.rewriteBasePath
+          sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && \
+          echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
           
-        #   # Set elasticsearch.hosts
-        #   sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && \
-        #   echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null          
+          # Set elasticsearch.hosts
+          sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && \
+          echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null          
 
-        #   echo "${LOGS_SEPARATOR}"
-        #   echo "setting kibana reporting key."
-        #   # Generate a random 32-byte string, base64 encode it, and save to a file
-        #   openssl rand -base64 32 > kibana_reporting_key.txt
+          echo "${LOGS_SEPARATOR}"
+          echo "setting kibana reporting key."
+          # Generate a random 32-byte string, base64 encode it, and save to a file
+          openssl rand -base64 32 > kibana_reporting_key.txt
 
-        #   sudo sed -i '/^#\?xpack\.reporting\.encryptionKey:/d' /etc/kibana/kibana.yml && \
-        #   echo "xpack.reporting.encryptionKey: \"$(cat kibana_reporting_key.txt)\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          sudo sed -i '/^#\?xpack\.reporting\.encryptionKey:/d' /etc/kibana/kibana.yml && \
+          echo "xpack.reporting.encryptionKey: \"$(cat kibana_reporting_key.txt)\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
          
-        #   sudo sed -i '/^#\?xpack\.encryptedSavedObjects\.encryptionKey:/d' /etc/kibana/kibana.yml && \
-        #   echo "xpack.encryptedSavedObjects.encryptionKey: \"$(cat kibana_reporting_key.txt)\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          sudo sed -i '/^#\?xpack\.encryptedSavedObjects\.encryptionKey:/d' /etc/kibana/kibana.yml && \
+          echo "xpack.encryptedSavedObjects.encryptionKey: \"$(cat kibana_reporting_key.txt)\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
           
-        #   echo "configuring kibana certs" 
-        #   sudo mkdir -p /etc/kibana/certs
-        #   sudo cp /etc/elasticsearch/certs/http_ca.crt /etc/kibana/certs/
-        #   sudo chown root:kibana /etc/kibana/certs/http_ca.crt
-        #   sudo chmod 640 /etc/kibana/certs/http_ca.crt
+          echo "configuring kibana certs" 
+          sudo mkdir -p /etc/kibana/certs
+          sudo cp /etc/elasticsearch/certs/http_ca.crt /etc/kibana/certs/
+          sudo chown root:kibana /etc/kibana/certs/http_ca.crt
+          sudo chmod 640 /etc/kibana/certs/http_ca.crt
 
-        #   sudo sed -i '/^#\?elasticsearch\.ssl\.certificateAuthorities:/d' /etc/kibana/kibana.yml
-        #   echo 'elasticsearch.ssl.certificateAuthorities: ["/etc/kibana/certs/http_ca.crt"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          sudo sed -i '/^#\?elasticsearch\.ssl\.certificateAuthorities:/d' /etc/kibana/kibana.yml
+          echo 'elasticsearch.ssl.certificateAuthorities: ["/etc/kibana/certs/http_ca.crt"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
 
-        #   echo "${LOGS_SEPARATOR}"
-        #   echo "setting enrolment token."
-        #   TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
-        #   echo $TOKEN
-        #   #sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana > kibana_enrollment.token
-        #   sleep 20
+          echo "${LOGS_SEPARATOR}"
+          echo "setting enrolment token."
+          TOKEN=$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
+          echo \$TOKEN
+          #sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana > kibana_enrollment.token
+          sleep 20
           
-        #   echo "${LOGS_SEPARATOR}"
-        #   echo "applying token to kibana setup."
-        #   sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$TOKEN"
-        #   #sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$(cat kibana_enrollment.token)"
+          echo "${LOGS_SEPARATOR}"
+          echo "applying token to kibana setup."
+          sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "\$TOKEN"
+          #sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "$(cat kibana_enrollment.token)"
 
-        #   echo "restarting kibana"
-        #   sudo systemctl restart kibana.service
-        #   rm kibana_reporting_key.txt
-        #   rm kibana_enrollment.token
-
-
-        #   echo "${LOGS_SEPARATOR}"
-        #   echo "Installing Logstash."
-        #   if ! systemctl list-units --type=service --all | grep -q logstash.service; then
-        #     echo "Installing Logstash..."
-        #     sudo apt-get update -y && sudo apt-get install logstash
-        #     sudo systemctl enable logstash.service  
-        #     sudo systemctl start logstash.service
-        #   else
-        #     echo "Logstash already installed."
-        #   fi
-
-        #   echo "${LOGS_SEPARATOR}"
-        #   echo "setting logstash configs"
-        #   sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH_CONFIG
-        #     input {
-        #       beats {
-        #         port => ${LOGSTASH_PORT}
-        #       }
-        #     }
-
-        #     filter {
-        #       grok {
-        #         match => { "message" => "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level}: %{GREEDYDATA:msg}" }
-        #       }
-        #       date {
-        #         match => ["timestamp", "ISO8601"]
-        #       }
-        #     }
-
-        #     output {
-        #       elasticsearch {
-        #         hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
-        #         index => "flask-logs-%{+YYYY.MM.dd}"
-        #         user => "elastic"
-        #         password => "${ELASTIC_PASSWORD}"
-        #         ssl => true
-        #         cacert => "/etc/elasticsearch/certs/http_ca.crt"
-        #       }
-        #     }
-        # LOGSTASH_CONFIG
-
-        #   echo "restarting logstash"
-        #   sudo systemctl restart logstash
+          echo "restarting kibana"
+          sudo systemctl restart kibana.service
+          rm kibana_reporting_key.txt
+          rm kibana_enrollment.token
 
 
-        #   #checks
-        #   sleep 10
-        #   sudo systemctl status elasticsearch
-        #   sudo systemctl status logstash
-        #   sudo systemctl status kibana
+          echo "${LOGS_SEPARATOR}"
+          echo "Installing Logstash."
+          if ! systemctl list-units --type=service --all | grep -q logstash.service; then
+            echo "Installing Logstash..."
+            sudo apt-get update -y && sudo apt-get install logstash
+            sudo systemctl enable logstash.service  
+            sudo systemctl start logstash.service
+          else
+            echo "Logstash already installed."
+          fi
+
+          echo "${LOGS_SEPARATOR}"
+          echo "setting logstash configs"
+          sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH_CONFIG
+            input {
+              beats {
+                port => ${LOGSTASH_PORT}
+              }
+            }
+
+            filter {
+              grok {
+                match => { "message" => "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level}: %{GREEDYDATA:msg}" }
+              }
+              date {
+                match => ["timestamp", "ISO8601"]
+              }
+            }
+
+            output {
+              elasticsearch {
+                hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
+                index => "flask-logs-%{+YYYY.MM.dd}"
+                user => "elastic"
+                password => "${ELASTIC_PASSWORD}"
+                ssl => true
+                cacert => "/etc/elasticsearch/certs/http_ca.crt"
+              }
+            }
+        LOGSTASH_CONFIG
+
+          echo "restarting logstash"
+          sudo systemctl restart logstash
+
+
+          #checks
+          sleep 10
+          sudo systemctl status elasticsearch
+          sudo systemctl status logstash
+          sudo systemctl status kibana
         EOF
       shell: bash
 
-    # - name: Copy encrypted password from EC2 and upload
-    #   env:
-    #     USER: ${{  inputs.EC2_USER }}
-    #     TUNNEL: ${{  inputs.ELK_TUNNEL_PORT }}
-    #     PRIVATE_KEY: ${{ inputs.EC2_SSH_KEY }}
-    #     AWS_ACCESS_KEY_ID: ${{  inputs.AWS_ACCESS_KEY_ID }}
-    #     AWS_SECRET_ACCESS_KEY: ${{  inputs.AWS_SECRET_ACCESS_KEY }}
-    #     AWS_REGION: ${{  inputs.AWS_REGION }}
-    #   run: |
-    #     echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
+    - name: Copy encrypted password from EC2 and upload
+      env:
+        USER: ${{  inputs.EC2_USER }}
+        TUNNEL: ${{  inputs.ELK_TUNNEL_PORT }}
+        PRIVATE_KEY: ${{ inputs.EC2_SSH_KEY }}
+        AWS_ACCESS_KEY_ID: ${{  inputs.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{  inputs.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{  inputs.AWS_REGION }}
+      run: |
+        echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
 
-    #     echo "${LOGS_SEPARATOR}"
-    #     echo "scp the gpg encrypted password"
-    #     scp -i private_key.pem -P ${{ inputs.ELK_TUNNEL_PORT }} -o StrictHostKeyChecking=no ${USER}@localhost:/home/${USER}/elastic_password.txt.gpg .
+        echo "${LOGS_SEPARATOR}"
+        echo "scp the gpg encrypted password"
+        scp -i private_key.pem -P ${{ inputs.ELK_TUNNEL_PORT }} -o StrictHostKeyChecking=no ${USER}@localhost:/home/${USER}/elastic_password.txt.gpg .
 
-    #     echo "upload password to s3"
-    #     aws s3 cp elastic_password.txt.gpg s3://sedem-terra333-bucket/devsecops-jomacs/elastic_password.txt.gpg
-    #   shell: bash
+        echo "upload password to s3"
+        aws s3 cp elastic_password.txt.gpg s3://sedem-terra333-bucket/devsecops-jomacs/elastic_password.txt.gpg
+      shell: bash
 
-    # - name: Encrypt and upload logs to s3
-    #   env:
-    #     AWS_ACCESS_KEY_ID: ${{  inputs.AWS_ACCESS_KEY_ID }}
-    #     AWS_SECRET_ACCESS_KEY: ${{  inputs.AWS_SECRET_ACCESS_KEY }}
-    #     AWS_REGION: ${{  inputs.AWS_REGION }}
-    #     GPG_PASSPHRASE: ${{  inputs.DEVSECOPS_GPG_PASSPHRASE }}
-    #     LOGS_SEPARATOR: "=================================================================================================================================================================================="
-    #   run: |
+    - name: Encrypt and upload logs to s3
+      env:
+        AWS_ACCESS_KEY_ID: ${{  inputs.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{  inputs.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{  inputs.AWS_REGION }}
+        GPG_PASSPHRASE: ${{  inputs.DEVSECOPS_GPG_PASSPHRASE }}
+        LOGS_SEPARATOR: "=================================================================================================================================================================================="
+      run: |
         
-    #     echo "${LOGS_SEPARATOR}"
-    #     echo "Encrypting and uploading the log file using the GPG passphrase"
-    #     gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 ${{ inputs.log_file }} 
-    #     aws s3 cp ${{ inputs.log_file }}.gpg  s3://sedem-terra333-bucket/devsecops-jomacs/logs/${{ inputs.log_file }}.gpg
+        echo "${LOGS_SEPARATOR}"
+        echo "Encrypting and uploading the log file using the GPG passphrase"
+        gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 ${{ inputs.log_file }} 
+        aws s3 cp ${{ inputs.log_file }}.gpg  s3://sedem-terra333-bucket/devsecops-jomacs/logs/${{ inputs.log_file }}.gpg
 
-    #     echo "${LOGS_SEPARATOR}"
-    #     echo "removing generated files"
+        echo "${LOGS_SEPARATOR}"
+        echo "removing generated files"
 
-    #     rm ${{ inputs.log_file }}.gpg
-    #     rm ${{ inputs.log_file }}
-    #     rm elastic_password.txt.gpg
-    #   shell: bash
+        rm ${{ inputs.log_file }}.gpg
+        rm ${{ inputs.log_file }}
+        rm elastic_password.txt.gpg
+      shell: bash
 
     # 4. Clean-up tunnel
     - name: Cleanup SSH Tunnel

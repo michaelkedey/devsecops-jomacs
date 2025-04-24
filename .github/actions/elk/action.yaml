@@ -62,7 +62,7 @@ runs:
         LOGSTASH_PORT: ${{  inputs.LOGSTASH_PORT }}
         ELASTICSEARCH_PORT: ${{  inputs.ELASTICSEARCH_PORT }}
         PRIVATE_KEY: ${{ inputs.EC2_SSH_KEY }}
-        LOGS_SEPARATOR: "================================================================================================================================================================================================================"
+        LOGS_SEPARATOR: "=================================================================================================================================================================================="
       run: |
         set -e
         export LOGSTASH_PORT=${{  inputs.LOGSTASH_PORT }}
@@ -114,9 +114,14 @@ runs:
             rm elastic_password.txt
             
           else
-            echo "Elasticsearch already installed."
+            echo "Elasticsearch already installed, settings configs"
+            echo "${LOGS_SEPARATOR}"
+            sudo sed -i '/^#\?cluster\.name:/d' /etc/elasticsearch/elasticsearch.yml && echo 'cluster.name: "elk"' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
+            sudo sed -i '/^#\?network\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'network.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
+            sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
+            
             sudo systemctl restart elasticsearch
-            sleep 10
+            
           fi
 
           echo "Installing Kibana."

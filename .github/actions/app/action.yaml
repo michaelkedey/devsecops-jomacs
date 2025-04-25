@@ -181,7 +181,7 @@ runs:
             echo "Filebeat is already installed"
           fi
 
-          cho "${LOGS_SEPARATOR}"
+          echo "${LOGS_SEPARATOR}"
           echo "Configuring Filebeat to read logs."
           sudo tee /etc/filebeat/filebeat.yml > /dev/null << 'FILEBEAT'
           filebeat.inputs:

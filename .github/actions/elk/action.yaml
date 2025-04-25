@@ -220,11 +220,9 @@ runs:
           API_KEY_ID=$(echo "$API_KEY_JSON" | jq -r '.id')
           API_KEY_SECRET=$(echo "$API_KEY_JSON" | jq -r '.api_key')
 
-          echo "${LOGS_SEPARATOR}"
-          echo "Creating Logstash keystore if not exists"
           LOGSTASH_KEYSTORE_PASS=\$(openssl rand -base64 32)
           export LOGSTASH_KEYSTORE_PASS
-          sudo -u logstash env LOGSTASH_KEYSTORE_PASS="\$LOGSTASH_KEYSTORE_PASS" \
+          sudo env LOGSTASH_KEYSTORE_PASS="\$LOGSTASH_KEYSTORE_PASS" \
           /usr/share/logstash/bin/logstash-keystore \
           --path.settings /etc/logstash create force=true
 

@@ -72,6 +72,9 @@ runs:
 
         # SSH into the EC2 instance and install elk and start it
         ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF | tee ${{ inputs.log_file }}         
+          
+          set -euo pipefail  # Exit on error, undefined variables, or pipe failures
+          
           echo "${LOGS_SEPARATOR}"
 
           # Update package index

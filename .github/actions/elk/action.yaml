@@ -83,7 +83,7 @@ runs:
 
           echo "Installing Elasticsearch."
           echo "${LOGS_SEPARATOR}"
-          if ! systemctl list-units --type=service --all | grep -q elasticsearch.service; then
+          if ! dpkg -s elasticsearch &>/dev/null; then
             wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
             sudo apt-get install apt-transport-https
             echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/9.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-9.x.list
@@ -122,7 +122,7 @@ runs:
 
           echo "Installing Kibana."
           echo "${LOGS_SEPARATOR}"
-          if ! systemctl list-units --type=service --all | grep -q kibana.service; then
+          if ! dpkg -s kibana &>/dev/null; then
             sudo apt-get update && sudo apt-get install kibana
             sleep 10
             sudo /bin/systemctl daemon-reload
@@ -185,7 +185,7 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "Installing Logstash."
-          if ! systemctl list-units --type=service --all | grep -q logstash.service; then
+          if ! dpkg -s logstash &>/dev/null; then
             echo "Installing Logstash..."
             sudo apt-get update -y && sudo apt-get install logstash
             sudo systemctl enable logstash.service  
@@ -227,8 +227,8 @@ runs:
           sudo chmod 755 /etc/logstash
           
           LOGSTASH_KEYSTORE_PASS=\$(openssl rand -base64 32)
-          export LOGSTASH_KEYSTORE_PASS="\${LOGSTASH_KEYSTORE_PASS}"
-          yes y | sudo -u logstash LOGSTASH_KEYSTORE_PASS="$LOGSTASH_KEYSTORE_PASS" \
+          export LOGSTASH_KEYSTORE_PASS
+          yes y | sudo --preserve-env=LOGSTASH_KEYSTORE_PASS -u logstash LOGSTASH_KEYSTORE_PASS="$LOGSTASH_KEYSTORE_PASS" \
           /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash create
 
           echo "${LOGS_SEPARATOR}"
@@ -412,7 +412,7 @@ runs:
 
 #               echo "Installing Elasticsearch."
 #               echo "${LOGS_SEPARATOR}"
-#               if ! systemctl list-units --type=service --all | grep -q elasticsearch.service; then
+#               if ! dpkg -s elasticsearch &>/dev/null; then
 #                 wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
 #                 sudo apt-get install apt-transport-https
 #                 echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/9.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-9.x.list
@@ -447,7 +447,7 @@ runs:
 
 #               echo "Installing Kibana."
 #               echo "${LOGS_SEPARATOR}"
-#               if ! systemctl list-units --type=service --all | grep -q kibana.service; then
+#               if ! dpkg -s kibana &>/dev/null; then
 #                 sudo apt-get update && sudo apt-get install kibana
 #                 sleep 10
 #                 sudo sed -i '/^#\?server\.host:/d' /etc/kibana/kibana.yml && \
@@ -485,7 +485,7 @@ runs:
 
 #               echo "${LOGS_SEPARATOR}"
 #               echo "Installing Logstash."
-#               if ! systemctl list-units --type=service --all | grep -q logstash.service; then
+#               if ! dpkg -s logstash &>/dev/null; then
 #                 echo "Installing Logstash..."
 #                 sudo apt-get update -y && sudo apt-get install logstash
 #                 sudo systemctl enable logstash.service  

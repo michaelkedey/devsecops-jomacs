@@ -112,7 +112,6 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "gpg encryption of password"
-          echo "\${ELASTIC_PASSWORD}" 
           echo "\${ELASTIC_PASSWORD}" > elastic_password.txt
           gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 elastic_password.txt
           rm elastic_password.txt
@@ -223,7 +222,9 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "Creating Logstash keystore if not exists"
-          sudo /usr/share/logstash/bin/logstash-keystore create force=true
+          LOGSTASH_KEYSTORE_PASS=\$(openssl rand -base64 32)
+          export LOGSTASH_KEYSTORE_PASS
+          sudo -u logstash /usr/share/logstash/bin/logstash-keystore create --path.settings /etc/logstash --force || true
 
           echo "${LOGS_SEPARATOR}"
           echo "Storing key id and secret in Logstash keystore"

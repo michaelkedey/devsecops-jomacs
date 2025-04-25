@@ -200,6 +200,7 @@ runs:
 
           output.logstash:
             hosts: ["http://${LOGSTASH_IP}:${LOGSTASH_PORT}"]
+            ssl.enabled: false
 
         FILEBEAT
 

@@ -74,7 +74,7 @@ runs:
         ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF | tee ${{ inputs.log_file }}         
           
           set -euo pipefail  # Exit on error, undefined variables, or pipe failures
-          
+
           echo "${LOGS_SEPARATOR}"
 
           # Update package index
@@ -199,6 +199,29 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "setting logstash configs"
+          echo "Generate service token (silently to avoid logging sensitive info)"
+          sudo /usr/share/elasticsearch/bin/elasticsearch-service-tokens create elastic/logstash logstash-token >/dev/null
+          
+          echo "${LOGS_SEPARATOR}"
+          echo "Extracting token securely"
+          LOGSTASH_TOKEN_VALUE=$(sudo awk -F': ' '/elastic\/logstash\/logstash-token/ {print $2}' /usr/share/elasticsearch/config/service_tokens)
+          echo "$LOGSTASH_TOKEN_VALUE" | sudo /usr/share/logstash/bin/logstash-keystore add ES_TOKEN --stdin
+
+          echo "${LOGS_SEPARATOR}"
+          echo "Creating Logstash keystore if not exists"
+          sudo /usr/share/logstash/bin/logstash-keystore create force=true
+
+          echo "${LOGS_SEPARATOR}"
+          echo "Adding token to keystore adn setting permissions"
+          echo "$LOGSTASH_TOKEN_VALUE" | sudo /usr/share/logstash/bin/logstash-keystore add ES_TOKEN --stdin --silent
+          sudo chown logstash:logstash /usr/share/logstash/config/logstash.keystore
+
+          echo "${LOGS_SEPARATOR}"
+          echo "adding elasticsearch port to kibana keystore"
+          echo "${ELASTICSEARCH_PORT}" | sudo /usr/share/logstash/bin/logstash-keystore add ELASTICSEARCH_PORT --stdin
+
+          echo "${LOGS_SEPARATOR}"
+          echo "logstash config file"
           sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH_CONFIG
             input {
               beats {
@@ -217,14 +240,21 @@ runs:
 
             output {
               elasticsearch {
-                hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
-                index => "flask-logs-%{+YYYY.MM.dd}"
-                user => "elastic"
-                password => "${ELASTIC_PASSWORD}"
+                hosts => ["https://localhost:%{ELASTICSEARCH_PORT}"]
                 ssl => true
+                ssl_certificate_verification => true
                 cacert => "/etc/elasticsearch/certs/http_ca.crt"
+                index => "flask-logs-%{+YYYY.MM.dd}"
+                auth_type => {
+                  type => "bearer"
+                  token => "${ES_TOKEN}"
+                }
+                retry_initial_interval => 3
+                retry_max_interval => 60
+                retry_on_conflict => 3
               }
             }
+
         LOGSTASH_CONFIG
 
           echo "restarting logstash"

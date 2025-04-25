@@ -62,11 +62,6 @@ runs:
         LOGS_SEPARATOR: "=================================================================================================================================================================================="
       run: |
         set -e
-        export LOGSTASH_PORT=${{  inputs.LOGSTASH_PORT }}
-        export ELASTICSEARCH_PORT=${{  inputs.ELASTICSEARCH_PORT }}
-        export LOGS_SEPARATOR=${LOGS_SEPARATOR}
-        export GPG_PASSPHRASE=${GPG_PASSPHRASE}
-        #export TOKEN=${TOKEN}
 
         echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
 
@@ -111,11 +106,14 @@ runs:
 
           echo "Generating the Elasticsearch password for the 'elastic' user."
           echo "${LOGS_SEPARATOR}"
-          sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | sed -n 's/^New value: //p' > elastic_password.txt
+          #sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | sed -n 's/^New value: //p' > elastic_password.txt
+          ELASTIC_PASSWORD=\$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | sed -n 's/^New value: //p')
           sleep 15
 
           echo "${LOGS_SEPARATOR}"
           echo "gpg encryption of password"
+          echo "\${ELASTIC_PASSWORD}" 
+          echo "\${ELASTIC_PASSWORD}" > elastic_password.txt
           gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 elastic_password.txt
           rm elastic_password.txt
 
@@ -199,25 +197,41 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "setting logstash configs"
-          echo "Generate service token (silently to avoid logging sensitive info)"
-          sudo /usr/share/elasticsearch/bin/elasticsearch-service-tokens create elastic/logstash logstash-token >/dev/null
-          
+          echo "Generate api key for logstash kibana auth"
+          API_KEY_JSON=$(curl -s -X POST -u elastic:"$ELASTIC_PASSWORD" \
+            -H "Content-Type: application/json" \
+            "https://localhost:"${ELASTICSEARCH_PORT}"/_security/api_key?pretty" \
+            -d '{
+              "name": "logstash-api-key",
+              "role_descriptors": {
+                "logstash_writer": {
+                  "cluster": ["monitor", "manage_index_templates"],
+                  "indices": [
+                    {
+                      "names": ["flask-logs-*"],
+                      "privileges": ["create_index", "write", "read"]
+                    }
+                  ]
+                }
+              }
+            }')
+
           echo "${LOGS_SEPARATOR}"
-          echo "Extracting token securely"
-          LOGSTASH_TOKEN_VALUE=$(sudo awk -F': ' '/elastic\/logstash\/logstash-token/ {print $2}' /usr/share/elasticsearch/config/service_tokens)
-          echo "$LOGSTASH_TOKEN_VALUE" | sudo /usr/share/logstash/bin/logstash-keystore add ES_TOKEN --stdin
+          echo "Extracting API key credentials"
+          API_KEY_ID=$(echo "$API_KEY_JSON" | jq -r '.id')
+          API_KEY_SECRET=$(echo "$API_KEY_JSON" | jq -r '.api_key')
 
           echo "${LOGS_SEPARATOR}"
           echo "Creating Logstash keystore if not exists"
           sudo /usr/share/logstash/bin/logstash-keystore create force=true
 
           echo "${LOGS_SEPARATOR}"
-          echo "Adding token to keystore adn setting permissions"
-          echo "$LOGSTASH_TOKEN_VALUE" | sudo /usr/share/logstash/bin/logstash-keystore add ES_TOKEN --stdin --silent
-          sudo chown logstash:logstash /usr/share/logstash/config/logstash.keystore
-
+          echo "Storing key id and secret in Logstash keystore"
+          echo "$API_KEY_ID" | sudo /usr/share/logstash/bin/logstash-keystore add ES_API_KEY_ID --stdin
+          echo "$API_KEY_SECRET" | sudo /usr/share/logstash/bin/logstash-keystore add ES_API_KEY_SECRET --stdin
+          
           echo "${LOGS_SEPARATOR}"
-          echo "adding elasticsearch port to kibana keystore"
+          echo "adding elasticsearch port to logstash keystore"
           echo "${ELASTICSEARCH_PORT}" | sudo /usr/share/logstash/bin/logstash-keystore add ELASTICSEARCH_PORT --stdin
 
           echo "${LOGS_SEPARATOR}"
@@ -245,10 +259,7 @@ runs:
                 ssl_certificate_verification => true
                 cacert => "/etc/elasticsearch/certs/http_ca.crt"
                 index => "flask-logs-%{+YYYY.MM.dd}"
-                auth_type => {
-                  type => "bearer"
-                  token => "${ES_TOKEN}"
-                }
+                api_key => "${ES_API_KEY_ID}:${ES_API_KEY_SECRET}"
                 retry_initial_interval => 3
                 retry_max_interval => 60
                 retry_on_conflict => 3

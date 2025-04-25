@@ -95,7 +95,8 @@ runs:
             sudo systemctl start elasticsearch.service
             sleep 30
           else
-            echo "Elasticsearch already installed."            
+            echo "Elasticsearch already installed."
+            sudo systemctl restart elasticsearch.service            
           fi
 
           echo "${LOGS_SEPARATOR}"
@@ -131,6 +132,7 @@ runs:
             sudo systemctl start kibana.service
           else
             echo "Kibana already installed."
+            sudo systemctl restart kibana.service
           fi
 
           echo "${LOGS_SEPARATOR}"
@@ -192,6 +194,7 @@ runs:
             sudo systemctl start logstash.service
           else
             echo "Logstash already installed."
+            sudo systemctl restart logstash.service
           fi
 
           echo "${LOGS_SEPARATOR}"

@@ -94,9 +94,9 @@ runs:
             sleep 30
             sudo systemctl start elasticsearch.service
             sleep 30
+            ELASTIC_PASSWORD=\$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | sed -n 's/^New value: //p')
           else
-            echo "Elasticsearch already installed."
-            sudo systemctl restart elasticsearch.service            
+            echo "Elasticsearch already installed."          
           fi
 
           echo "${LOGS_SEPARATOR}"
@@ -105,11 +105,18 @@ runs:
           sudo sed -i '/^#\?network\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'network.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
           sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
 
-          echo "Generating the Elasticsearch password for the 'elastic' user."
+          echo "Regenerating the Elasticsearch password for the 'elastic' user."
           echo "${LOGS_SEPARATOR}"
+          echo "checking cluster health"
+          until sudo curl -s -u elastic:$ELASTIC_PASSWORD https://localhost:9200/_cluster/health --cacert /etc/elasticsearch/certs/http_ca.crt | grep -q '"status":"green"\|"status":"yellow"'; do
+            echo "Waiting for Elasticsearch to become healthy..."
+            sleep 5
+          done
+
+          echo "regenerating password"
           #sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | sed -n 's/^New value: //p' > elastic_password.txt
           ELASTIC_PASSWORD=\$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | sed -n 's/^New value: //p')
-          sleep 15
+          sleep 10
 
           echo "${LOGS_SEPARATOR}"
           echo "gpg encryption of password"
@@ -132,7 +139,6 @@ runs:
             sudo systemctl start kibana.service
           else
             echo "Kibana already installed."
-            sudo systemctl restart kibana.service
           fi
 
           echo "${LOGS_SEPARATOR}"
@@ -194,7 +200,6 @@ runs:
             sudo systemctl start logstash.service
           else
             echo "Logstash already installed."
-            sudo systemctl restart logstash.service
           fi
 
           echo "${LOGS_SEPARATOR}"

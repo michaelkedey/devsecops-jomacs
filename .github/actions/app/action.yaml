@@ -75,6 +75,9 @@ runs:
         set -e
         echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
 
+        export USER="${USER}"
+        export APP_PORT="${APP_PORT}"
+
         rsync -avz -e "ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no" ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
         ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF | tee ${{ inputs.log_file }}  
 

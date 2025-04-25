@@ -126,8 +126,14 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "Creating Nginx config for APP."
-          sudo rm /etc/nginx/sites-available/default
-          sudo rm /etc/nginx/sites-enabled/default
+          if [ -f /etc/nginx/sites-available/default ]; then
+            sudo rm /etc/nginx/sites-available/default
+          fi
+
+          if [ -f /etc/nginx/sites-enabled/default ]; then
+            sudo rm /etc/nginx/sites-enabled/default
+          fi
+
           sudo tee /etc/nginx/sites-available/default > /dev/null << NGINX
           server {
             listen 80 default_server;

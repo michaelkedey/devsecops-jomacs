@@ -134,7 +134,7 @@ runs:
             sudo rm /etc/nginx/sites-enabled/default
           fi
 
-          sudo tee /etc/nginx/sites-available/default > /dev/null << NGINX
+          sudo tee /etc/nginx/sites-available/default > /dev/null << 'NGINX'
           server {
             listen 80 default_server;
             server_name _;

@@ -227,6 +227,7 @@ runs:
           sudo chmod 755 /etc/logstash
           
           LOGSTASH_KEYSTORE_PASS=\$(openssl rand -base64 32)
+          export LOGSTASH_KEYSTORE_PASS="\${LOGSTASH_KEYSTORE_PASS}"
           yes y | sudo -u logstash LOGSTASH_KEYSTORE_PASS="$LOGSTASH_KEYSTORE_PASS" \
           /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash create
 

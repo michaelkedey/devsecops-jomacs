@@ -79,7 +79,7 @@ runs:
         ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF | tee ${{ inputs.log_file }}  
 
           set -euo pipefail  # Exit on error, undefined variables, or pipe failures
-          
+
           echo "${LOGS_SEPARATOR}"
           echo "Installing dependencies"
           cd /home/${USER}/my-app/
@@ -89,8 +89,7 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "Maximind geolocation db"
-          wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=$MAXIMIND_LICENSE_KEY&suffix=tar.gz" \ 
-          -O GeoLite2-City.tar.gz
+          wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=$MAXIMIND_LICENSE_KEY&suffix=tar.gz" -O GeoLite2-City.tar.gz
         
           tar -xvzf GeoLite2-City.tar.gz
           DB_DIR=\$(find . -type d -name 'GeoLite2-City_*' | head -n 1)

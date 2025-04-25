@@ -177,7 +177,7 @@ runs:
           
           echo "${LOGS_SEPARATOR}"
           echo "applying token to kibana setup."
-          sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "\$TOKEN" -f
+          sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "\$TOKEN"
 
           echo "restarting kibana"
           sudo systemctl restart kibana.service

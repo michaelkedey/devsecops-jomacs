@@ -84,7 +84,6 @@ runs:
           echo "Installing Elasticsearch."
           echo "${LOGS_SEPARATOR}"
           if ! systemctl list-units --type=service --all | grep -q elasticsearch.service; then
-            #wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
             wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
             sudo apt-get install apt-transport-https
             echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/9.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-9.x.list
@@ -225,7 +224,10 @@ runs:
           echo "Creating Logstash keystore if not exists"
           LOGSTASH_KEYSTORE_PASS=\$(openssl rand -base64 32)
           export LOGSTASH_KEYSTORE_PASS
-          sudo -u logstash /usr/share/logstash/bin/logstash-keystore create --path.settings /etc/logstash --force || true
+          sudo -u logstash /usr/share/logstash/bin/logstash-keystore \
+          --path.settings /etc/logstash create force=true
+
+          #sudo -u logstash /usr/share/logstash/bin/logstash-keystore create --path.settings /etc/logstash --force || true
 
           echo "${LOGS_SEPARATOR}"
           echo "Storing key id and secret in Logstash keystore"

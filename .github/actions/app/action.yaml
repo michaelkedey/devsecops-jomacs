@@ -117,7 +117,6 @@ runs:
             sudo apt-get update -y && sudo apt-get upgrade -y
             sudo apt-get install nginx -y
             sudo systemctl enable nginx 
-            sudo systemctl start nginx
           else 
             echo "Nginx is already installed"
           fi
@@ -154,6 +153,7 @@ runs:
           echo "Enabling Nginx site."
           sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
           sudo nginx -t
+          sudo systemctl reload nginx
           sudo systemctl restart nginx
 
 

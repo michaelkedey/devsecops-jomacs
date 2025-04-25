@@ -162,9 +162,10 @@ runs:
           echo "Enabling Nginx site."
           sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
           sudo nginx -t
-          sudo systemctl reload nginx
-          sudo systemctl restart nginx
 
+          echo "${LOGS_SEPARATOR}"
+          echo "starting nginx"
+          sudo systemctl start nginx
 
           echo "${LOGS_SEPARATOR}"
           echo "install filebeat for logs."

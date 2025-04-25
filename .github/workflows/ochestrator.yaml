@@ -230,6 +230,7 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION }}
           DEVSECOPS_GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          MAXIMIND_LICENSE_KEY: ${{ secrets.MAXIMIND_LICENSE_KEY }}
 
 
   app-deploy-only:
@@ -291,6 +292,7 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION }}
           DEVSECOPS_GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          MAXIMIND_LICENSE_KEY: ${{ secrets.MAXIMIND_LICENSE_KEY }}
 
 
   elk-deploy-only:

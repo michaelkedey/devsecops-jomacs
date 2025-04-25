@@ -49,6 +49,10 @@ inputs:
   PRIVATE_KEY:
     description: 'Private key'
     required: true
+
+  MAXIMIND_LICENSE_KEY:
+    description: 'Maximind license key for geo-ip analytics'
+    required: true
  
 
 runs:
@@ -65,30 +69,36 @@ runs:
         LOGSTASH_PORT: ${{ inputs.LOGSTASH_PORT }}
         APP_PORT: ${{ inputs.APP_PORT }}
         PRIVATE_KEY: ${{ inputs.EC2_SSH_KEY }}
+        MAXIMIND_LICENSE_KEY: ${{ inputs.MAXIMIND_LICENSE_KEY }}
         LOGS_SEPARATOR: "=================================================================================================================================================================================="
       run: |
         set -e
         echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
 
         rsync -avz -e "ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no" ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
-
         ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF | tee ${{ inputs.log_file }}  
-          export LOGSTASH_IP="${LOGSTASH_IP}"
-          export LOGSTASH_PORT="${LOGSTASH_PORT}"
-          export APP_PORT="${APP_PORT}"
-          export LOGS_SEPARATOR="${LOGS_SEPARATOR}"
 
           echo "${LOGS_SEPARATOR}"
-          # Install dependencies
+          echo "Installing dependencies"
           cd /home/${USER}/my-app/
           sudo apt-get update -y -y && sudo apt-get upgrade -y
-          sudo apt-get install python3-pip -y
-          sudo apt-get install gunicorn -y
-          sudo apt-get install python3-flask -y
+          sudo apt-get install -y python3-pip
           pip install -r requirements.txt
+
+          echo "${LOGS_SEPARATOR}"
+          echo "Maximing geolocation db"
+          curl -L -o GeoLite2-City.tar.gz \
+          "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=$MAXMIND_LICENSE_KEY&suffix=tar.gz"  
+          tar -xvzf GeoLite2-City.tar.gz
+          DB_DIR=\$(find . -type d -name 'GeoLite2-City_*' | head -n 1)
+          cp "\$DB_DIR/GeoLite2-City.mmdb" ./GeoLite2-City.mmdb
+          
+          echo "${LOGS_SEPARATOR}"
           echo "Creating necessary log directories..."
           sudo mkdir -p logs
           sudo chown $USER:$USER logs
+
+          echo "${LOGS_SEPARATOR}"
           echo "starting Gunicorn"
           nohup gunicorn -w 4 -b 127.0.0.1:${APP_PORT} app:app \
           > /home/$USER/my-app/logs/access.log 2> /home/$USER/my-app/logs/error.log &
@@ -106,33 +116,36 @@ runs:
             sudo apt-get install nginx -y
             sudo systemctl enable nginx 
             sudo systemctl start nginx
+          else 
+            echo "Nginx is already installed"
+          fi
 
-            echo "${LOGS_SEPARATOR}"
-            echo "Creating Nginx config for APP."
-            sudo rm /etc/nginx/sites-available/default
-            sudo rm /etc/nginx/sites-enabled/default
-            sudo tee /etc/nginx/sites-available/default > /dev/null << 'NGINX'
-            server {
-              listen 80 default_server;
-              server_name _;
+          echo "${LOGS_SEPARATOR}"
+          echo "Creating Nginx config for APP."
+          sudo rm /etc/nginx/sites-available/default
+          sudo rm /etc/nginx/sites-enabled/default
+          sudo tee /etc/nginx/sites-available/default > /dev/null << NGINX
+          server {
+            listen 80 default_server;
+            server_name _;
 
-              # Static files
-              location /app/static/ {
-                alias /home/ubuntu/my-app/static/;
-                expires 30d;
-                access_log off;
-              }
-
-              # Reverse proxy for Flask app
-              location /app/ {
-                proxy_pass http://127.0.0.1:5000/;
-
-                proxy_set_header Host \$host;
-                proxy_set_header X-Real-IP \$remote_addr;
-                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                proxy_set_header X-Forwarded-Proto \$scheme;
-              }
+            # Static files
+            location /app/static/ {
+              alias /home/${USER}/my-app/static/;
+              expires 30d;
+              access_log off;
             }
+
+            # Reverse proxy for Flask app
+            location /app/ {
+              proxy_pass http://127.0.0.1:${APP_PORT}/;
+
+              proxy_set_header Host \$host;
+              proxy_set_header X-Real-IP \$remote_addr;
+              proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto \$scheme;
+            }
+          }
         NGINX
 
           echo "${LOGS_SEPARATOR}"
@@ -141,10 +154,6 @@ runs:
           sudo nginx -t
           sudo systemctl restart nginx
 
-          else 
-            echo "Nginx is already installed"
-            sudo systemctl restart nginx
-          fi
 
           echo "${LOGS_SEPARATOR}"
           echo "install filebeat for logs."
@@ -156,32 +165,35 @@ runs:
             sudo apt-get update -y && sudo apt-get install filebeat 
             sudo systemctl enable filebeat
             sudo systemctl start filebeat
-
-            echo "${LOGS_SEPARATOR}"
-            echo "Configuring Filebeat to read logs."
-            sudo tee /etc/filebeat/filebeat.yml > /dev/null << 'FILEBEAT'
-            filebeat.inputs:
-              - type: log
-                enabled: true
-                paths:
-                  - /home/${USER}/my-app/logs/access.log
-                  - /home/${USER}/my-app/logs/error.log
-                fields:
-                  app: my-flask-app
-                fields_under_root: true
-
-            output.logstash:
-              hosts: ["http://${LOGSTASH_IP}:${LOGSTASH_PORT}"] 
-        FILEBEAT
-
-            echo "${LOGS_SEPARATOR}"
-            echo "restarting filebeat"
-            sudo systemctl restart filebeat
-
           else 
             echo "Filebeat is already installed"
-            sudo systemctl restart filebeat
           fi
+
+          cho "${LOGS_SEPARATOR}"
+          echo "Configuring Filebeat to read logs."
+          sudo tee /etc/filebeat/filebeat.yml > /dev/null << 'FILEBEAT'
+          filebeat.inputs:
+            - type: log
+              enabled: true
+              paths:
+                - /home/${USER}/my-app/logs/access.log
+                - /home/${USER}/my-app/logs/error.log
+              fields:
+                app: my-flask-app
+              fields_under_root: true
+              parsers:
+                - ndjson:
+                    overwrite_keys: true
+                    add_error_key: true
+
+          output.logstash:
+            hosts: ["http://${LOGSTASH_IP}:${LOGSTASH_PORT}"]
+
+        FILEBEAT
+
+          echo "${LOGS_SEPARATOR}"
+          echo "restarting filebeat"
+          sudo systemctl restart filebeat
 
           echo "${LOGS_SEPARATOR}"
           sudo systemctl status filebeat

@@ -95,8 +95,10 @@ runs:
             sudo systemctl start elasticsearch.service
             sleep 30
             ELASTIC_PASSWORD=\$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | sed -n 's/^New value: //p')
+            export \$ELASTIC_PASSWORD
           else
-            echo "Elasticsearch already installed."          
+            echo "Elasticsearch already installed."  
+            ELASTIC_PASSWORD=\$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | sed -n 's/^New value: //p')        
           fi
 
           echo "${LOGS_SEPARATOR}"

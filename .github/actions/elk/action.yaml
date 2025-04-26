@@ -109,7 +109,7 @@ runs:
 
           echo "Regenerating the Elasticsearch password for the 'elastic' user."
           echo "${LOGS_SEPARATOR}"
-          echo "checking cluster health"
+          echo "checking cluster health to regenertae elasticsearch password"
           MAX_RETRIES=12
           RETRY_COUNT=0
 
@@ -122,9 +122,7 @@ runs:
             echo "Waiting for Elasticsearch to become healthy... (\${RETRY_COUNT}/\${MAX_RETRIES})"
             sleep 5
             RETRY_COUNT=\$((RETRY_COUNT + 1))
-          done
-
-          echo "${LOGS_SEPARATOR}"  
+          done  
           echo "Elasticsearch cluster is healthy!"
 
           echo "regenerating password"
@@ -192,6 +190,23 @@ runs:
           sudo sed -i '/^#\?elasticsearch\.ssl\.certificateAuthorities:/d' /etc/kibana/kibana.yml
           echo 'elasticsearch.ssl.certificateAuthorities: ["/etc/kibana/certs/http_ca.crt"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
 
+          echo "${LOGS_SEPARATOR}"
+          echo "checking cluster health to set kibana token"
+          MAX_RETRIES=12
+          RETRY_COUNT=0
+
+          until sudo curl -s -u elastic:\$ELASTIC_PASSWORD https://localhost:9200/_cluster/health \
+            --cacert /etc/elasticsearch/certs/http_ca.crt | grep -E -q '"status":"green"|"status":"yellow"'; do
+            if [ \$RETRY_COUNT -ge \$MAX_RETRIES ]; then
+              echo "Elasticsearch cluster failed to become healthy after \$((MAX_RETRIES * 5)) seconds."
+              exit 1
+            fi
+            echo "Waiting for Elasticsearch to become healthy... (\${RETRY_COUNT}/\${MAX_RETRIES})"
+            sleep 5
+            RETRY_COUNT=\$((RETRY_COUNT + 1))
+          done  
+          echo "Elasticsearch cluster is healthy!"
+          
           echo "${LOGS_SEPARATOR}"
           echo "setting enrolment token."
           TOKEN=\$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)

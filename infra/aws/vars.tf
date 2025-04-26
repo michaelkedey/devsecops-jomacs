@@ -2,7 +2,7 @@ variable "instance_type" {
   type = map(string)
   default = {
     project    = "t2.micro",
-    production = "t3.large"
+    production = "t3.xlarge"
   }
   description = "instance type for project server"
 }

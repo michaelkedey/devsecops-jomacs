@@ -95,10 +95,9 @@ runs:
             sudo systemctl start elasticsearch.service
             sleep 30
             ELASTIC_PASSWORD=\$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | sed -n 's/^New value: //p')
-            export \$ELASTIC_PASSWORD
+            export ELASTIC_PASSWORD
           else
             echo "Elasticsearch already installed."  
-            ELASTIC_PASSWORD=\$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | sed -n 's/^New value: //p')        
           fi
 
           echo "${LOGS_SEPARATOR}"
@@ -265,8 +264,10 @@ runs:
           
           LOGSTASH_KEYSTORE_PASS=\$(openssl rand -base64 32)
           export LOGSTASH_KEYSTORE_PASS
-          yes y | sudo --preserve-env=LOGSTASH_KEYSTORE_PASS -u logstash LOGSTASH_KEYSTORE_PASS="\${LOGSTASH_KEYSTORE_PASS}" \
+          yes y | sudo --preserve-env=LOGSTASH_KEYSTORE_PASS -u logstash \
           /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash create
+
+
 
           echo "${LOGS_SEPARATOR}"
           echo "Storing key id and secret in Logstash keystore"

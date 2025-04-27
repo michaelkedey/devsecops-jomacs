@@ -326,7 +326,7 @@ runs:
 
               output {
                 elasticsearch {
-                  hosts => ["https://localhost:\${ELASTICSEARCH_PORT}"]
+                  hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
                   ssl => true
                   ssl_certificate_verification => true
                   cacert => "/etc/elasticsearch/certs/http_ca.crt"

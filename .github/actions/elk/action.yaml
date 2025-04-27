@@ -249,8 +249,8 @@ runs:
 
             echo "${LOGS_SEPARATOR}"
             echo "Extracting API key credentials"
-            API_KEY_ID=$(echo "$LOGSTASH_API_KEY_JASON" | jq -r '.id')
-            API_KEY_SECRET=$(echo "$LOGSTASH_API_KEY_JASON" | jq -r '.api_key')
+            API_KEY_ID=\$(echo "$LOGSTASH_API_KEY_JASON" | jq -r '.id')
+            API_KEY_SECRET=\$(echo "$LOGSTASH_API_KEY_JASON" | jq -r '.api_key')
 
             echo "${LOGS_SEPARATOR}"
             echo "gpg encryption of api keys"

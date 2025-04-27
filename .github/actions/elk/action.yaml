@@ -263,6 +263,7 @@ runs:
           else
             echo "Logstash already installed."
           fi
+
           echo "${LOGS_SEPARATOR}"
           echo "Extracting API key credentials"
           API_KEY_ID=$(echo "$API_KEY_JSON" | jq -r '.id')
@@ -273,9 +274,11 @@ runs:
           sudo mkdir -p /etc/logstash
           sudo chown -R logstash:logstash /etc/logstash
           sudo chmod 755 /etc/logstash
+          sudo rm -f /etc/logstash/logstash.keystore
           
           #LOGSTASH_KEYSTORE_PASS=\$(openssl rand -base64 32)
-          LOGSTASH_KEYSTORE_PASS=$(openssl rand -base64 16 | tr -dc '[:alnum:]')  # Ensure ASCII characters only
+          #LOGSTASH_KEYSTORE_PASS=$(openssl rand -base64 16 | tr -dc '[:alnum:]')  # Ensure ASCII characters only
+          LOGSTASH_KEYSTORE_PASS=$(openssl rand -base64 32 | tr -dc 'A-Za-z0-9' | head -c 24)
           export LOGSTASH_KEYSTORE_PASS
           echo y | sudo --preserve-env=LOGSTASH_KEYSTORE_PASS -u logstash \
           /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash create

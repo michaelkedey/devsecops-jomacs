@@ -248,7 +248,8 @@ runs:
             sudo chown -R logstash:logstash /etc/logstash
             sudo chmod 755 /etc/logstash
             
-            LOGSTASH_KEYSTORE_PASS=\$(openssl rand -base64 32)
+            #LOGSTASH_KEYSTORE_PASS=\$(openssl rand -base64 32)
+            LOGSTASH_KEYSTORE_PASS=$(openssl rand -base64 16 | tr -dc '[:alnum:]')  # Ensure ASCII characters only
             export LOGSTASH_KEYSTORE_PASS
             echo y | sudo --preserve-env=LOGSTASH_KEYSTORE_PASS -u logstash \
             /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash create
@@ -266,6 +267,18 @@ runs:
           echo "Extracting API key credentials"
           API_KEY_ID=$(echo "$API_KEY_JSON" | jq -r '.id')
           API_KEY_SECRET=$(echo "$API_KEY_JSON" | jq -r '.api_key')
+
+          echo "${LOGS_SEPARATOR}"
+          echo "Creating Logstash keystore if not exists"
+          sudo mkdir -p /etc/logstash
+          sudo chown -R logstash:logstash /etc/logstash
+          sudo chmod 755 /etc/logstash
+          
+          #LOGSTASH_KEYSTORE_PASS=\$(openssl rand -base64 32)
+          LOGSTASH_KEYSTORE_PASS=$(openssl rand -base64 16 | tr -dc '[:alnum:]')  # Ensure ASCII characters only
+          export LOGSTASH_KEYSTORE_PASS
+          echo y | sudo --preserve-env=LOGSTASH_KEYSTORE_PASS -u logstash \
+          /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash create
 
           echo "${LOGS_SEPARATOR}"
           echo "Storing key id and secret in Logstash keystore"

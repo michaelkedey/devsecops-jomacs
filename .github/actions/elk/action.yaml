@@ -80,6 +80,7 @@ runs:
           # Install Java (required by Elasticsearch)
           echo "${LOGS_SEPARATOR}"
           sudo apt-get install -y openjdk-11-jdk
+          sudo apt-get install -y jq
 
           echo "Installing Elasticsearch."
           echo "${LOGS_SEPARATOR}"
@@ -253,8 +254,8 @@ runs:
 
             echo "${LOGS_SEPARATOR}"
             echo "Extracting API key credentials"
-            API_KEY_ID=\$(echo "\$LOGSTASH_API_KEY_JSON" | jq -r '.id')
-            API_KEY_SECRET=\$(echo "\$LOGSTASH_API_KEY_JSON" | jq -r '.api_key')
+            API_KEY_ID=\$(echo "$\LOGSTASH_API_KEY_JSON" | jq -r '.id')
+            API_KEY_SECRET=\$(echo "$\LOGSTASH_API_KEY_JSON" | jq -r '.api_key')
 
             echo "${LOGS_SEPARATOR}"
             echo "gpg encryption of api keys"
@@ -268,7 +269,44 @@ runs:
             rm logstash_api_key_id.json 
             rm logstash_api_key_secret.json
 
-            echo "${LOGS_SEPARATOR}"
+            echo "restarting logstash"
+            sudo systemctl restart logstash
+
+            # echo "${LOGS_SEPARATOR}"
+            # echo "Creating Logstash keystore if not exists"
+            # sudo mkdir -p /etc/logstash
+            # sudo chown -R logstash:logstash /etc/logstash
+            # sudo chmod 755 /etc/logstash
+            
+            # #LOGSTASH_KEYSTORE_PASS=\$(openssl rand -base64 32)
+            # LOGSTASH_KEYSTORE_PASS=$(openssl rand -base64 16 | tr -dc '[:alnum:]')  # Ensure ASCII characters only
+            # export LOGSTASH_KEYSTORE_PASS
+            # echo y | sudo --preserve-env=LOGSTASH_KEYSTORE_PASS -u logstash \
+            # /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash create
+
+            # echo "${LOGS_SEPARATOR}"
+            # echo "Storing key id and secret in Logstash keystore"
+            # echo "$API_KEY_ID" | sudo /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add ES_API_KEY_ID --stdin
+            # echo "$API_KEY_SECRET" | sudo /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add ES_API_KEY_SECRET --stdin
+            
+            rm elastic_password.txt
+          else
+            echo "Logstash already installed."
+            echo "restarting logstash"
+            sudo systemctl restart logstash
+          fi
+
+          echo "${LOGS_SEPARATOR}"
+          echo "decrypting api key to extract id and seceret"
+          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt logstash_api_key.json.gpg > logstash_api_key.json
+          LOGSTASH_API_KEY_JSON=\$(< logstash_api_key.json)
+
+          echo "${LOGS_SEPARATOR}"
+          echo "Extracting API key credentials"
+          API_KEY_ID=\$(echo "\$LOGSTASH_API_KEY_JSON" | jq -r '.id')
+          API_KEY_SECRET=\$(echo "\$LOGSTASH_API_KEY_JSON" | jq -r '.api_key')
+
+          echo "${LOGS_SEPARATOR}"
             echo "logstash config file"
             sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH_CONFIG
               input {
@@ -300,140 +338,8 @@ runs:
                 }
               }
         LOGSTASH_CONFIG
-            echo "restarting logstash"
-            sudo systemctl restart logstash
-
-            # echo "${LOGS_SEPARATOR}"
-            # echo "Creating Logstash keystore if not exists"
-            # sudo mkdir -p /etc/logstash
-            # sudo chown -R logstash:logstash /etc/logstash
-            # sudo chmod 755 /etc/logstash
-            
-            # #LOGSTASH_KEYSTORE_PASS=\$(openssl rand -base64 32)
-            # LOGSTASH_KEYSTORE_PASS=$(openssl rand -base64 16 | tr -dc '[:alnum:]')  # Ensure ASCII characters only
-            # export LOGSTASH_KEYSTORE_PASS
-            # echo y | sudo --preserve-env=LOGSTASH_KEYSTORE_PASS -u logstash \
-            # /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash create
-
-            # echo "${LOGS_SEPARATOR}"
-            # echo "Storing key id and secret in Logstash keystore"
-            # echo "$API_KEY_ID" | sudo /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add ES_API_KEY_ID --stdin
-            # echo "$API_KEY_SECRET" | sudo /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add ES_API_KEY_SECRET --stdin
-            
-            rm elastic_password.txt
-          else
-            echo "Logstash already installed."
-            echo "restarting logstash"
-            sudo systemctl restart logstash
-          fi
-
-
-
-
-
-
-
-          echo "${LOGS_SEPARATOR}"
-          echo "Installing jq for parsing variable"
-          sudo apt-get install -y jq
-
-          echo "${LOGS_SEPARATOR}"
-          echo "checking cluster health to set logstash elasticsearch api"
-          echo "decrypting elastic password"
-          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt elastic_password.txt.gpg > elastic_password.txt
-          ELASTIC_PASSWORD=\$(< elastic_password.txt)
-          echo "checkinh health"
-          MAX_RETRIES=12
-          RETRY_COUNT=0
-
-          until sudo curl -s -u elastic:\$ELASTIC_PASSWORD https://localhost:9200/_cluster/health \
-            --cacert /etc/elasticsearch/certs/http_ca.crt | grep -E -q '"status":"green"|"status":"yellow"'; do
-            if [ \$RETRY_COUNT -ge \$MAX_RETRIES ]; then
-              echo "Elasticsearch cluster failed to become healthy after \$((MAX_RETRIES * 5)) seconds."
-              exit 1
-            fi
-            echo "Waiting for Elasticsearch to become healthy... (\${RETRY_COUNT}/\${MAX_RETRIES})"
-            sleep 5
-            RETRY_COUNT=\$((RETRY_COUNT + 1))
-          done  
-          echo "Elasticsearch cluster is healthy!"
-
-          echo "${LOGS_SEPARATOR}"
-          echo "Generate api key for logstash kibana auth"
-          LOGSTASH_API_KEY_JSON=$(curl -s -X POST -u elastic:"\$ELASTIC_PASSWORD" \
-            -H "Content-Type: application/json" \
-            "https://localhost:"${ELASTICSEARCH_PORT}"/_security/api_key?pretty" \
-            -d '{
-              "name": "logstash-api-key",
-              "role_descriptors": {
-                "logstash_writer": {
-                  "cluster": ["monitor", "manage_index_templates"],
-                  "indices": [
-                    {
-                      "names": ["flask-logs-*"],
-                      "privileges": ["create_index", "write", "read"]
-                    }
-                  ]
-                }
-              }
-            }')
-
-          echo "${LOGS_SEPARATOR}"
-          echo "Installing jq for parsing variable"
-          sudo apt-get install -y jq
-
-          echo "${LOGS_SEPARATOR}"
-          echo "Extracting API key credentials"
-          API_KEY_ID=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.id')
-          API_KEY_SECRET=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.api_key')
-
-          echo "${LOGS_SEPARATOR}"
-          echo "gpg encryption of api keys"
-          echo "\$LOGSTASH_API_KEY_JSON" > logstash_api_key.json
-          echo "\$API_KEY_ID" > logstash_api_key_id.json
-          echo "\$API_KEY_SECRET" > logstash_api_key_secret.json
-          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 logstash_api_key.json
-          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 logstash_api_key_secret.json
-          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 logstash_api_key_id.json
-          rm logstash_api_key.json
-          rm logstash_api_key_id.json 
-          rm logstash_api_key_secret.json
-
-          echo "${LOGS_SEPARATOR}"
-          echo "logstash config file"
-          sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH_CONFIG
-            input {
-              beats {
-                port => ${LOGSTASH_PORT}
-              }
-            }
-
-            filter {
-              grok {
-                match => { "message" => "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level}: %{GREEDYDATA:msg}" }
-              }
-              date {
-                match => ["timestamp", "ISO8601"]
-              }
-            }
-
-            output {
-              elasticsearch {
-                hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
-                ssl => true
-                ssl_certificate_verification => true
-                cacert => "/etc/elasticsearch/certs/http_ca.crt"
-                index => "flask-logs-%{+YYYY.MM.dd}"
-                api_key => "\${API_KEY_ID}:\${API_KEY_SECRET}"
-                retry_initial_interval => 3
-                retry_max_interval => 60
-                retry_on_conflict => 3
-              }
-            }
-        LOGSTASH_CONFIG
-            echo "restarting logstash"
-            sudo systemctl restart logstash
-
+          echo "restarting logstash"
+          sudo systemctl restart logstash
 
           #checks
           sleep 20

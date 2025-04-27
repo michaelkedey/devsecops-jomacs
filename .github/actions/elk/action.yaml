@@ -255,17 +255,27 @@ runs:
 
             echo "${LOGS_SEPARATOR}"
             echo "Storing key id and secret in Logstash keystore"
-            echo "$API_KEY_ID" | sudo /usr/share/logstash/bin/logstash-keystore add ES_API_KEY_ID --stdin
-            echo "$API_KEY_SECRET" | sudo /usr/share/logstash/bin/logstash-keystore add ES_API_KEY_SECRET --stdin
+            echo "$API_KEY_ID" | sudo /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add ES_API_KEY_ID --stdin
+            echo "$API_KEY_SECRET" | sudo /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add ES_API_KEY_SECRET --stdin
+            
             rm elastic_password.txt
           else
             echo "Logstash already installed."
           fi
+          echo "${LOGS_SEPARATOR}"
+          echo "Extracting API key credentials"
+          API_KEY_ID=$(echo "$API_KEY_JSON" | jq -r '.id')
+          API_KEY_SECRET=$(echo "$API_KEY_JSON" | jq -r '.api_key')
+
+          echo "${LOGS_SEPARATOR}"
+          echo "Storing key id and secret in Logstash keystore"
+          echo "$API_KEY_ID" | sudo /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add ES_API_KEY_ID --stdin
+          echo "$API_KEY_SECRET" | sudo /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add ES_API_KEY_SECRET --stdin
 
           echo "${LOGS_SEPARATOR}"
           echo "setting logstash configs"
           echo "adding elasticsearch port to logstash keystore"
-          echo "${ELASTICSEARCH_PORT}" | sudo /usr/share/logstash/bin/logstash-keystore add ELASTICSEARCH_PORT --stdin
+          echo "${ELASTICSEARCH_PORT}" | sudo /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add ELASTICSEARCH_PORT --stdin
 
           echo "${LOGS_SEPARATOR}"
           echo "logstash config file"

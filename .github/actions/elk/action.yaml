@@ -233,7 +233,7 @@ runs:
           
           LOGSTASH_KEYSTORE_PASS=\$(openssl rand -base64 32)
           export LOGSTASH_KEYSTORE_PASS
-          yes y | sudo --preserve-env=LOGSTASH_KEYSTORE_PASS -u logstash \
+          echo y | sudo --preserve-env=LOGSTASH_KEYSTORE_PASS -u logstash \
           /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash create
 
           echo "${LOGS_SEPARATOR}"

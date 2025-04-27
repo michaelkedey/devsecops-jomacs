@@ -389,7 +389,7 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "gpg encryption of api keys"
-          echo "\$API_KEY_JSON" > logstash_api_key.json
+          echo "\$LOGSTASH_API_KEY_JSON" > logstash_api_key.json
           echo "\$API_KEY_ID" > logstash_api_key_id.json
           echo "\$API_KEY_SECRET" > logstash_api_key_secret.json
           gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 logstash_api_key.json

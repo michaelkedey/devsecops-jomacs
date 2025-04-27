@@ -162,6 +162,9 @@ runs:
             echo "setting kibana reporting key."
             # Generate a random 32-byte string, base64 encode it
             KIBANA_KEY=\$(sudo openssl rand -base64 32)
+            echo "settign kibana reporting key"
+            sudo sed -i '/^#\?xpack\.reporting\.encryptionKey:/d' /etc/kibana/kibana.yml && echo "xpack.reporting.encryptionKey: \"\${KIBANA_KEY}\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+            sudo sed -i '/^#\?xpack\.encryptedSavedObjects\.encryptionKey:/d' /etc/kibana/kibana.yml && echo "xpack.encryptedSavedObjects.encryptionKey: \"\${KIBANA_KEY}\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
 
             echo "${LOGS_SEPARATOR}"
             echo "gpg encryption of token and key"
@@ -181,15 +184,6 @@ runs:
           sudo sed -i '/^#\?server\.basePath:/d' /etc/kibana/kibana.yml && echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
           sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
           sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null          
-          
-          #reporting keys
-          echo "${LOGS_SEPARATOR}"
-          echo "decrypting kibana key before setting"
-          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt kibana_reporting_key.txt.gpg > kibana_reporting_key.txt
-          KIBANA_KEY=\$(< kibana_reporting_key.txt)
-          sudo sed -i '/^#\?xpack\.reporting\.encryptionKey:/d' /etc/kibana/kibana.yml && echo "xpack.reporting.encryptionKey: \"\${KIBANA_KEY}\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-          sudo sed -i '/^#\?xpack\.encryptedSavedObjects\.encryptionKey:/d' /etc/kibana/kibana.yml && echo "xpack.encryptedSavedObjects.encryptionKey: \"\${KIBANA_KEY}\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-          rm kibana_reporting_key.txt
           
           echo "${LOGS_SEPARATOR}"
           echo "configuring kibana certs" 
@@ -235,7 +229,7 @@ runs:
 
             echo "${LOGS_SEPARATOR}"
             echo "Generate api key for logstash kibana auth"
-            LOGSTASH_API_KEY_JASON=$(curl -s -X POST -u elastic:"\$ELASTIC_PASSWORD" \
+            LOGSTASH_API_KEY_JSON=$(curl -s -X POST -u elastic:"\$ELASTIC_PASSWORD" \
               -H "Content-Type: application/json" \
               "https://localhost:"${ELASTICSEARCH_PORT}"/_security/api_key?pretty" \
               -d '{
@@ -259,8 +253,8 @@ runs:
 
             echo "${LOGS_SEPARATOR}"
             echo "Extracting API key credentials"
-            API_KEY_ID=\$(echo "$LOGSTASH_API_KEY_JASON" | jq -r '.id')
-            API_KEY_SECRET=\$(echo "$LOGSTASH_API_KEY_JASON" | jq -r '.api_key')
+            API_KEY_ID=\$(echo "\$LOGSTASH_API_KEY_JSON" | jq -r '.id')
+            API_KEY_SECRET=\$(echo "\$LOGSTASH_API_KEY_JSON" | jq -r '.api_key')
 
             echo "${LOGS_SEPARATOR}"
             echo "gpg encryption of api keys"
@@ -366,7 +360,7 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "Generate api key for logstash kibana auth"
-          LOGSTASH_API_KEY_JASON=$(curl -s -X POST -u elastic:"\$ELASTIC_PASSWORD" \
+          LOGSTASH_API_KEY_JSON=$(curl -s -X POST -u elastic:"\$ELASTIC_PASSWORD" \
             -H "Content-Type: application/json" \
             "https://localhost:"${ELASTICSEARCH_PORT}"/_security/api_key?pretty" \
             -d '{
@@ -390,8 +384,8 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "Extracting API key credentials"
-          API_KEY_ID=\$(echo "$LOGSTASH_API_KEY_JASON" | jq -r '.id')
-          API_KEY_SECRET=\$(echo "$LOGSTASH_API_KEY_JASON" | jq -r '.api_key')
+          API_KEY_ID=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.id')
+          API_KEY_SECRET=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.api_key')
 
           echo "${LOGS_SEPARATOR}"
           echo "gpg encryption of api keys"

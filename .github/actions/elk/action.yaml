@@ -249,21 +249,10 @@ runs:
               }')
 
             echo "${LOGS_SEPARATOR}"
-            echo "Extracting API key credentials"
-            API_KEY_ID=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.id')
-            API_KEY_SECRET=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.api_key')
-
-            echo "${LOGS_SEPARATOR}"
             echo "gpg encryption of api keys"
             echo "\$LOGSTASH_API_KEY_JSON" > logstash_api_key.json
-            echo "\$API_KEY_ID" > logstash_api_key_id.json
-            echo "\$API_KEY_SECRET" > logstash_api_key_secret.json
             gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 logstash_api_key.json
-            gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 logstash_api_key_secret.json
-            gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 logstash_api_key_id.json
             rm logstash_api_key.json
-            rm logstash_api_key_id.json 
-            rm logstash_api_key_secret.json
 
             echo "restarting logstash"
             sudo systemctl restart logstash
@@ -301,6 +290,15 @@ runs:
           echo "Extracting API key credentials"
           API_KEY_ID=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.id')
           API_KEY_SECRET=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.api_key')
+
+          echo "${LOGS_SEPARATOR}"
+          echo "gpg encryption of api keys"
+          echo "\$API_KEY_ID" > logstash_api_key_id.json
+          echo "\$API_KEY_SECRET" > logstash_api_key_secret.json
+          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 logstash_api_key_secret.json
+          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 logstash_api_key_id.json
+          rm logstash_api_key_id.json 
+          rm logstash_api_key_secret.json
 
           echo "${LOGS_SEPARATOR}"
             echo "logstash config file"

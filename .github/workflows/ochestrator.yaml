@@ -334,7 +334,7 @@ jobs:
 
           #echo "BASTION=${bastion_ip}" >> $GITHUB_ENV
           #echo "HOST=${elk_ip}" >> $GITHUB_ENV
-          echo "ALB_DNS={alb_dns}" >> $GITHUB_ENV
+          echo "ALB_DNS=$alb_dns" >> $GITHUB_ENV
 
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
 

@@ -42,6 +42,10 @@ inputs:
     description: 'GPG passphrase used for encrypting files.'
     required: true
 
+  ALB_DNS:
+    description: 'loadbalancer url'
+    required: true
+
 
 runs:
   using: "composite"
@@ -59,6 +63,7 @@ runs:
         ELASTICSEARCH_PORT: ${{  inputs.ELASTICSEARCH_PORT }}
         PRIVATE_KEY: ${{ inputs.EC2_SSH_KEY }}
         GPG_PASSPHRASE: ${{  inputs.DEVSECOPS_GPG_PASSPHRASE }}
+        ALB_DNS: ${{ inputs.ALB_DNS }}
         LOGS_SEPARATOR: "=================================================================================================================================================================================="
       run: |
         set -e
@@ -206,6 +211,18 @@ runs:
           sudo sed -i '/^#\?server\.basePath:/d' /etc/kibana/kibana.yml && echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
           sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
           sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null          
+          # CSP Rules Configuration
+          sudo sed -i '/^csp\.rules:/d' /etc/kibana/kibana.yml
+          sudo sed -i '/^  - "/d' /etc/kibana/kibana.yml
+          {
+            echo 'csp.rules:'
+            echo '  - "script-src '\''unsafe-inline'\'' '\''self'\'' http://${ALB_DNS}"'
+            echo '  - "style-src '\''unsafe-inline'\'' '\''self'\''"'
+            echo '  - "font-src '\''self'\'' data:"'
+            echo '  - "connect-src '\''self'\'' http://${ALB_DNS}"'
+            echo '  - "img-src '\''self'\'' data:"'
+          } | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          
           echo "${LOGS_SEPARATOR}"
           echo "configuring kibana certs" 
           sudo mkdir -p /etc/kibana/certs

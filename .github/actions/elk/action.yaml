@@ -123,7 +123,7 @@ runs:
           sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
           echo "${LOGS_SEPARATOR}"
           echo "restarting elasticsearch"
-          sudo systemctl restart elasticsearch
+          sudo systemctl restart elasticsearch.service
 
 
           echo "Installing Kibana."
@@ -142,18 +142,25 @@ runs:
             gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt elastic_password.txt.gpg > elastic_password.txt
             ELASTIC_PASSWORD=\$(< elastic_password.txt)
             echo "checkinh health"
-            MAX_RETRIES=12
+            MAX_RETRIES=36
+            MAX_TOTAL_RETRIES=4
             RETRY_COUNT=0
+            TOTAL_RETRIES=0
 
             until sudo curl -s -u elastic:\$ELASTIC_PASSWORD https://localhost:9200/_cluster/health \
             | grep -E -q '"status":"green"|"status":"yellow"'; do
               if [ \$RETRY_COUNT -ge \$MAX_RETRIES ]; then
+                if [ \$TOTAL_RETRIES -ge \$MAX_TOTAL_RETRIES ]; then
+                  echo "Maximum retry attempts reached. Exiting..."
+                  exit 1  # Exit after exceeding total retry limit
+                fi
                 echo "Elasticsearch cluster failed to become healthy after \$((MAX_RETRIES * 5)) seconds."
                 echo "Attempting to restart Elasticsearch..."
                 sudo systemctl restart elasticsearch
                 sleep 30
                 RETRY_COUNT=0  # Reset count to re-check after restart
-                MAX_RETRIES=6  # Give fewer retries after restart
+                MAX_RETRIES=18  # Give fewer retries after restart
+                TOTAL_RETRIES=\$((TOTAL_RETRIES + 1))  # Increment total retry count
               else
                 echo "Waiting for Elasticsearch to become healthy... (\${RETRY_COUNT}/\${MAX_RETRIES})"
                 sleep 5
@@ -226,6 +233,7 @@ runs:
             ELASTIC_PASSWORD=\$(< elastic_password.txt)
             echo "checkinh health"
             MAX_RETRIES=12
+            MAX_TOTAL_RETRIES=24
             RETRY_COUNT=0
 
             until sudo curl -s -u elastic:\$ELASTIC_PASSWORD https://localhost:9200/_cluster/health | grep -E -q '"status":"green"|"status":"yellow"'; do
@@ -369,6 +377,7 @@ runs:
           ELASTIC_PASSWORD=\$(< elastic_password.txt)
           echo "checkinh health"
           MAX_RETRIES=12
+          MAX_TOTAL_RETRIES=24
           RETRY_COUNT=0
 
           until sudo curl -s -u elastic:\$ELASTIC_PASSWORD https://localhost:9200/_cluster/health \

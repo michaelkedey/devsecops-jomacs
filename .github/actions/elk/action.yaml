@@ -264,7 +264,7 @@ runs:
                     }
                 }
             }
-            END_OF_JSON
+        END_OF_JSON
             )
 
             echo "${LOGS_SEPARATOR}"

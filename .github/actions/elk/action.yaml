@@ -330,23 +330,24 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "Generate api key for logstash kibana auth"
-          LOGSTASH_API_KEY_JSON=$(curl -s -X POST -u elastic:"\$ELASTIC_PASSWORD" \
-            -H "Content-Type: application/json" \
-            "https://localhost:"${ELASTICSEARCH_PORT}"/_security/api_key?pretty" \
-            -d '{
-              "name": "logstash-api-key",
-              "role_descriptors": {
-                "logstash_writer": {
-                  "cluster": ["monitor", "manage_index_templates"],
-                  "indices": [
-                    {
-                      "names": ["flask-logs-*"],
-                      "privileges": ["create_index", "write", "read"]
-                    }
-                  ]
+          LOGSTASH_API_KEY_JSON=$(sudo curl -X POST -u elastic:\$ELASTIC_PASSWORD \
+          -H "Content-Type: application/json" \
+          "https://localhost:9200/_security/api_key?pretty" \
+          -d '{
+                "name": "logstash-api-key",
+                "role_descriptors": {
+                  "logstash_writer": {
+                    "cluster": ["monitor", "manage_index_templates"],
+                    "indices": [
+                      {
+                        "names": ["flask-logs-*"],
+                        "privileges": ["create_index", "write", "read"]
+                      }
+                    ]
+                  }
                 }
-              }
-            }')
+              }')
+
 
           echo "${LOGS_SEPARATOR}"
           echo "gpg encryption of api keys"

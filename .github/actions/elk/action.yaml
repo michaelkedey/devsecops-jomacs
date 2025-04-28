@@ -363,11 +363,16 @@ runs:
           echo "decrypting api key to extract id and seceret"
           gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt logstash_api_key.json.gpg > logstash_api_key.json
           LOGSTASH_API_KEY_JSON=\$(< logstash_api_key.json)
+          echo "echoing logstash api key"
+          echo \$LOGSTASH_API_KEY_JSON
 
           echo "${LOGS_SEPARATOR}"
           echo "Extracting API key credentials"
           API_KEY_ID=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.id')
           API_KEY_SECRET=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.api_key')
+          echo "checking api key ids"
+          echo "\$API_KEY_ID"
+          echo "\$API_KEY_SECRET"
 
           echo "${LOGS_SEPARATOR}"
           echo "gpg encryption of api keys"

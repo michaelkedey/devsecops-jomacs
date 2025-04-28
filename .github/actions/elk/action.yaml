@@ -359,7 +359,7 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "logstash config file"
-          rm -rf logstash_api_key.json.gpg 
+    
           echo "decrypting api key to extract id and seceret"
           gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt logstash_api_key.json.gpg > logstash_api_key.json
           LOGSTASH_API_KEY_JSON=\$(< logstash_api_key.json)

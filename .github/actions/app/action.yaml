@@ -84,6 +84,13 @@ runs:
           set -euo pipefail  # Exit on error, undefined variables, or pipe failures
 
           echo "${LOGS_SEPARATOR}"
+          # Wait for apt lock to be released
+          echo "Waiting for apt lock to start installing..."
+          while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+              sleep 2
+          done
+          echo "apt lock ready"
+          
           echo "Installing dependencies"
           cd /home/${USER}/my-app/
           sudo apt-get update -y && sudo apt-get upgrade -y

@@ -71,8 +71,12 @@ runs:
           set -euo pipefail  # Exit on error, undefined variables, or pipe failures
 
           echo "${LOGS_SEPARATOR}"
-
-          # Update package index
+          # Wait for apt lock to be released
+          echo "Waiting for apt lock to start installing..."
+          while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+              sleep 2
+          done
+          echo "apt lock ready"
           echo "updating system"
           sudo apt-get update -y && sudo apt-get upgrade -y
 

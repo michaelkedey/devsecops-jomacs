@@ -377,6 +377,7 @@ runs:
           gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 logstash_api_key_id.json
           rm logstash_api_key_id.json 
           rm logstash_api_key_secret.json
+          rm logstash_api_key.json
 
           echo "${LOGS_SEPARATOR}"
             echo "logstash config file"
@@ -403,7 +404,7 @@ runs:
                   ssl_certificate_verification => true
                   cacert => "/etc/elasticsearch/certs/http_ca.crt"
                   index => "flask-logs-%{+YYYY.MM.dd}"
-                  api_key => "\${API_KEY_ID}:\${API_KEY_SECRET}"
+                  api_key => "\$API_KEY_ID:\$API_KEY_SECRET"
                   retry_initial_interval => 3
                   retry_max_interval => 60
                   retry_on_conflict => 3

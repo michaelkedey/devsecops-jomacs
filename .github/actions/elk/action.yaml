@@ -231,8 +231,7 @@ runs:
             MAX_RETRIES=12
             RETRY_COUNT=0
 
-            until sudo curl -s -u elastic:\$ELASTIC_PASSWORD https://localhost:9200/_cluster/health \
-            | grep -E -q '"status":"green"|"status":"yellow"'; do
+            until sudo curl -s -u elastic:\$ELASTIC_PASSWORD https://localhost:9200/_cluster/health | grep -E -q '"status":"green"|"status":"yellow"'; do
               if [ \$RETRY_COUNT -ge \$MAX_RETRIES ]; then
                 echo "Elasticsearch cluster failed to become healthy after \$((MAX_RETRIES * 5)) seconds."
                 echo "Attempting to restart Elasticsearch..."
@@ -302,61 +301,6 @@ runs:
             sudo systemctl restart logstash
           fi
 
-  
-
-          echo "${LOGS_SEPARATOR}"
-          echo "checking cluster health to set logstash elasticsearch api"
-          echo "decrypting elastic password"
-          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt elastic_password.txt.gpg > elastic_password.txt
-          ELASTIC_PASSWORD=\$(< elastic_password.txt)
-          echo "checkinh health"
-          MAX_RETRIES=12
-          RETRY_COUNT=0
-
-          until sudo curl -s -u elastic:\$ELASTIC_PASSWORD https://localhost:9200/_cluster/health \
-          | grep -E -q '"status":"green"|"status":"yellow"'; do
-            if [ \$RETRY_COUNT -ge \$MAX_RETRIES ]; then
-              echo "Elasticsearch cluster failed to become healthy after \$((MAX_RETRIES * 5)) seconds."
-              echo "Attempting to restart Elasticsearch..."
-              sudo systemctl restart elasticsearch
-
-              sleep 30
-              RETRY_COUNT=0  # Reset count to re-check after restart
-              MAX_RETRIES=6  # Give fewer retries after restart
-            else
-              echo "Waiting for Elasticsearch to become healthy... (\${RETRY_COUNT}/\${MAX_RETRIES})"
-              sleep 5
-              RETRY_COUNT=\$((RETRY_COUNT + 1))
-            fi
-          done
-
-          echo "${LOGS_SEPARATOR}"
-          echo "Generate api key for logstash kibana auth"
-          LOGSTASH_API_KEY_JSON=$(sudo curl -X POST -u elastic:\$ELASTIC_PASSWORD \
-          -H "Content-Type: application/json" \
-          "https://localhost:9200/_security/api_key?pretty" \
-          -d '{
-                "name": "logstash-api-key",
-                "role_descriptors": {
-                  "logstash_writer": {
-                    "cluster": ["monitor", "manage_index_templates"],
-                    "indices": [
-                      {
-                        "names": ["flask-logs-*"],
-                        "privileges": ["create_index", "write", "read"]
-                      }
-                    ]
-                  }
-                }
-              }')
-
-          echo "${LOGS_SEPARATOR}"
-          echo "gpg encryption of api keys"
-          echo "\$LOGSTASH_API_KEY_JSON" > logstash_api_key.json
-          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 logstash_api_key.json
-          rm logstash_api_key.json
-          rm elastic_password.txt
-
           echo "${LOGS_SEPARATOR}"
           echo "logstash config file"
     
@@ -409,7 +353,7 @@ runs:
                   ssl_certificate_verification => true
                   cacert => "/etc/elasticsearch/certs/http_ca.crt"
                   index => "flask-logs-%{+YYYY.MM.dd}"
-                  api_key => "\$API_KEY_ID:\$API_KEY_SECRET"
+                  api_key => "\${API_KEY_ID}:\${API_KEY_SECRET}"
                   retry_initial_interval => 3
                   retry_max_interval => 60
                   retry_on_conflict => 3

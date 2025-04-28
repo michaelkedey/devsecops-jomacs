@@ -112,6 +112,7 @@ runs:
             sudo systemctl start elasticsearch
           else
             echo "Elasticsearch already installed."  
+            sudo systemctl start elasticsearch
           fi
 
           echo "${LOGS_SEPARATOR}"

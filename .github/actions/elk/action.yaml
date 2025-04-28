@@ -116,6 +116,8 @@ runs:
           fi
 
           echo "${LOGS_SEPARATOR}"
+          echo "starting cluster"
+          sudo systemctl start elasticsearch
           echo "setting elsaticsearch configs"
           sudo sed -i '/^#\?cluster\.name:/d' /etc/elasticsearch/elasticsearch.yml && echo 'cluster.name: "elk"' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
           sudo sed -i '/^#\?network\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'network.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null

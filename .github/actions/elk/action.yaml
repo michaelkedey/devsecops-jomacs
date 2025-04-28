@@ -249,13 +249,9 @@ runs:
               }')
 
             echo "${LOGS_SEPARATOR}"
-            echo "Installing jq for parsing variable"
-            sudo apt-get install -y jq
-
-            echo "${LOGS_SEPARATOR}"
             echo "Extracting API key credentials"
-            API_KEY_ID=\$(echo "$\LOGSTASH_API_KEY_JSON" | jq -r '.id')
-            API_KEY_SECRET=\$(echo "$\LOGSTASH_API_KEY_JSON" | jq -r '.api_key')
+            API_KEY_ID=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.id')
+            API_KEY_SECRET=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.api_key')
 
             echo "${LOGS_SEPARATOR}"
             echo "gpg encryption of api keys"
@@ -303,8 +299,8 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "Extracting API key credentials"
-          API_KEY_ID=\$(echo "\$LOGSTASH_API_KEY_JSON" | jq -r '.id')
-          API_KEY_SECRET=\$(echo "\$LOGSTASH_API_KEY_JSON" | jq -r '.api_key')
+          API_KEY_ID=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.id')
+          API_KEY_SECRET=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.api_key')
 
           echo "${LOGS_SEPARATOR}"
             echo "logstash config file"

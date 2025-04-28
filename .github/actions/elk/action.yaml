@@ -111,9 +111,7 @@ runs:
             sleep 10
             echo "${LOGS_SEPARATOR}"
             echo "gpg encryption of password"
-            echo "\${ELASTIC_PASSWORD}" > elastic_password.txt
-            gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 elastic_password.txt
-            rm elastic_password.txt
+            printf "%s\n" "\${ELASTIC_PASSWORD}" | gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 -o elastic_password.txt.gpg
             echo "${LOGS_SEPARATOR}"
             echo "starting cluster"
             sudo systemctl start elasticsearch
@@ -131,7 +129,43 @@ runs:
           echo "${LOGS_SEPARATOR}"
           echo "restarting elasticsearch"
           sudo systemctl restart elasticsearch.service
-          sleep 60
+          sleep 30
+
+
+
+          #function to check cluster health
+          check_cluster_health() {
+            local ELASTIC_PASSWORD=\$(gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt --quiet elastic_password.txt.gpg)
+            local MAX_RETRIES=36
+            local MAX_TOTAL_RETRIES=4
+            local RETRY_COUNT=0
+            local TOTAL_RETRIES=0
+
+            echo "Checking Elasticsearch health..."
+            until sudo curl -s -u elastic:"\$ELASTIC_PASSWORD" https://localhost:9200/_cluster/health \
+              | grep -Eq '"status":"green"|"status":"yellow"'; do
+
+              if [ "\$RETRY_COUNT" -ge "\$MAX_RETRIES" ]; then
+                if [ "\$TOTAL_RETRIES" -ge "\$MAX_TOTAL_RETRIES" ]; then
+                  echo " Maximum retry attempts reached. Exiting..."
+                  return 1
+                fi
+                echo " Cluster unhealthy after \$((MAX_RETRIES * 5)) seconds. Restarting Elasticsearch..."
+                sudo systemctl restart elasticsearch
+                sleep 60
+                RETRY_COUNT=0
+                MAX_RETRIES=18
+                TOTAL_RETRIES=\$((TOTAL_RETRIES + 1))
+              else
+                echo "Waiting for cluster to become healthy... (\$RETRY_COUNT/\$MAX_RETRIES)"
+                sleep 5
+                RETRY_COUNT=\$((RETRY_COUNT + 1))
+              fi
+            done
+
+            echo " Elasticsearch cluster is healthy."
+          }
+
 
 
           echo "Installing Kibana."
@@ -146,45 +180,13 @@ runs:
 
             echo "${LOGS_SEPARATOR}"
             echo "checking cluster health to set kibana token"
-            echo "decrypting elastic password"
-            gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt elastic_password.txt.gpg > elastic_password.txt
-            ELASTIC_PASSWORD=\$(< elastic_password.txt)
-            echo "checkinh health"
-            MAX_RETRIES=36
-            MAX_TOTAL_RETRIES=4
-            RETRY_COUNT=0
-            TOTAL_RETRIES=0
-
-            until sudo curl -s -u elastic:\$ELASTIC_PASSWORD https://localhost:9200/_cluster/health \
-            | grep -E -q '"status":"green"|"status":"yellow"'; do
-              if [ \$RETRY_COUNT -ge \$MAX_RETRIES ]; then
-                if [ \$TOTAL_RETRIES -ge \$MAX_TOTAL_RETRIES ]; then
-                  echo "Maximum retry attempts reached. Exiting..."
-                  exit 1  # Exit after exceeding total retry limit
-                fi
-                echo "Elasticsearch cluster failed to become healthy after \$((MAX_RETRIES * 5)) seconds."
-                echo "Attempting to restart Elasticsearch..."
-                sudo systemctl restart elasticsearch
-                sleep 60
-                RETRY_COUNT=0  # Reset count to re-check after restart
-                MAX_RETRIES=18  # Give fewer retries after restart
-                TOTAL_RETRIES=\$((TOTAL_RETRIES + 1))  # Increment total retry count
-              else
-                echo "Waiting for Elasticsearch to become healthy... (\${RETRY_COUNT}/\${MAX_RETRIES})"
-                sleep 5
-                RETRY_COUNT=\$((RETRY_COUNT + 1))
-              fi
-            done
-            echo "cluster healthy"
-            rm elastic_password.txt
-            
+            check_cluster_health
             echo "${LOGS_SEPARATOR}"
             echo "setting enrolment token."
             TOKEN=\$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
             sleep 20
             echo "applying token to kibana setup."
             sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "\$TOKEN"
-
             echo "${LOGS_SEPARATOR}"
             echo "setting kibana reporting key."
             # Generate a random 32-byte string, base64 encode it
@@ -192,15 +194,12 @@ runs:
             echo "settign kibana reporting key"
             sudo sed -i '/^#\?xpack\.reporting\.encryptionKey:/d' /etc/kibana/kibana.yml && echo "xpack.reporting.encryptionKey: \"\${KIBANA_KEY}\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
             sudo sed -i '/^#\?xpack\.encryptedSavedObjects\.encryptionKey:/d' /etc/kibana/kibana.yml && echo "xpack.encryptedSavedObjects.encryptionKey: \"\${KIBANA_KEY}\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-
             echo "${LOGS_SEPARATOR}"
             echo "gpg encryption of token and key"
             echo "\${TOKEN}" > kibana_setup_token.txt
             echo "\${KIBANA_KEY}" > kibana_reporting_key.txt
-            gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 kibana_setup_token.txt
-            gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 kibana_reporting_key.txt
-            rm kibana_setup_token.txt
-            rm kibana_reporting_key.txt
+            printf "%s\n" "\${TOKEN}" | gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 -o kibana_setup_token.gpg
+            printf "%s\n" "\${KIBANA_KEY}" | gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 -o kibana_reporting_key.gpg
           else
             echo "Kibana already installed."
           fi
@@ -213,16 +212,17 @@ runs:
           sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null          
           # CSP Rules Configuration
           sudo sed -i '/^csp\.rules:/d' /etc/kibana/kibana.yml
-          sudo sed -i '/^  - "/d' /etc/kibana/kibana.yml
+          sudo sed -i '/^\s\+- "/d' /etc/kibana/kibana.yml
+
           {
-            echo 'csp.rules:'
-            echo '  - "script-src '\''unsafe-inline'\'' '\''self'\'' http://${ALB_DNS}"'
-            echo '  - "style-src '\''unsafe-inline'\'' '\''self'\''"'
-            echo '  - "font-src '\''self'\'' data:"'
-            echo '  - "connect-src '\''self'\'' http://${ALB_DNS}"'
-            echo '  - "img-src '\''self'\'' data:"'
+            echo "csp.rules:"
+            echo "  - \"script-src 'unsafe-inline' 'self' http://${ALB_DNS}\""
+            echo "  - \"style-src 'unsafe-inline' 'self'\""
+            echo "  - \"font-src 'self' data:\""
+            echo "  - \"connect-src 'self' http://${ALB_DNS}\""
+            echo "  - \"img-src 'self' data:\""
           } | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-          
+
           echo "${LOGS_SEPARATOR}"
           echo "configuring kibana certs" 
           sudo mkdir -p /etc/kibana/certs
@@ -230,7 +230,6 @@ runs:
           sudo chown root:kibana /etc/kibana/certs/http_ca.crt
           sudo chmod 640 /etc/kibana/certs/http_ca.crt
           sudo sed -i '/^#\?elasticsearch\.ssl\.certificateAuthorities:/d' /etc/kibana/kibana.yml && echo 'elasticsearch.ssl.certificateAuthorities: ["/etc/kibana/certs/http_ca.crt"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-
           echo "${LOGS_SEPARATOR}"
           echo "restarting kibana"
           sudo systemctl restart kibana.service
@@ -243,66 +242,54 @@ runs:
             sudo apt-get update -y && sudo apt-get install logstash
             sudo systemctl enable logstash.service  
             sudo systemctl start logstash.service
-
             echo "${LOGS_SEPARATOR}"
-            echo "checking cluster health to set logstash elasticsearch api"
-            echo "decrypting elastic password"
-            gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt elastic_password.txt.gpg > elastic_password.txt
-            ELASTIC_PASSWORD=\$(< elastic_password.txt)
-            echo "checkinh health"
-            MAX_RETRIES=36
-            MAX_TOTAL_RETRIES=4
-            RETRY_COUNT=0
-            TOTAL_RETRIES=0
-
-            until sudo curl -s -u elastic:\$ELASTIC_PASSWORD https://localhost:9200/_cluster/health \
-            | grep -E -q '"status":"green"|"status":"yellow"'; do
-              if [ \$RETRY_COUNT -ge \$MAX_RETRIES ]; then
-                if [ \$TOTAL_RETRIES -ge \$MAX_TOTAL_RETRIES ]; then
-                  echo "Maximum retry attempts reached. Exiting..."
-                  exit 1  # Exit after exceeding total retry limit
-                fi
-                echo "Elasticsearch cluster failed to become healthy after \$((MAX_RETRIES * 5)) seconds."
-                echo "Attempting to restart Elasticsearch..."
-                sudo systemctl restart elasticsearch
-                sleep 60
-                RETRY_COUNT=0  # Reset count to re-check after restart
-                MAX_RETRIES=18  # Give fewer retries after restart
-                TOTAL_RETRIES=\$((TOTAL_RETRIES + 1))  # Increment total retry count
-              else
-                echo "Waiting for Elasticsearch to become healthy... (\${RETRY_COUNT}/\${MAX_RETRIES})"
-                sleep 5
-                RETRY_COUNT=\$((RETRY_COUNT + 1))
-              fi
-            done
-            echo "cluster healthy"
-
+            echo "checking cluster health to set logstash api key"
+            check_cluster_health
             echo "${LOGS_SEPARATOR}"
             echo "Generate api key for logstash kibana auth"
-            LOGSTASH_API_KEY_JSON=$(sudo curl -X POST -u elastic:\$ELASTIC_PASSWORD \
+            export ELASTIC_PASSWORD=\$(gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt --quiet elastic_password.txt.gpg)
+            LOGSTASH_API_KEY_JSON=$(sudo curl -X POST -u "elastic:\${ELASTIC_PASSWORD}" \
             -H "Content-Type: application/json" \
             "https://localhost:9200/_security/api_key?pretty" \
-            -d '{
-                  "name": "logstash-api-key",
-                  "role_descriptors": {
+            -d @- <<'END_OF_JSON'
+            {
+                "name": "logstash-api-key",
+                "role_descriptors": {
                     "logstash_writer": {
-                      "cluster": ["monitor", "manage_index_templates"],
-                      "indices": [
-                        {
-                          "names": ["flask-logs-*"],
-                          "privileges": ["create_index", "write", "read"]
-                        }
-                      ]
+                        "cluster": ["monitor", "manage_index_templates"],
+                        "indices": [{
+                            "names": ["flask-logs-*"],
+                            "privileges": ["create_index", "write", "read"]
+                        }]
                     }
-                  }
-                }')
+                }
+            }
+            END_OF_JSON
+            )
 
             echo "${LOGS_SEPARATOR}"
-            echo "gpg encryption of api keys"
-            echo "\$LOGSTASH_API_KEY_JSON" > logstash_api_key.json
+            echo "GPg encryption of API keys"
+            # Write raw JSON output with proper escaping
+            printf "%s\n" "\${LOGSTASH_API_KEY_JSON}" > logstash_api_key.json
             gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 logstash_api_key.json
-            rm logstash_api_key.json
-            rm elastic_password.txt
+
+
+            export ELASTIC_PASSWORD=\$(gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt --quiet elastic_password.txt.gpg)
+            echo "${LOGS_SEPARATOR}"
+            echo "Extracting API key credentials"
+            # Read values using process substitution to avoid subshell issues
+            API_KEY_ID=$(jq -r '.id' <<< "\${LOGSTASH_API_KEY_JSON}")
+            API_KEY_SECRET=$(jq -r '.api_key' <<< "\${LOGSTASH_API_KEY_JSON}")
+
+            # Verification output
+            echo "API Key ID: [REDACTED]"  # Never print sensitive credentials to stdout
+            echo "API Key Secret: [REDACTED]"
+
+            echo "${LOGS_SEPARATOR}"
+            echo "GPg encryption of API key components"
+            # Encrypt individual components
+            printf "%s\n" "\${API_KEY_ID}" | gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 -o api_key_id.gpg
+            printf "%s\n" "\${API_KEY_SECRET}" | gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 -o api_key_secret.gpg
 
             echo "restarting logstash"
             sudo systemctl restart logstash
@@ -333,62 +320,35 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "logstash config file"
-    
-          echo "decrypting api key to extract id and seceret"
-          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt logstash_api_key.json.gpg > logstash_api_key.json
-          LOGSTASH_API_KEY_JSON=\$(< logstash_api_key.json)
-          echo "echoing logstash api key"
-          echo \$LOGSTASH_API_KEY_JSON
-
-          echo "${LOGS_SEPARATOR}"
-          echo "Extracting API key credentials"
-          API_KEY_ID=\$(echo "\$LOGSTASH_API_KEY_JSON" | jq -r '.id')
-          API_KEY_SECRET=\$(echo "\$LOGSTASH_API_KEY_JSON" | jq -r '.api_key')
-          echo "checking api key ids"
-          echo "\$API_KEY_ID"
-          echo "\$API_KEY_SECRET"
-
-          echo "${LOGS_SEPARATOR}"
-          echo "gpg encryption of api keys"
-          echo "\$API_KEY_ID" > logstash_api_key_id.json
-          echo "\$API_KEY_SECRET" > logstash_api_key_secret.json
-          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 logstash_api_key_secret.json
-          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 logstash_api_key_id.json
-          rm logstash_api_key_id.json 
-          rm logstash_api_key_secret.json
-          rm logstash_api_key.json
-
-          echo "${LOGS_SEPARATOR}"
-            echo "logstash config file"
-            sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH_CONFIG
-              input {
-                beats {
-                  port => ${LOGSTASH_PORT}
-                }
+          sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH_CONFIG
+            input {
+              beats {
+                port => ${LOGSTASH_PORT}
               }
+            }
 
-              filter {
-                grok {
-                  match => { "message" => "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level}: %{GREEDYDATA:msg}" }
-                }
-                date {
-                  match => ["timestamp", "ISO8601"]
-                }
+            filter {
+              grok {
+                match => { "message" => "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level}: %{GREEDYDATA:msg}" }
               }
+              date {
+                match => ["timestamp", "ISO8601"]
+              }
+            }
 
-              output {
-                elasticsearch {
-                  hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
-                  ssl => true
-                  ssl_certificate_verification => true
-                  cacert => "/etc/elasticsearch/certs/http_ca.crt"
-                  index => "flask-logs-%{+YYYY.MM.dd}"
-                  api_key => "\${API_KEY_ID}:\${API_KEY_SECRET}"
-                  retry_initial_interval => 3
-                  retry_max_interval => 60
-                  retry_on_conflict => 3
-                }
+            output {
+              elasticsearch {
+                hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
+                ssl => true
+                ssl_certificate_verification => true
+                cacert => "/etc/elasticsearch/certs/http_ca.crt"
+                index => "flask-logs-%{+YYYY.MM.dd}"
+                api_key => "\${API_KEY_ID}:\${API_KEY_SECRET}"
+                retry_initial_interval => 3
+                retry_max_interval => 60
+                retry_on_conflict => 3
               }
+            }
         LOGSTASH_CONFIG
           echo "restarting logstash"
           sudo systemctl restart logstash
@@ -396,38 +356,7 @@ runs:
           #checks
           sleep 20
           echo "${LOGS_SEPARATOR}"
-          echo "checking cluster health to check elasticsearch status"
-          echo "decrypting elastic password"
-          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt elastic_password.txt.gpg > elastic_password.txt
-          ELASTIC_PASSWORD=\$(< elastic_password.txt)
-          echo "checkinh health"
-          MAX_RETRIES=36
-          MAX_TOTAL_RETRIES=4
-          RETRY_COUNT=0
-          TOTAL_RETRIES=0
-
-          until sudo curl -s -u elastic:\$ELASTIC_PASSWORD https://localhost:9200/_cluster/health \
-          | grep -E -q '"status":"green"|"status":"yellow"'; do
-            if [ \$RETRY_COUNT -ge \$MAX_RETRIES ]; then
-              if [ \$TOTAL_RETRIES -ge \$MAX_TOTAL_RETRIES ]; then
-                echo "Maximum retry attempts reached. Exiting..."
-                exit 1  # Exit after exceeding total retry limit
-              fi
-              echo "Elasticsearch cluster failed to become healthy after \$((MAX_RETRIES * 5)) seconds."
-              echo "Attempting to restart Elasticsearch..."
-              sudo systemctl restart elasticsearch
-              sleep 60
-              RETRY_COUNT=0  # Reset count to re-check after restart
-              MAX_RETRIES=18  # Give fewer retries after restart
-              TOTAL_RETRIES=\$((TOTAL_RETRIES + 1))  # Increment total retry count
-            else
-              echo "Waiting for Elasticsearch to become healthy... (\${RETRY_COUNT}/\${MAX_RETRIES})"
-              sleep 5
-              RETRY_COUNT=\$((RETRY_COUNT + 1))
-            fi
-          done
-          echo "cluster healthy"
-          rm elastic_password.txt
+          check_cluster_health
           sudo systemctl restart logstash
           sudo systemctl restart kibana
 

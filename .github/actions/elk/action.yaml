@@ -121,6 +121,8 @@ runs:
           sudo sed -i '/^#\?cluster\.name:/d' /etc/elasticsearch/elasticsearch.yml && echo 'cluster.name: "elk"' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
           sudo sed -i '/^#\?network\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'network.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
           sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
+          sudo cp /etc/elasticsearch/certs/http_ca.crt /usr/local/share/ca-certificates/http_ca.crt
+          sudo update-ca-certificates
           echo "${LOGS_SEPARATOR}"
           echo "restarting elasticsearch"
           sudo systemctl restart elasticsearch.service
@@ -210,8 +212,6 @@ runs:
           sudo chown root:kibana /etc/kibana/certs/http_ca.crt
           sudo chmod 640 /etc/kibana/certs/http_ca.crt
           sudo sed -i '/^#\?elasticsearch\.ssl\.certificateAuthorities:/d' /etc/kibana/kibana.yml && echo 'elasticsearch.ssl.certificateAuthorities: ["/etc/kibana/certs/http_ca.crt"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-          sudo cp /etc/kibana/certs/http_ca.crt /usr/local/share/ca-certificates/http_ca.crt
-          sudo update-ca-certificates
 
           echo "${LOGS_SEPARATOR}"
           echo "restarting kibana"

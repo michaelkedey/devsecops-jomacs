@@ -109,24 +109,23 @@ runs:
             echo "\${ELASTIC_PASSWORD}" > elastic_password.txt
             gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 elastic_password.txt
             rm elastic_password.txt
+            echo "${LOGS_SEPARATOR}"
+            echo "starting cluster"
             sudo systemctl start elasticsearch
           else
             echo "Elasticsearch already installed."  
-            sudo systemctl start elasticsearch
           fi
 
           echo "${LOGS_SEPARATOR}"
-          echo "starting cluster"
-          sudo systemctl start elasticsearch
           echo "setting elsaticsearch configs"
           sudo sed -i '/^#\?cluster\.name:/d' /etc/elasticsearch/elasticsearch.yml && echo 'cluster.name: "elk"' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
           sudo sed -i '/^#\?network\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'network.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
           sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
-          sudo cp /etc/kibana/certs/http_ca.crt /usr/local/share/ca-certificates/http_ca.crt
-          sudo update-ca-certificates
           echo "${LOGS_SEPARATOR}"
           echo "restarting elasticsearch"
           sudo systemctl restart elasticsearch
+          sudo cp /etc/kibana/certs/http_ca.crt /usr/local/share/ca-certificates/http_ca.crt
+          sudo update-ca-certificates
 
 
           echo "Installing Kibana."

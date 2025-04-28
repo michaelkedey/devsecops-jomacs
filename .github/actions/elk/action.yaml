@@ -109,22 +109,18 @@ runs:
             echo "\${ELASTIC_PASSWORD}" > elastic_password.txt
             gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 elastic_password.txt
             rm elastic_password.txt
-
-            sudo cp /etc/kibana/certs/http_ca.crt /usr/local/share/ca-certificates/http_ca.crt
-            sudo update-ca-certificates
-
+            sudo systemctl start elasticsearch
           else
             echo "Elasticsearch already installed."  
           fi
-
-          sudo cp /etc/kibana/certs/http_ca.crt /usr/local/share/ca-certificates/http_ca.crt
-          sudo update-ca-certificates
 
           echo "${LOGS_SEPARATOR}"
           echo "setting elsaticsearch configs"
           sudo sed -i '/^#\?cluster\.name:/d' /etc/elasticsearch/elasticsearch.yml && echo 'cluster.name: "elk"' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
           sudo sed -i '/^#\?network\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'network.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
           sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
+          sudo cp /etc/kibana/certs/http_ca.crt /usr/local/share/ca-certificates/http_ca.crt
+          sudo update-ca-certificates
           echo "${LOGS_SEPARATOR}"
           echo "restarting elasticsearch"
           sudo systemctl restart elasticsearch
@@ -155,7 +151,6 @@ runs:
                 echo "Elasticsearch cluster failed to become healthy after \$((MAX_RETRIES * 5)) seconds."
                 echo "Attempting to restart Elasticsearch..."
                 sudo systemctl restart elasticsearch
-
                 sleep 30
                 RETRY_COUNT=0  # Reset count to re-check after restart
                 MAX_RETRIES=6  # Give fewer retries after restart
@@ -165,6 +160,7 @@ runs:
                 RETRY_COUNT=\$((RETRY_COUNT + 1))
               fi
             done
+            echo "cluster healthy"
             rm elastic_password.txt
             
             echo "${LOGS_SEPARATOR}"
@@ -200,7 +196,6 @@ runs:
           sudo sed -i '/^#\?server\.basePath:/d' /etc/kibana/kibana.yml && echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
           sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
           sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null          
-          
           echo "${LOGS_SEPARATOR}"
           echo "configuring kibana certs" 
           sudo mkdir -p /etc/kibana/certs

@@ -67,6 +67,7 @@ module "elk_tg_and_ln_rules" {
   listener_rule_priority = var.listener_rule_priority["second"]
   listener_rule_path     = var.elk_listener_rule_path
   tg_port                = var.ports["elk"]
+  healthcheck_path       = var.elk_health_check
 }
 
 # module "elasticsearch_password" {

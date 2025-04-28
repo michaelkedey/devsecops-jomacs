@@ -67,3 +67,8 @@ variable "ports" {
   sensitive = true
   type      = map(number)
 }
+
+variable "elk_health_check" {
+  default = "/elk/health"
+  type    = string
+}

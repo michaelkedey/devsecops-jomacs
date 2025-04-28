@@ -5,7 +5,7 @@ resource "aws_kms_key" "elk_secrets_key" {
 }
 
 resource "aws_secretsmanager_secret" "jp_elastic_password" {
-  name = var.secrets_name
+  name       = var.secrets_name
   kms_key_id = aws_kms_key.elk_secrets_key.arn
   lifecycle {
     prevent_destroy = true

@@ -9,5 +9,5 @@ variable "tmp_elastic_password" {
 }
 variable "deletion_window" {
   default = 7
-  type = number
+  type    = number
 }

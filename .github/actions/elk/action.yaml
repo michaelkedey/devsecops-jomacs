@@ -117,6 +117,9 @@ runs:
             echo "Elasticsearch already installed."  
           fi
 
+          sudo cp /etc/kibana/certs/http_ca.crt /usr/local/share/ca-certificates/http_ca.crt
+          sudo update-ca-certificates
+
           echo "${LOGS_SEPARATOR}"
           echo "setting elsaticsearch configs"
           sudo sed -i '/^#\?cluster\.name:/d' /etc/elasticsearch/elasticsearch.yml && echo 'cluster.name: "elk"' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null

@@ -181,6 +181,7 @@ runs:
             echo "${LOGS_SEPARATOR}"
             echo "checking cluster health to set kibana token"
             check_cluster_health
+
             echo "${LOGS_SEPARATOR}"
             echo "setting enrolment token."
             TOKEN=\$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
@@ -210,18 +211,18 @@ runs:
           sudo sed -i '/^#\?server\.basePath:/d' /etc/kibana/kibana.yml && echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
           sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
           sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null          
-          # CSP Rules Configuration
-          sudo sed -i '/^csp\.rules:/d' /etc/kibana/kibana.yml
-          sudo sed -i '/^\s\+- "/d' /etc/kibana/kibana.yml
+          # # CSP Rules Configuration
+          # sudo sed -i '/^csp\.rules:/d' /etc/kibana/kibana.yml
+          # sudo sed -i '/^\s\+- "/d' /etc/kibana/kibana.yml
 
-          {
-            echo "csp.rules:"
-            echo "  - \"script-src 'unsafe-inline' 'self' http://${ALB_DNS}\""
-            echo "  - \"style-src 'unsafe-inline' 'self'\""
-            echo "  - \"font-src 'self' data:\""
-            echo "  - \"connect-src 'self' http://${ALB_DNS}\""
-            echo "  - \"img-src 'self' data:\""
-          } | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          # {
+          #   echo "csp.rules:"
+          #   echo "  - \"script-src 'unsafe-inline' 'self' http://${ALB_DNS}\""
+          #   echo "  - \"style-src 'unsafe-inline' 'self'\""
+          #   echo "  - \"font-src 'self' data:\""
+          #   echo "  - \"connect-src 'self' http://${ALB_DNS}\""
+          #   echo "  - \"img-src 'self' data:\""
+          # } | sudo tee -a /etc/kibana/kibana.yml > /dev/null
 
           echo "${LOGS_SEPARATOR}"
           echo "configuring kibana certs" 
@@ -242,9 +243,11 @@ runs:
             sudo apt-get update -y && sudo apt-get install logstash
             sudo systemctl enable logstash.service  
             sudo systemctl start logstash.service
+            
             echo "${LOGS_SEPARATOR}"
             echo "checking cluster health to set logstash api key"
             check_cluster_health
+            
             echo "${LOGS_SEPARATOR}"
             echo "Generate api key for logstash kibana auth"
             export ELASTIC_PASSWORD=\$(gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt --quiet elastic_password.txt.gpg)
@@ -273,16 +276,14 @@ runs:
             printf "%s\n" "\${LOGSTASH_API_KEY_JSON}" > logstash_api_key.json
             gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 logstash_api_key.json
 
-
-            export ELASTIC_PASSWORD=\$(gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt --quiet elastic_password.txt.gpg)
             echo "${LOGS_SEPARATOR}"
             echo "Extracting API key credentials"
             # Read values using process substitution to avoid subshell issues
-            API_KEY_ID=$(jq -r '.id' <<< "\${LOGSTASH_API_KEY_JSON}")
-            API_KEY_SECRET=$(jq -r '.api_key' <<< "\${LOGSTASH_API_KEY_JSON}")
+            API_KEY_ID=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.id')
+            API_KEY_SECRET=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.api_key')
 
             # Verification output
-            echo "API Key ID: [REDACTED]"  # Never print sensitive credentials to stdout
+            echo "API Key ID: ${API_KEY_ID}"  # Never print sensitive credentials to stdout
             echo "API Key Secret: [REDACTED]"
 
             echo "${LOGS_SEPARATOR}"
@@ -343,7 +344,7 @@ runs:
                 ssl_certificate_verification => true
                 cacert => "/etc/elasticsearch/certs/http_ca.crt"
                 index => "flask-logs-%{+YYYY.MM.dd}"
-                api_key => "\${API_KEY_ID}:\${API_KEY_SECRET}"
+                api_key => "${API_KEY_ID}:${API_KEY_SECRET}"
                 retry_initial_interval => 3
                 retry_max_interval => 60
                 retry_on_conflict => 3
@@ -353,10 +354,93 @@ runs:
           echo "restarting logstash"
           sudo systemctl restart logstash
 
+
+
+
+
+          echo "${LOGS_SEPARATOR}"
+          echo "checking cluster health to set logstash api key"
+          check_cluster_health
+          
+          echo "${LOGS_SEPARATOR}"
+          echo "Generate api key for logstash kibana auth"
+          export ELASTIC_PASSWORD=\$(gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt --quiet elastic_password.txt.gpg)
+          LOGSTASH_API_KEY_JSON=$(sudo curl -X POST -u "elastic:\${ELASTIC_PASSWORD}" \
+          -H "Content-Type: application/json" \
+          "https://localhost:9200/_security/api_key?pretty" \
+          -d @- <<'END_OF_JSON'
+          {
+              "name": "logstash-api-key",
+              "role_descriptors": {
+                  "logstash_writer": {
+                      "cluster": ["monitor", "manage_index_templates"],
+                      "indices": [{
+                          "names": ["flask-logs-*"],
+                          "privileges": ["create_index", "write", "read"]
+                      }]
+                  }
+              }
+          }
+        END_OF_JSON
+          )
+
+
+          echo "${LOGS_SEPARATOR}"
+          echo "Extracting API key credentials"
+          # Read values using process substitution to avoid subshell issues
+          API_KEY_ID=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.id')
+          API_KEY_SECRET=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.api_key')
+
+          # Verification output
+          echo "API Key ID: ${API_KEY_ID}"  # Never print sensitive credentials to stdout
+          echo "API Key Secret: [REDACTED]"
+
+          echo "${LOGS_SEPARATOR}"
+          echo "logstash config file"
+          sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH_CONFIG
+            input {
+              beats {
+                port => ${LOGSTASH_PORT}
+              }
+            }
+
+            filter {
+              grok {
+                match => { "message" => "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level}: %{GREEDYDATA:msg}" }
+              }
+              date {
+                match => ["timestamp", "ISO8601"]
+              }
+            }
+
+            output {
+              elasticsearch {
+                hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
+                ssl => true
+                ssl_certificate_verification => true
+                cacert => "/etc/elasticsearch/certs/http_ca.crt"
+                index => "flask-logs-%{+YYYY.MM.dd}"
+                api_key => "${API_KEY_ID}:${API_KEY_SECRET}"
+                retry_initial_interval => 3
+                retry_max_interval => 60
+                retry_on_conflict => 3
+              }
+            }
+        LOGSTASH_CONFIG
+          echo "restarting logstash"
+          sudo systemctl restart logstash
+
+
+
+
+
+
           #checks
           sleep 20
           echo "${LOGS_SEPARATOR}"
+          echo "checking cluster health to check status"
           check_cluster_health
+
           sudo systemctl restart logstash
           sudo systemctl restart kibana
 

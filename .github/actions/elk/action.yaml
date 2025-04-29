@@ -319,7 +319,7 @@ runs:
               elasticsearch {
                 hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
                 ssl_enabled => true
-                ssl_certificate_verification => full
+                ssl_verification_mode => full
                 ssl_certificate_authorities => "/etc/logstash/certs/http_ca.crt"
                 index => "flask-logs-%{+YYYY.MM.dd}"
                 api_key => "\${LOGSTASH_API_KEY}"

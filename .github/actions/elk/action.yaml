@@ -366,7 +366,7 @@ runs:
           echo "${LOGS_SEPARATOR}"
           echo "Generate api key for logstash kibana auth"
           export ELASTIC_PASSWORD=\$(gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt --quiet elastic_password.txt.gpg)
-          LOGSTASH_API_KEY=$(sudo curl -X POST -u "elastic:${ELASTIC_PASSWORD}" \
+          LOGSTASH_API_KEY=\$(sudo curl -X POST -u "elastic:${ELASTIC_PASSWORD}" \
           -H "Content-Type: application/json" \
           "https://localhost:9200/_security/api_key?pretty" \
           -d '{
@@ -408,7 +408,7 @@ runs:
                 ssl_certificate_verification => true
                 cacert => "/etc/elasticsearch/certs/http_ca.crt"
                 index => "flask-logs-%{+YYYY.MM.dd}"
-                api_key => "\${LOGSTASH_API_KEY}"
+                api_key => "${LOGSTASH_API_KEY}"
                 retry_initial_interval => 3
                 retry_max_interval => 60
                 retry_on_conflict => 3

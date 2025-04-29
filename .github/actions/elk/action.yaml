@@ -367,25 +367,41 @@ runs:
           echo "${LOGS_SEPARATOR}"
           echo "Generate api key for logstash kibana auth"
           export ELASTIC_PASSWORD=\$(gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt --quiet elastic_password.txt.gpg)
-          LOGSTASH_API_KEY=\$(sudo curl -X POST -u "elastic:\${ELASTIC_PASSWORD}" \
-          -H "Content-Type: application/json" \
-          "https://localhost:9200/_security/api_key?pretty" \
-          -d '{
-            "name": "logstash-api-key",
-            "role_descriptors": {
-              "logstash_writer": {
-                "cluster": ["monitor", "manage_index_templates"],
-                "indices": [{
-                  "names": ["flask-logs-*"],
-                  "privileges": ["create_index", "write", "read"]
-                }]
+          # LOGSTASH_API_KEY=\$(sudo curl -X POST -u "elastic:\${ELASTIC_PASSWORD}" \
+          # -H "Content-Type: application/json" \
+          # "https://localhost:9200/_security/api_key?pretty" \
+          # -d '{
+          #   "name": "logstash-api-key",
+          #   "role_descriptors": {
+          #     "logstash_writer": {
+          #       "cluster": ["monitor", "manage_index_templates"],
+          #       "indices": [{
+          #         "names": ["flask-logs-*"],
+          #         "privileges": ["create_index", "write", "read"]
+          #       }]
+          #     }
+          #   }
+          # }' | jq -r '"\(.id):\(.api_key)"')
+
+          LOGSTASH_API_KEY=\$(curl -s -X POST -u "elastic:\${ELASTIC_PASSWORD}" \
+            -H "Content-Type: application/json" \
+            "https://localhost:9200/_security/api_key?pretty" \
+            -d '{
+              "name": "logstash-api-key",
+              "role_descriptors": {
+                "logstash_writer": {
+                  "cluster": ["monitor", "manage_index_templates"],
+                  "index": [{
+                    "names": ["flask-logs-*"],
+                    "privileges": ["create_index", "write", "read"]
+                  }]
+                }
               }
-            }
-          }' | jq -r '"\(.id):\(.api_key)"')
+            }' | jq -r '"\(.id):\(.api_key)"')
 
 
           echo "${LOGS_SEPARATOR}"
-          echo "echoing the api = \${LOGSTASH_API_KEY}""
+          echo "echoing the api = \${LOGSTASH_API_KEY}"
           echo "logstash config file"
           sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << 'LOGSTASH'
             input {

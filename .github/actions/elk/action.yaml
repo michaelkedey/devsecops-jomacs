@@ -365,8 +365,8 @@ runs:
           
           echo "${LOGS_SEPARATOR}"
           echo "Generate api key for logstash kibana auth"
-          export ELASTIC_PASSWORD=\$(gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt --quiet elastic_password.txt.gpg)
-          LOGSTASH_API_KEY=\$(sudo curl -X POST -u "elastic:${ELASTIC_PASSWORD}" \
+          export ELASTIC_PASSWORD=$(gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt --quiet elastic_password.txt.gpg)
+          LOGSTASH_API_KEY=$(sudo curl -X POST -u "elastic:${ELASTIC_PASSWORD}" \
           -H "Content-Type: application/json" \
           "https://localhost:9200/_security/api_key?pretty" \
           -d '{

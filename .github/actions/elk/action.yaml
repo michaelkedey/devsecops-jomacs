@@ -403,7 +403,7 @@ runs:
           echo "${LOGS_SEPARATOR}"
           echo "echoing the api = \${LOGSTASH_API_KEY}"
           echo "logstash config file"
-          sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << 'LOGSTASH'
+          sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH
             input {
               beats {
                 port => ${LOGSTASH_PORT}

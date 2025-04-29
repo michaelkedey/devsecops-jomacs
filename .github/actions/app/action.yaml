@@ -111,7 +111,7 @@ runs:
           sudo chown $USER:$USER logs
 
           echo "Stopping any existing Gunicorn processes on port ${APP_PORT}"
-          PIDS=\$(sudo lsof -i :${APP_PORT} -t)
+          PIDS=$(sudo netstat -tulnp | grep ":${APP_PORT}" | awk '{print $7}' | cut -d'/' -f1)
 
           if [ -n "\$PIDS" ]; then
             echo "Killing process IDs: \$PIDS"

@@ -132,8 +132,7 @@ runs:
           sleep 30
 
 
-
-          #function to check cluster health
+          echo "creating function to check cluster health"
           check_cluster_health() {
             local ELASTIC_PASSWORD=\$(gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt --quiet elastic_password.txt.gpg)
             local MAX_RETRIES=36
@@ -162,10 +161,8 @@ runs:
                 RETRY_COUNT=\$((RETRY_COUNT + 1))
               fi
             done
-
             echo " Elasticsearch cluster is healthy."
           }
-
 
 
           echo "Installing Kibana."
@@ -331,78 +328,11 @@ runs:
           sudo systemctl restart logstash
 
 
-        #   echo "${LOGS_SEPARATOR}"
-        #   echo "checking cluster health to set logstash api key"
-        #   check_cluster_health
-          
-        #   echo "${LOGS_SEPARATOR}"
-        #   echo "Generate api key for logstash kibana auth"
-        #   export ELASTIC_PASSWORD=\$(gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt --quiet elastic_password.txt.gpg)
-        #   LOGSTASH_API_KEY=\$(curl -s -X POST -u "elastic:\${ELASTIC_PASSWORD}" \
-        #     -H "Content-Type: application/json" \
-        #     "https://localhost:9200/_security/api_key?pretty" \
-        #     -d '{
-        #       "name": "logstash-api-key",
-        #       "role_descriptors": {
-        #         "logstash_writer": {
-        #           "cluster": ["monitor", "manage_index_templates"],
-        #           "index": [{
-        #             "names": ["flask-logs-*"],
-        #             "privileges": ["create_index", "write", "read"]
-        #           }]
-        #         }
-        #       }
-        #     }' | jq -r '"\(.id):\(.api_key)"')
-
-
-        #   echo "${LOGS_SEPARATOR}"
-        #   echo "logstash config file"
-        #   sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH
-        #     input {
-        #       beats {
-        #         port => ${LOGSTASH_PORT}
-        #       }
-        #     }
-
-        #     filter {
-        #       grok {
-        #         match => { "message" => "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level}: %{GREEDYDATA:msg}" }
-        #       }
-        #       date {
-        #         match => ["timestamp", "ISO8601"]
-        #       }
-        #     }
-
-        #     output {
-        #       elasticsearch {
-        #         hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
-        #         ssl => true
-        #         ssl_certificate_verification => true
-        #         cacert => "/etc/elasticsearch/certs/http_ca.crt"
-        #         index => "flask-logs-%{+YYYY.MM.dd}"
-        #         api_key => "\${LOGSTASH_API_KEY}"
-        #         retry_initial_interval => 3
-        #         retry_max_interval => 60
-        #         retry_on_conflict => 3
-        #       }
-        #     }
-        # LOGSTASH
-        #   echo "restarting logstash"
-        #   sudo systemctl restart logstash
-
-
-
-
-
-
           #checks
           sleep 10
           echo "${LOGS_SEPARATOR}"
           echo "checking cluster health to check status"
           check_cluster_health
-
-          sudo systemctl restart logstash
-          sudo systemctl restart kibana
 
           echo "${LOGS_SEPARATOR}"
           echo "service status checks"

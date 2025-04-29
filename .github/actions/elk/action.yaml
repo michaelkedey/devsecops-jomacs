@@ -209,6 +209,7 @@ runs:
           echo "setting kibana configs"
           sudo sed -i '/^#\?server\.host:/d' /etc/kibana/kibana.yml && echo 'server.host: "0.0.0.0"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
           sudo sed -i '/^#\?server\.basePath:/d' /etc/kibana/kibana.yml && echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          sudo sed -i '/^server\.publicBaseUrl:/d' /etc/kibana/kibana.yml && echo "server.publicBaseUrl: \"http://${ALB_DNS}/elk\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
           sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
           sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null          
           # # CSP Rules Configuration
@@ -365,39 +366,26 @@ runs:
           echo "${LOGS_SEPARATOR}"
           echo "Generate api key for logstash kibana auth"
           export ELASTIC_PASSWORD=\$(gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt --quiet elastic_password.txt.gpg)
-          LOGSTASH_API_KEY_JSON=$(sudo curl -X POST -u "elastic:\${ELASTIC_PASSWORD}" \
+          LOGSTASH_API_KEY=$(sudo curl -X POST -u "elastic:${ELASTIC_PASSWORD}" \
           -H "Content-Type: application/json" \
           "https://localhost:9200/_security/api_key?pretty" \
-          -d @- <<'END_OF_JSON'
-          {
-              "name": "logstash-api-key",
-              "role_descriptors": {
-                  "logstash_writer": {
-                      "cluster": ["monitor", "manage_index_templates"],
-                      "indices": [{
-                          "names": ["flask-logs-*"],
-                          "privileges": ["create_index", "write", "read"]
-                      }]
-                  }
+          -d '{
+            "name": "logstash-api-key",
+            "role_descriptors": {
+              "logstash_writer": {
+                "cluster": ["monitor", "manage_index_templates"],
+                "indices": [{
+                  "names": ["flask-logs-*"],
+                  "privileges": ["create_index", "write", "read"]
+                }]
               }
-          }
-        END_OF_JSON
-          )
+            }
+          }' | jq -r '"\(.id):\(.api_key)"')
 
-
-          echo "${LOGS_SEPARATOR}"
-          echo "Extracting API key credentials"
-          # Read values using process substitution to avoid subshell issues
-          API_KEY_ID=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.id')
-          API_KEY_SECRET=\$(echo "$LOGSTASH_API_KEY_JSON" | jq -r '.api_key')
-
-          # Verification output
-          echo "API Key ID: ${API_KEY_ID}"  # Never print sensitive credentials to stdout
-          echo "API Key Secret: [REDACTED]"
 
           echo "${LOGS_SEPARATOR}"
           echo "logstash config file"
-          sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH_CONFIG
+          sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null <<LOGSTASH
             input {
               beats {
                 port => ${LOGSTASH_PORT}
@@ -420,13 +408,13 @@ runs:
                 ssl_certificate_verification => true
                 cacert => "/etc/elasticsearch/certs/http_ca.crt"
                 index => "flask-logs-%{+YYYY.MM.dd}"
-                api_key => "${API_KEY_ID}:${API_KEY_SECRET}"
+                api_key => "\${API_KEY}"
                 retry_initial_interval => 3
                 retry_max_interval => 60
                 retry_on_conflict => 3
               }
             }
-        LOGSTASH_CONFIG
+        LOGSTASH
           echo "restarting logstash"
           sudo systemctl restart logstash
 

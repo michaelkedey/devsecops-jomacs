@@ -221,7 +221,7 @@ runs:
                     add_error_key: true
 
           output.logstash:
-            hosts: ["http://${LOGSTASH_IP}:${LOGSTASH_PORT}"]
+            hosts: ["${LOGSTASH_IP}:${LOGSTASH_PORT}"]
             ssl.enabled: false
 
         FILEBEAT

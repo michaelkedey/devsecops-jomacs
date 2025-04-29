@@ -294,6 +294,11 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "logstash config file"
+          echo "configuring logstash certs" 
+          sudo mkdir -p /etc/logstash/certs
+          sudo cp /etc/elasticsearch/certs/http_ca.crt /etc/logstash/certs/
+          sudo chown root:logstash /etc/logstash/certs/http_ca.crt
+          sudo chmod 640 /etc/logstash/certs/http_ca.crt
           sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH
             input {
               beats {
@@ -313,9 +318,9 @@ runs:
             output {
               elasticsearch {
                 hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
-                ssl => true
-                ssl_certificate_verification => true
-                cacert => "/etc/elasticsearch/certs/http_ca.crt"
+                ssl_enabled => true
+                ssl_certificate_verification => full
+                ssl_certificate_authorities => "/etc/logstash/certs/http_ca.crt"
                 index => "flask-logs-%{+YYYY.MM.dd}"
                 api_key => "\${LOGSTASH_API_KEY}"
                 retry_initial_interval => 3

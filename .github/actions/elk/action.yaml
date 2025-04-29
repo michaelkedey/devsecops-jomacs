@@ -408,7 +408,7 @@ runs:
                 ssl_certificate_verification => true
                 cacert => "/etc/elasticsearch/certs/http_ca.crt"
                 index => "flask-logs-%{+YYYY.MM.dd}"
-                api_key => "\${API_KEY}"
+                api_key => "\${LOGSTASH_API_KEY}"
                 retry_initial_interval => 3
                 retry_max_interval => 60
                 retry_on_conflict => 3

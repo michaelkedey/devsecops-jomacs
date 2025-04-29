@@ -398,7 +398,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           DEVSECOPS_GPG_PASSPHRASE: ${{ secrets.DEVSECOPS_GPG_PASSPHRASE }}
-          ALB_DNS: ${{ needs.terraform-apply.outputs.ld_dns }}
+          ALB_DNS: ${{ needs.terraform-apply.outputs.lb_dns }}
           
 
   terraform-destroy:

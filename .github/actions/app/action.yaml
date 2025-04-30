@@ -69,6 +69,7 @@ runs:
         LOGSTASH_PORT: ${{ inputs.LOGSTASH_PORT }}
         APP_PORT: ${{ inputs.APP_PORT }}
         PRIVATE_KEY: ${{ inputs.EC2_SSH_KEY }}
+        PID: "7000"
         MAXIMIND_LICENSE_KEY: ${{ inputs.MAXIMIND_LICENSE_KEY }}
         LOGS_SEPARATOR: "=================================================================================================================================================================================="
       run: |
@@ -84,204 +85,207 @@ runs:
           set -euo pipefail  # Exit on error, undefined variables, or pipe failures
 
           echo "${LOGS_SEPARATOR}"
-          # Wait for apt lock to be released
-          echo "Waiting for apt lock to start installing..."
-          while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
-            sleep 2
-          done
-          echo "apt lock ready"
+          echo "ama" > ama.txt
+          PID=\$(cat ama.txt)
+          echo $PID
+    #       # Wait for apt lock to be released
+    #       echo "Waiting for apt lock to start installing..."
+    #       while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+    #         sleep 2
+    #       done
+    #       echo "apt lock ready"
           
-          echo "Installing dependencies"
-          cd /home/${USER}/my-app/
-          sudo apt-get update -y && sudo apt-get upgrade -y
-          sudo apt-get install -y python3-pip
-          pip3 install -r requirements.txt
-          pip3 install gunicorn
+    #       echo "Installing dependencies"
+    #       cd /home/${USER}/my-app/
+    #       sudo apt-get update -y && sudo apt-get upgrade -y
+    #       sudo apt-get install -y python3-pip
+    #       pip3 install -r requirements.txt
+    #       pip3 install gunicorn
 
-          echo "${LOGS_SEPARATOR}"
-          echo "Maximind geolocation db"
-          wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=$MAXIMIND_LICENSE_KEY&suffix=tar.gz" -O GeoLite2-City.tar.gz
+    #       echo "${LOGS_SEPARATOR}"
+    #       echo "Maximind geolocation db"
+    #       wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=$MAXIMIND_LICENSE_KEY&suffix=tar.gz" -O GeoLite2-City.tar.gz
         
-          tar -xvzf GeoLite2-City.tar.gz
-          DB_DIR=\$(find . -type d -name 'GeoLite2-City_*' | head -n 1)
-          cp "\$DB_DIR/GeoLite2-City.mmdb" ./GeoLite2-City.mmdb
+    #       tar -xvzf GeoLite2-City.tar.gz
+    #       DB_DIR=\$(find . -type d -name 'GeoLite2-City_*' | head -n 1)
+    #       cp "\$DB_DIR/GeoLite2-City.mmdb" ./GeoLite2-City.mmdb
           
-          echo "${LOGS_SEPARATOR}"
-          echo "Creating necessary log directories..."
-          sudo mkdir -p logs
-          sudo chown $USER:$USER logs
+    #       echo "${LOGS_SEPARATOR}"
+    #       echo "Creating necessary log directories..."
+    #       sudo mkdir -p logs
+    #       sudo chown $USER:$USER logs
 
-          echo "${LOGS_SEPARATOR}"
-          echo "Stopping any existing Gunicorn processes on port ${APP_PORT}"     
+    #       echo "${LOGS_SEPARATOR}"
+    #       echo "Stopping any existing Gunicorn processes on port ${APP_PORT}"     
 
-          PID=\$(sudo fuser -n tcp ${APP_PORT} 2>/dev/null)
+    #       PID=\$(sudo fuser -n tcp ${APP_PORT} 2>/dev/null)
 
-          # Check if the PID is empty, indicating no process was found
-          if [ -z "$PID" ]; then
-              echo "No process found on port $APP_PORT."
-          else
-              echo "Killing process with PID $PID on port $APP_PORT."
-              sudo fuser -k $APP_PORT/tcp
-              if [ \$? -eq 0 ]; then
-                  echo "Successfully killed the process on port $APP_PORT."
-              else
-                  echo "Failed to kill the process on port $APP_PORT."
-              fi
-          fi
+    #       # Check if the PID is empty, indicating no process was found
+    #       if [ -z "$PID" ]; then
+    #           echo "No process found on port $APP_PORT."
+    #       else
+    #           echo "Killing process with PID $PID on port $APP_PORT."
+    #           sudo fuser -k $APP_PORT/tcp
+    #           if [ \$? -eq 0 ]; then
+    #               echo "Successfully killed the process on port $APP_PORT."
+    #           else
+    #               echo "Failed to kill the process on port $APP_PORT."
+    #           fi
+    #       fi
 
-          #PID=\$(sudo lsof -t -i :${APP_PORT})
-          # Check if PID is empty (i.e., no process found)
-          # if [ -z "\$PID" ]; then
-          #   echo "No process found on port $APP_PORT."
-          # elif ps -p \$PID > /dev/null; then
-          #   # Kill the process
-          #   sudo kill -9 \$PID
-          #   if [ \$? -eq 0 ]; then
-          #       echo "Killed process \$PID."
-          #   else
-          #       echo "Failed to kill process \$PID."
-          #   fi
-          # else
-          #     echo "No process found with PID \$PID."
-          # fi
+    #       #PID=\$(sudo lsof -t -i :${APP_PORT})
+    #       # Check if PID is empty (i.e., no process found)
+    #       # if [ -z "\$PID" ]; then
+    #       #   echo "No process found on port $APP_PORT."
+    #       # elif ps -p \$PID > /dev/null; then
+    #       #   # Kill the process
+    #       #   sudo kill -9 \$PID
+    #       #   if [ \$? -eq 0 ]; then
+    #       #       echo "Killed process \$PID."
+    #       #   else
+    #       #       echo "Failed to kill process \$PID."
+    #       #   fi
+    #       # else
+    #       #     echo "No process found with PID \$PID."
+    #       # fi
 
-          echo "Starting Gunicorn"
-          GUNICORN_BIN=\$(python3 -m site --user-base)/bin/gunicorn
-          nohup "\$GUNICORN_BIN" -w 4 -b 127.0.0.1:${APP_PORT} app:app \
-          > /home/$USER/my-app/logs/access.log 2> /home/$USER/my-app/logs/error.log &
-          sleep 10
-          cat logs/error.log
-          echo "${LOGS_SEPARATOR}"
+    #       echo "Starting Gunicorn"
+    #       GUNICORN_BIN=\$(python3 -m site --user-base)/bin/gunicorn
+    #       nohup "\$GUNICORN_BIN" -w 4 -b 127.0.0.1:${APP_PORT} app:app \
+    #       > /home/$USER/my-app/logs/access.log 2> /home/$USER/my-app/logs/error.log &
+    #       sleep 10
+    #       cat logs/error.log
+    #       echo "${LOGS_SEPARATOR}"
 
-          echo "${LOGS_SEPARATOR}"
-          echo "Nginx Permissions"
-          sudo chmod +x /home/${USER}
-          sudo chmod +x /home/${USER}/my-app
-          sudo chmod +x /home/${USER}/my-app/static
+    #       echo "${LOGS_SEPARATOR}"
+    #       echo "Nginx Permissions"
+    #       sudo chmod +x /home/${USER}
+    #       sudo chmod +x /home/${USER}/my-app
+    #       sudo chmod +x /home/${USER}/my-app/static
 
-          echo "${LOGS_SEPARATOR}"
-          echo "installing nginx for proxy."
-          if ! dpkg -s nginx &>/dev/null; then
-            sudo apt-get update -y && sudo apt-get upgrade -y
-            sudo apt-get install nginx -y
-            sudo systemctl enable nginx 
-            sudo systemctl start nginx 
-          else 
-            echo "Nginx is already installed"
-          fi
+    #       echo "${LOGS_SEPARATOR}"
+    #       echo "installing nginx for proxy."
+    #       if ! dpkg -s nginx &>/dev/null; then
+    #         sudo apt-get update -y && sudo apt-get upgrade -y
+    #         sudo apt-get install nginx -y
+    #         sudo systemctl enable nginx 
+    #         sudo systemctl start nginx 
+    #       else 
+    #         echo "Nginx is already installed"
+    #       fi
 
-          echo "${LOGS_SEPARATOR}"
-          echo "Creating Nginx config for APP."
-          if [ -f /etc/nginx/sites-available/default ]; then
-            sudo rm /etc/nginx/sites-available/default
-          fi
+    #       echo "${LOGS_SEPARATOR}"
+    #       echo "Creating Nginx config for APP."
+    #       if [ -f /etc/nginx/sites-available/default ]; then
+    #         sudo rm /etc/nginx/sites-available/default
+    #       fi
 
-          if [ -f /etc/nginx/sites-enabled/default ]; then
-            sudo rm /etc/nginx/sites-enabled/default
-          fi
+    #       if [ -f /etc/nginx/sites-enabled/default ]; then
+    #         sudo rm /etc/nginx/sites-enabled/default
+    #       fi
 
-          sudo tee /etc/nginx/sites-available/default > /dev/null << 'NGINX'
-          server {
-            listen 80 default_server;
-            server_name _;
+    #       sudo tee /etc/nginx/sites-available/default > /dev/null << 'NGINX'
+    #       server {
+    #         listen 80 default_server;
+    #         server_name _;
 
-            # Static files
-            location /app/static/ {
-              alias /home/${USER}/my-app/static/;
-              expires 30d;
-              access_log off;
-            }
+    #         # Static files
+    #         location /app/static/ {
+    #           alias /home/${USER}/my-app/static/;
+    #           expires 30d;
+    #           access_log off;
+    #         }
 
-            # Reverse proxy for Flask app
-            location /app/ {
-              proxy_pass http://127.0.0.1:${APP_PORT}/;
+    #         # Reverse proxy for Flask app
+    #         location /app/ {
+    #           proxy_pass http://127.0.0.1:${APP_PORT}/;
 
-              proxy_set_header Host \$host;
-              proxy_set_header X-Real-IP \$remote_addr;
-              proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-              proxy_set_header X-Forwarded-Proto \$scheme;
-            }
-          }
-        NGINX
+    #           proxy_set_header Host \$host;
+    #           proxy_set_header X-Real-IP \$remote_addr;
+    #           proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    #           proxy_set_header X-Forwarded-Proto \$scheme;
+    #         }
+    #       }
+    #     NGINX
 
-          echo "${LOGS_SEPARATOR}"
-          echo "Enabling Nginx site."
-          sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
-          sudo nginx -t
+    #       echo "${LOGS_SEPARATOR}"
+    #       echo "Enabling Nginx site."
+    #       sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
+    #       sudo nginx -t
 
-          echo "${LOGS_SEPARATOR}"
-          echo "restarting nginx"
-          sudo systemctl restart nginx
+    #       echo "${LOGS_SEPARATOR}"
+    #       echo "restarting nginx"
+    #       sudo systemctl restart nginx
 
 
-          echo "${LOGS_SEPARATOR}"
-          echo "install filebeat for logs."
-          if ! dpkg -s filebeat &>/dev/null; then
-            wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
-            sudo apt-get install apt-transport-https
-            curl -L -O https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-9.0.0-amd64.deb
-            sudo dpkg -i filebeat-9.0.0-amd64.deb
-            sudo systemctl enable filebeat
-            sudo systemctl start filebeat
-          else 
-            echo "Filebeat is already installed"
-          fi
+    #       echo "${LOGS_SEPARATOR}"
+    #       echo "install filebeat for logs."
+    #       if ! dpkg -s filebeat &>/dev/null; then
+    #         wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+    #         sudo apt-get install apt-transport-https
+    #         curl -L -O https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-9.0.0-amd64.deb
+    #         sudo dpkg -i filebeat-9.0.0-amd64.deb
+    #         sudo systemctl enable filebeat
+    #         sudo systemctl start filebeat
+    #       else 
+    #         echo "Filebeat is already installed"
+    #       fi
 
-          echo "${LOGS_SEPARATOR}"
-          echo "Configuring Filebeat to read logs."
-          sudo tee /etc/filebeat/filebeat.yml > /dev/null << 'FILEBEAT'
-          filebeat.inputs:
-            - type: log
-              enabled: true
-              paths:
-                - /home/${USER}/my-app/logs/access.log
+    #       echo "${LOGS_SEPARATOR}"
+    #       echo "Configuring Filebeat to read logs."
+    #       sudo tee /etc/filebeat/filebeat.yml > /dev/null << 'FILEBEAT'
+    #       filebeat.inputs:
+    #         - type: log
+    #           enabled: true
+    #           paths:
+    #             - /home/${USER}/my-app/logs/access.log
               
-              fields:
-                app: my-flask-app
-              fields_under_root: true
-              parsers:
-                - ndjson:
-                    overwrite_keys: true
-                    add_error_key: true
+    #           fields:
+    #             app: my-flask-app
+    #           fields_under_root: true
+    #           parsers:
+    #             - ndjson:
+    #                 overwrite_keys: true
+    #                 add_error_key: true
 
-          output.logstash:
-            hosts: ["${LOGSTASH_IP}:${LOGSTASH_PORT}"]
-            ssl.enabled: false
+    #       output.logstash:
+    #         hosts: ["${LOGSTASH_IP}:${LOGSTASH_PORT}"]
+    #         ssl.enabled: false
 
-          setup.ilm.enabled: false
-          setup.template.enabled: false
+    #       setup.ilm.enabled: false
+    #       setup.template.enabled: false
 
-        FILEBEAT
+    #     FILEBEAT
 
-          echo "${LOGS_SEPARATOR}"
-          sudo filebeat test config
-          echo "restarting filebeat"
-          sudo systemctl restart filebeat
+    #       echo "${LOGS_SEPARATOR}"
+    #       sudo filebeat test config
+    #       echo "restarting filebeat"
+    #       sudo systemctl restart filebeat
 
-          echo "${LOGS_SEPARATOR}"
-          sudo systemctl status filebeat
-          sudo systemctl status nginx
+    #       echo "${LOGS_SEPARATOR}"
+    #       sudo systemctl status filebeat
+    #       sudo systemctl status nginx
 
-        EOF
-      shell: bash
+    #     EOF
+    #   shell: bash
 
-    - name: Encrypt and upload logs to s3
-      env:
-        AWS_ACCESS_KEY_ID: ${{  inputs.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{  inputs.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: ${{  inputs.AWS_REGION }}
-        GPG_PASSPHRASE: ${{  inputs.DEVSECOPS_GPG_PASSPHRASE }}
-        LOGS_SEPARATOR: "=================================================================================================================================================================================="
-      run: |
+    # - name: Encrypt and upload logs to s3
+    #   env:
+    #     AWS_ACCESS_KEY_ID: ${{  inputs.AWS_ACCESS_KEY_ID }}
+    #     AWS_SECRET_ACCESS_KEY: ${{  inputs.AWS_SECRET_ACCESS_KEY }}
+    #     AWS_REGION: ${{  inputs.AWS_REGION }}
+    #     GPG_PASSPHRASE: ${{  inputs.DEVSECOPS_GPG_PASSPHRASE }}
+    #     LOGS_SEPARATOR: "=================================================================================================================================================================================="
+    #   run: |
 
-        echo "${LOGS_SEPARATOR}"
-        echo "Encrypting and uploading the log file using the GPG passphrase"
-        gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 ${{ inputs.log_file }} 
-        aws s3 cp ${{ inputs.log_file }}.gpg  s3://sedem-terra333-bucket/devsecops-jomacs/logs/${{ inputs.log_file }}.gpg
+    #     echo "${LOGS_SEPARATOR}"
+    #     echo "Encrypting and uploading the log file using the GPG passphrase"
+    #     gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --symmetric --cipher-algo AES256 ${{ inputs.log_file }} 
+    #     aws s3 cp ${{ inputs.log_file }}.gpg  s3://sedem-terra333-bucket/devsecops-jomacs/logs/${{ inputs.log_file }}.gpg
         
-        rm ${{ inputs.log_file }} 
-        rm ${{ inputs.log_file }}.gpg
-      shell: bash
+    #     rm ${{ inputs.log_file }} 
+    #     rm ${{ inputs.log_file }}.gpg
+    #   shell: bash
 
     - name: Cleanup SSH Tunnel
       env:

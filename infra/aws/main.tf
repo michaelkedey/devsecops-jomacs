@@ -14,7 +14,7 @@ module "app_server" {
   security_groups = [module.loadbalancer.instance_sg]
   key_name        = var.key_name
   public_ip       = var.public_ip["no"]
-  instance_type   = "${var.instance_type}" ["project"]
+  instance_type   = "${var.instance_type}" ["production1"]
 }
 
 module "jumper_server" {
@@ -34,7 +34,7 @@ module "elk_server" {
   public_ip       = var.public_ip["no"]
   key_name        = var.key_name
   security_groups = [module.loadbalancer.elk_sg]
-  instance_type   = "${var.instance_type}" ["production"]
+  instance_type   = "${var.instance_type}" ["production2"]
   volume_size     = var.elk_volume_size
 }
 

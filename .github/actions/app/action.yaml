@@ -204,8 +204,10 @@ runs:
           wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
           sudo apt-get install apt-transport-https
           # Add Elastic 8.x APT repo
-          echo "deb https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-9.x.list
-          sudo apt-get update -y && sudo apt-get install filebeat 
+          # echo "deb https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-9.x.list
+          # sudo apt-get update -y && sudo apt-get install filebeat 
+          curl -L -O https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-9.0.0-amd64.deb
+          sudo dpkg -i filebeat-9.0.0-amd64.deb
           sudo systemctl enable filebeat
           sudo systemctl start filebeat
           #else 
@@ -216,7 +218,7 @@ runs:
           echo "Configuring Filebeat to read logs."
           sudo tee /etc/filebeat/filebeat.yml > /dev/null << 'FILEBEAT'
           filebeat.inputs:
-            - type: log
+            - type: filestream
               enabled: true
               paths:
                 - /home/${USER}/my-app/logs/access.log
@@ -233,9 +235,13 @@ runs:
             hosts: ["${LOGSTASH_IP}:${LOGSTASH_PORT}"]
             ssl.enabled: false
 
+          setup.ilm.enabled: false
+          setup.template.enabled: false
+
         FILEBEAT
 
           echo "${LOGS_SEPARATOR}"
+          sudo filebeat test config
           echo "restarting filebeat"
           sudo systemctl restart filebeat
 

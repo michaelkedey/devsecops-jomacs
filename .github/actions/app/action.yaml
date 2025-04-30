@@ -86,6 +86,7 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "ama" > ama.txt
+          echo $PID
           PID=\$(cat ama.txt)
           echo $PID
     #       # Wait for apt lock to be released
@@ -267,7 +268,7 @@ runs:
     #       sudo systemctl status nginx
 
     #     EOF
-    #   shell: bash
+      shell: bash
 
     # - name: Encrypt and upload logs to s3
     #   env:

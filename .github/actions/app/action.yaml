@@ -199,28 +199,29 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "Configuring Filebeat to read logs."
+          sudo chmod 777 /home/{USER}/my-app/logs/access.log
           sudo tee /etc/filebeat/filebeat.yml > /dev/null << 'FILEBEAT'
           filebeat.inputs:
-            - type: log
+            - type: filestream
+              id: "my-app-access-logs"
               enabled: true
               paths:
-                - /home/${USER}/my-app/logs/access.log
-              
+                - /home/{USER}/my-app/logs/access.log
               fields:
                 app: my-flask-app
               fields_under_root: true
-              parsers:
-                - ndjson:
-                    overwrite_keys: true
-                    add_error_key: true
 
           output.logstash:
-            hosts: ["${LOGSTASH_IP}:${LOGSTASH_PORT}"]
+            enabled: true
+            hosts: ["{LOGSTASH_IP}:{LOGSTASH_PORT}"]
             ssl.enabled: false
+            backoff.max: 60s
+            index: 'filebeat'
+            timeout: 30s
+            worker: 1
 
           setup.ilm.enabled: false
           setup.template.enabled: false
-
         FILEBEAT
 
           echo "${LOGS_SEPARATOR}"

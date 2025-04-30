@@ -46,6 +46,10 @@ inputs:
     description: 'loadbalancer url'
     required: true
 
+  MAXIMIND_LICENSE_KEY:
+    description: 'Maximind license key for geo-ip analytics'
+    required: true
+
 
 runs:
   using: "composite"

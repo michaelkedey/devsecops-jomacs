@@ -117,7 +117,7 @@ runs:
           PID=\$(sudo fuser -n tcp ${APP_PORT} 2>/dev/null)
 
           # Check if the PID is empty, indicating no process was found
-          if [ -z "\$PID" ]; then
+          if [ -z "$PID" ]; then
               echo "No process found on port $APP_PORT."
           else
               echo "Killing process with PID $PID on port $APP_PORT."

@@ -120,7 +120,7 @@ runs:
           elif ps -p \$PID > /dev/null; then
             # Kill the process
             sudo kill -9 \$PID
-            if [ $? -eq 0 ]; then
+            if [ \$? -eq 0 ]; then
                 echo "Killed process \$PID."
             else
                 echo "Failed to kill process \$PID."

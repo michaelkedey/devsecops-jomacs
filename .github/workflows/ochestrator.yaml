@@ -255,7 +255,7 @@ jobs:
 
 
   app-deploy-only:
-    needs: scan
+    #needs: scan
     if: contains(fromJson('["scan+deploy-app-only", "scan+deploy-app-only+deploy-elk-only"]'), github.event.inputs.action)
     runs-on: ubuntu-latest
     steps:

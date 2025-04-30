@@ -113,7 +113,22 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "Stopping any existing Gunicorn processes on port ${APP_PORT}"     
-          sudo fuser -k $APP_PORT/tcp
+
+          PID=\$(sudo fuser -n tcp ${APP_PORT} 2>/dev/null)
+
+          # Check if the PID is empty, indicating no process was found
+          if [ -z "\$PID" ]; then
+              echo "No process found on port $APP_PORT."
+          else
+              echo "Killing process with PID $PID on port $APP_PORT."
+              sudo fuser -k $APP_PORT/tcp
+              if [ \$? -eq 0 ]; then
+                  echo "Successfully killed the process on port $APP_PORT."
+              else
+                  echo "Failed to kill the process on port $APP_PORT."
+              fi
+          fi
+
           #PID=\$(sudo lsof -t -i :${APP_PORT})
           # Check if PID is empty (i.e., no process found)
           # if [ -z "\$PID" ]; then

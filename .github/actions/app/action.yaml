@@ -113,21 +113,22 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "Stopping any existing Gunicorn processes on port ${APP_PORT}"     
-          PID=\$(sudo lsof -t -i :${APP_PORT})
+          sudo fuser -k $APP_PORT/tcp
+          #PID=\$(sudo lsof -t -i :${APP_PORT})
           # Check if PID is empty (i.e., no process found)
-          if [ -z "\$PID" ]; then
-            echo "No process found on port $PORT."
-          elif ps -p \$PID > /dev/null; then
-            # Kill the process
-            sudo kill -9 \$PID
-            if [ \$? -eq 0 ]; then
-                echo "Killed process \$PID."
-            else
-                echo "Failed to kill process \$PID."
-            fi
-          else
-              echo "No process found with PID \$PID."
-          fi
+          # if [ -z "\$PID" ]; then
+          #   echo "No process found on port $APP_PORT."
+          # elif ps -p \$PID > /dev/null; then
+          #   # Kill the process
+          #   sudo kill -9 \$PID
+          #   if [ \$? -eq 0 ]; then
+          #       echo "Killed process \$PID."
+          #   else
+          #       echo "Failed to kill process \$PID."
+          #   fi
+          # else
+          #     echo "No process found with PID \$PID."
+          # fi
 
           echo "Starting Gunicorn"
           GUNICORN_BIN=\$(python3 -m site --user-base)/bin/gunicorn

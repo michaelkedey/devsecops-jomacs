@@ -87,7 +87,7 @@ runs:
           echo "${LOGS_SEPARATOR}"
           echo "ama" > ama.txt
           echo $PID
-          PID=\$(cat ama.txt)
+          $PID=\$(cat ama.txt)
           echo $PID
     #       # Wait for apt lock to be released
     #       echo "Waiting for apt lock to start installing..."

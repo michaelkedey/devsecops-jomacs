@@ -68,6 +68,7 @@ runs:
         PRIVATE_KEY: ${{ inputs.EC2_SSH_KEY }}
         GPG_PASSPHRASE: ${{  inputs.DEVSECOPS_GPG_PASSPHRASE }}
         ALB_DNS: ${{ inputs.ALB_DNS }}
+        MAXIMIND_LICENSE_KEY: ${{ inputs.MAXIMIND_LICENSE_KEY }}
         LOGS_SEPARATOR: "=================================================================================================================================================================================="
       run: |
         set -e

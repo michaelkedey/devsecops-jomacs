@@ -8,23 +8,51 @@
 
 ### 1. Secure CI/CD Pipeline with Automated Scanning
 
-#### [cicd](./cicd/)
+### [cicd](./cicd/)
 [![Full Infra + App Deploy + ELK Deploy](https://github.com/michaelkedey/devsecops-jomacs/actions/workflows/ochestrator.yaml/badge.svg)](https://github.com/michaelkedey/devsecops-jomacs/actions/workflows/ochestrator.yaml)
 
  ![workflow](./images/cicddddddddddddddddddddddddddddddd.png)
 
+- **[ochestrator.yaml](./cicd/ochestrator.yaml)**
+  - robust cicd pipeline which caters for the complete and succesful deployment of the entire application and architecture including;
+    - [infrastructure setup]([.github/workflows/ochestrator.yaml](https://github.com/michaelkedey/devsecops-jomacs/blob/a56d5e14021fd22880277cec1372d8e9397e2c9b/.github/workflows/ochestrator#L26))
+    - [code scan](https://github.com/michaelkedey/devsecops-jomacs/blob/a56d5e14021fd22880277cec1372d8e9397e2c9b/.github/workflows/ochestrator#L90)
+    - [docker image build and upload](https://github.com/michaelkedey/devsecops-jomacs/blob/a56d5e14021fd22880277cec1372d8e9397e2c9b/.github/workflows/ochestrator#L135)
+    - [application deploy](https://github.com/michaelkedey/devsecops-jomacs/blob/a56d5e14021fd22880277cec1372d8e9397e2c9b/.github/workflows/ochestrator#L188)
+    - [elk deploy](https://github.com/michaelkedey/devsecops-jomacs/blob/a56d5e14021fd22880277cec1372d8e9397e2c9b/.github/workflows/ochestrator#L547)
+    - [infrastructure destroy](https://github.com/michaelkedey/devsecops-jomacs/blob/a56d5e14021fd22880277cec1372d8e9397e2c9b/.github/workflows/ochestrator#L935)
+  - this workflow has reusable code defined in action file, that are callable in the main workflow
+    - [actions/app/action.yml](.github/actions/app/action.yaml)
+    - [actions/elk/action.yml](.github/actions/elk/action.yaml)
+  - this workflow can be triggered manually ny selecting one of these options
+    * - full-deploy(infrsatructure setup, code scanning, imgae building, app deploy, elk server deploy)
+    * - destroy (destruction of infrastracture)
+    * - infra-only
+    * - scan-only 
+    * - build-only
+    * - deploy-elk-only
+    * - scan+deploy-app-only
+    * - scan+deploy-app-only+deploy-elk-only
+    * - infra+scan+app
+    * - infra+scan+app+elk 
+    * - infra+elk
+    * - scan+build
+
 - **[infra.yaml](./cicd/infra.yaml)**
+- [infrastructure setup]([.github/workflows/ochestrator.yaml](https://github.com/michaelkedey/devsecops-jomacs/blob/a56d5e14021fd22880277cec1372d8e9397e2c9b/.github/workflows/ochestrator#L26))
   - designed to to create the necessary AWS resources for the pipeline,including;
       * a vpc with private and public subnets in multiple availability zones
-      * a private application server, in a private subnet
-      * a private elk server, in another private subnet
+      * 2 private application servers, in private subnets
       * a jumper server in a public subnet fo secure acces to the private servers
       * a loadbalancer for public access to the private servers via dns
       * a nat gateway for outbound access from the private subnets
       * an internet gateway for public access to the loadbalancer
       * custom ssh ports for secure access to all servers
-    * this workflow is trgiggerd either automatically via changes in the `infra/aws` directory on branch `main`, or manually, by selecting either an aplly or destroy job
-- **[app.yaml](./cicd/app.yaml):** designed to securely deploy the application to the private server, employing multiple strategies to ensure the application is deployed securely, including;
+      * this workflow is trgiggerd manually, by selecting either any of the options below
+        * - full-deploy (triggers full deployment, including infrastructure set up, code scan, docker imge bulding and deploy to [dockerhub](https://hub.docker.com/u/michaelkedey), application deployment which depends on succesful completion of both scan and infrastracture deployment jobs, elk server application deployment which relies on succesful completion of infrastructure deploy)
+
+- **[app.yaml](./cicd/app.yaml):**
+- [application deploy](https://github.com/michaelkedey/devsecops-jomacs/blob/a56d5e14021fd22880277cec1372d8e9397e2c9b/.github/workflows/ochestrator#L188) designed to securely deploy the application to the private server, employing multiple strategies to ensure the application is deployed securely, including;
     * safety scan for vulnerabilities 
         * [safety-scan.json](./app/python/scan-reports/safety-report.json)
         * ![safety scan](./images/safety.png)
@@ -36,7 +64,8 @@
     * using ssh and rsync to securely transfer files to the private server from the bastion via custom ssh ports, only when the sfacety and security checks pass.
     * starting the app and verifying it is running on the private server
     * this workflow is triggerd manually only after submitting required inputs for the `bastion_public_ip` and `ec2_private_ip`
-- **[docker.yaml](./cicd/):** this workflow securely automates the scanning, creation and deployment of the created docker image to dockerhub. It performs a trivy scan of the created image, and on success, the image is deployed to dockerhub. On failure however, the image is not deployed. ;
+- **[docker.yaml](./cicd/):**
+- [docker image build and upload](https://github.com/michaelkedey/devsecops-jomacs/blob/a56d5e14021fd22880277cec1372d8e9397e2c9b/.github/workflows/ochestrator#L135) this workflow securely automates the scanning, creation and deployment of the created docker image to dockerhub. It performs a trivy scan of the created image, and on success, the image is deployed to dockerhub. On failure however, the image is not deployed. ;
     * trivy scan for vulnerabilities
         * [trivy-scan.json](./app/python/scan-reports/trivy-scanreport.json)
     * generating scan reports for auditing
@@ -156,6 +185,11 @@
 │   ├── docker1j.png
 │   ├── docker3c.png
 │   ├── docker.png
+│   ├── kibabanana_country.png
+│   ├── kibana_agentt.png
+│   ├── kibana_city.png
+│   ├── kibananaaaaaa.png
+│   ├── kibananana_piechasrt.png
 │   ├── README.md
 │   ├── safety.png
 │   └── workflow.png
@@ -213,7 +247,6 @@
 ├── password.txt
 └── README.md
 
-28 directories, 62 files
-
+28 directories, 67 files
 
 ```

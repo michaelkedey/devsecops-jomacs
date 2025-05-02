@@ -79,6 +79,7 @@ runs:
         ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF | tee ${{ inputs.log_file }}         
           
           set -euo pipefail  # Exit on error, undefined variables, or pipe failures
+          trap 'echo "Error on line $LINENO: $BASH_COMMAND"' ERR
 
           echo "${LOGS_SEPARATOR}"
           # Wait for apt lock to be released

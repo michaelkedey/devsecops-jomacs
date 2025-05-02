@@ -79,7 +79,6 @@ runs:
         ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF | tee ${{ inputs.log_file }}         
           
           set -euo pipefail  # Exit on error, undefined variables, or pipe failures
-          trap 'echo "Error on line $LINENO: $BASH_COMMAND"' ERR
 
           echo "${LOGS_SEPARATOR}"
           # Wait for apt lock to be released
@@ -300,7 +299,7 @@ runs:
           sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH
             input {
               beats {
-                port => ${LOGSTASH_PORT:}
+                port => ${LOGSTASH_PORT}
                 host => "0.0.0.0"
               }
             }
@@ -367,40 +366,40 @@ runs:
           sudo systemctl restart logstash
           sleep 120
 
-          # #check_logstash_health()
-          # check_logstash_health() {
-          #   MAX_RETRIES=4
-          #   ATTEMPT=1
+          #check_logstash_health()
+          check_logstash_health() {
+            MAX_RETRIES=4
+            ATTEMPT=1
 
-          #   # Check for recent Logstash failures
-          #   if sudo journalctl -u logstash --since "2 minutes ago" --no-pager | grep -Ei "failed|error|fatal|pipeline aborted|bootstrap checks failed"; then
-          #     echo "Logstash failure detected. Starting recovery attempts..."
-          #     while [ "\$ATTEMPT" -le "\$MAX_RETRIES" ]; do
-          #       echo "Attempt \$ATTEMPT to restart Logstash..."
-          #       if sudo systemctl restart logstash; then
-          #         sleep 3  # Give it time to start
-          #         # Check if Logstash is now active
-          #         if systemctl is-active --quiet logstash; then
-          #           echo "Logstash restarted successfully on attempt \$ATTEMPT."
-          #           return 0
-          #         else
-          #           echo "Logstash still inactive after restart."
-          #         fi
-          #       else
-          #         echo "systemctl restart failed."
-          #       fi
-          #       ATTEMPT=\$((ATTEMPT + 1))
-          #       sleep 5
-          #     done
+            # Check for recent Logstash failures
+            if sudo journalctl -u logstash --since "2 minutes ago" --no-pager | grep -Ei "failed|error|fatal|pipeline aborted|bootstrap checks failed"; then
+              echo "Logstash failure detected. Starting recovery attempts..."
+              while [ "\$ATTEMPT" -le "\$MAX_RETRIES" ]; do
+                echo "Attempt \$ATTEMPT to restart Logstash..."
+                if sudo systemctl restart logstash; then
+                  sleep 3  # Give it time to start
+                  # Check if Logstash is now active
+                  if systemctl is-active --quiet logstash; then
+                    echo "Logstash restarted successfully on attempt \$ATTEMPT."
+                    return 0
+                  else
+                    echo "Logstash still inactive after restart."
+                  fi
+                else
+                  echo "systemctl restart failed."
+                fi
+                ATTEMPT=\$((ATTEMPT + 1))
+                sleep 5
+              done
 
-          #     # If all attempts fail, log the failure
-          #     echo "All \$MAX_RETRIES attempts failed. Logstash remains inactive."
-          #     return 1
-          #   else
-          #     # No recent failures detected
-          #     echo "No recent Logstash failures found."
-          #   fi
-          # }
+              # If all attempts fail, log the failure
+              echo "All \$MAX_RETRIES attempts failed. Logstash remains inactive."
+              return 1
+            else
+              # No recent failures detected
+              echo "No recent Logstash failures found."
+            fi
+          }
 
           
           #checks

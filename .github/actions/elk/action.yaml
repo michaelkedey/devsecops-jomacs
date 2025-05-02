@@ -367,36 +367,39 @@ runs:
           sleep 120
 
           #check_logstash_health()
-          check_logstash_health() {
-            local max_retries=4
-            local attempt=1
+         check_logstash_health() {
+          MAX_RETRIES=4
+          ATTEMPT=1
 
-            echo "\$(date '+%Y-%m-%d %H:%M:%S') - Checking Logstash health..."
-            if sudo journalctl -u logstash --since "2 minutes ago" --no-pager | grep -Ei "failed|error|fatal|pipeline aborted|bootstrap checks failed"; then
-              echo "\$(date '+%Y-%m-%d %H:%M:%S') - Logstash failure detected. Starting recovery attempts..."
-              while (( \$attempt <= \$max_retries )); do
-                echo "\$(date '+%Y-%m-%d %H:%M:%S') - Attempt $attempt to restart Logstash..."
-                if sudo systemctl restart logstash; then
-                  sleep 3  # Give it a moment to start
-                    if systemctl is-active --quiet logstash; then
-                      echo "\$(date '+%Y-%m-%d %H:%M:%S') - Logstash restarted successfully on attempt $attempt."
-                      return 0
-                    else
-                      echo "\$(date '+%Y-%m-%d %H:%M:%S') - Logstash still inactive after restart."
-                    fi
+          # Check for recent Logstash failures
+          if sudo journalctl -u logstash --since "2 minutes ago" --no-pager | grep -Ei "failed|error|fatal|pipeline aborted|bootstrap checks failed"; then
+            echo "Logstash failure detected. Starting recovery attempts..."
+            while [ "\$ATTEMPT" -le "\$MAX_RETRIES" ]; do
+              echo "Attempt \$ATTEMPT to restart Logstash..."
+              if sudo systemctl restart logstash; then
+                sleep 3  # Give it time to start
+                # Check if Logstash is now active
+                if systemctl is-active --quiet logstash; then
+                  echo "Logstash restarted successfully on attempt \$ATTEMPT."
+                  return 0
                 else
-                    echo "\$(date '+%Y-%m-%d %H:%M:%S') - systemctl restart failed."
+                  echo "Logstash still inactive after restart."
                 fi
+              else
+                echo "systemctl restart failed."
+              fi
+              ATTEMPT=\$((ATTEMPT + 1))
+              sleep 5
+            done
 
-                ((\$attempt++))
-                sleep 5  # Wait a bit before retrying
-              done
-              echo "\$(date '+%Y-%m-%d %H:%M:%S') - All $max_retries attempts failed. Logstash remains inactive."
-              return 1
-            else
-              echo "\$(date '+%Y-%m-%d %H:%M:%S') - No recent Logstash failures found."
-            fi
-          }
+            # If all attempts fail, log the failure
+            echo "All \$MAX_RETRIES attempts failed. Logstash remains inactive."
+            return 1
+          else
+            # No recent failures detected
+            echo "No recent Logstash failures found."
+          fi
+        }
 
           
           #checks

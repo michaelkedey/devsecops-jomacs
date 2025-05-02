@@ -78,6 +78,8 @@ runs:
 
         export USER="${USER}"
         export APP_PORT="${APP_PORT}"
+        #give elk headstart
+        sleep 10
 
         rsync -avz -e "ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no" ./app/python/ ${USER}@localhost:/home/${USER}/my-app/
         ssh -i private_key.pem -p ${TUNNEL} -o StrictHostKeyChecking=no ${USER}@localhost << EOF | tee ${{ inputs.log_file }}  

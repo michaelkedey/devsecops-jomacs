@@ -227,8 +227,6 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "Installing Logstash."
-
-
           if ! dpkg -s logstash &>/dev/null; then
             echo "Installing Logstash..."
             sudo apt-get update -y && sudo apt-get install logstash
@@ -243,36 +241,6 @@ runs:
             sudo systemctl enable logstash.service  
             sudo systemctl start logstash.service
             
-            echo "${LOGS_SEPARATOR}"
-            echo "checking cluster health to set logstash api key"
-            check_cluster_health
-            
-            echo "${LOGS_SEPARATOR}"
-            echo "Generate api key for logstash kibana auth"
-            export ELASTIC_PASSWORD=\$(gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt --quiet elastic_password.txt.gpg)
-            LOGSTASH_API_KEY=\$(curl -s -X POST -u "elastic:\${ELASTIC_PASSWORD}" \
-              -H "Content-Type: application/json" \
-              "https://localhost:9200/_security/api_key?pretty" \
-              -d '{
-                "name": "logstash-api-key",
-                "role_descriptors": {
-                  "logstash_writer": {
-                    "cluster": ["monitor", "manage_index_templates"],
-                    "index": [{
-                      "names": ["flask-logs-*"],
-                      "privileges": ["create_index", "write", "read"]
-                    }]
-                  }
-                }
-              }' | jq -r '"\(.id):\(.api_key)"')
-
-            echo "${LOGS_SEPARATOR}"
-            echo "GPg encryption of API keys"
-            # Write raw JSON output with proper escaping
-            printf "%s\n" "\${LOGSTASH_API_KEY}" > logstash_api_key
-            gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 logstash_api_key
-            echo "${LOGS_SEPARATOR}"
-
             # echo "${LOGS_SEPARATOR}"
             # echo "Creating Logstash keystore if not exists"
             # sudo mkdir -p /etc/logstash
@@ -289,13 +257,43 @@ runs:
           fi
 
           echo "${LOGS_SEPARATOR}"
+          echo "checking cluster health to set logstash api key"
+          check_cluster_health
+          
+          echo "${LOGS_SEPARATOR}"
+          echo "Generate api key for logstash kibana auth"
+          export ELASTIC_PASSWORD=\$(gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --decrypt --quiet elastic_password.txt.gpg)
+          LOGSTASH_API_KEY=\$(curl -s -X POST -u "elastic:\${ELASTIC_PASSWORD}" \
+            -H "Content-Type: application/json" \
+            "https://localhost:9200/_security/api_key?pretty" \
+            -d '{
+              "name": "logstash-api-key",
+              "role_descriptors": {
+                "logstash_writer": {
+                  "cluster": ["monitor", "manage_index_templates"],
+                  "index": [{
+                    "names": ["flask-logs-*"],
+                    "privileges": ["create_index", "write", "read"]
+                  }]
+                }
+              }
+            }' | jq -r '"\(.id):\(.api_key)"')
+
+          echo "${LOGS_SEPARATOR}"
+          echo "GPg encryption of API keys"
+          # Write raw JSON output with proper escaping
+          printf "%s\n" "\${LOGSTASH_API_KEY}" > logstash_api_key
+          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 logstash_api_key
+          echo "${LOGS_SEPARATOR}"
+
+          echo "${LOGS_SEPARATOR}"
           echo "logstash config file"
           echo "configuring logstash certs" 
           sudo mkdir -p /etc/logstash/certs
           sudo cp /etc/elasticsearch/certs/http_ca.crt /etc/logstash/certs/
           sudo chown root:logstash /etc/logstash/certs/http_ca.crt
           sudo chmod 640 /etc/logstash/certs/http_ca.crt
-          sudo /usr/share/logstash/bin/logstash-plugin install logstash-filter-geoip
+          #sudo /usr/share/logstash/bin/logstash-plugin install logstash-filter-geoip
           sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH
             input {
               beats {
@@ -377,7 +375,7 @@ runs:
               while [ "\$ATTEMPT" -le "\$MAX_RETRIES" ]; do
                 echo "Attempt \$ATTEMPT to restart Logstash..."
                 if sudo systemctl restart logstash; then
-                  sleep 3  # Give it time to start
+                  sleep 10  # Give it time to start
                   # Check if Logstash is now active
                   if systemctl is-active --quiet logstash; then
                     echo "Logstash restarted successfully on attempt \$ATTEMPT."
@@ -389,7 +387,7 @@ runs:
                   echo "systemctl restart failed."
                 fi
                 ATTEMPT=\$((ATTEMPT + 1))
-                sleep 5
+                sleep 10
               done
 
               # If all attempts fail, log the failure

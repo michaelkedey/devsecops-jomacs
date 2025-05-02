@@ -84,7 +84,7 @@ runs:
           # Wait for apt lock to be released
           echo "Waiting for apt lock to start installing..."
           while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
-              sleep 2
+            sleep 2
           done
           echo "apt lock ready"
           echo "updating system"
@@ -209,17 +209,16 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "setting kibana configs"
-          sudo sed -i '/^#\?server\.host:/d' /etc/kibana/kibana.yml && echo 'server.host: "0.0.0.0"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-          sudo sed -i '/^#\?server\.basePath:/d' /etc/kibana/kibana.yml && echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-          sudo sed -i '/^server\.publicBaseUrl:/d' /etc/kibana/kibana.yml && echo "server.publicBaseUrl: \"http://${ALB_DNS}/elk\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-          sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-          sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null          
-          echo "${LOGS_SEPARATOR}"
           echo "configuring kibana certs" 
           sudo mkdir -p /etc/kibana/certs
           sudo cp /etc/elasticsearch/certs/http_ca.crt /etc/kibana/certs/
           sudo chown root:kibana /etc/kibana/certs/http_ca.crt
           sudo chmod 640 /etc/kibana/certs/http_ca.crt
+          sudo sed -i '/^#\?server\.host:/d' /etc/kibana/kibana.yml && echo 'server.host: "0.0.0.0"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          sudo sed -i '/^#\?server\.basePath:/d' /etc/kibana/kibana.yml && echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          sudo sed -i '/^server\.publicBaseUrl:/d' /etc/kibana/kibana.yml && echo "server.publicBaseUrl: \"http://${ALB_DNS}/elk\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null          
           sudo sed -i '/^#\?elasticsearch\.ssl\.certificateAuthorities:/d' /etc/kibana/kibana.yml && echo 'elasticsearch.ssl.certificateAuthorities: ["/etc/kibana/certs/http_ca.crt"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null  
           echo "${LOGS_SEPARATOR}"
           echo "restarting kibana"
@@ -228,16 +227,19 @@ runs:
 
           echo "${LOGS_SEPARATOR}"
           echo "Installing Logstash."
-          echo "${LOGS_SEPARATOR}"
-          echo "Maximind geolocation db for logstash"
-          wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=$MAXIMIND_LICENSE_KEY&suffix=tar.gz" -O GeoLite2-City.tar.gz
-          tar -xvzf GeoLite2-City.tar.gz
-          DB_DIR=\$(find . -type d -name 'GeoLite2-City_*' | head -n 1)
-          cp "\$DB_DIR/GeoLite2-City.mmdb" ./GeoLite2-City.mmdb
+
 
           if ! dpkg -s logstash &>/dev/null; then
             echo "Installing Logstash..."
             sudo apt-get update -y && sudo apt-get install logstash
+            echo "${LOGS_SEPARATOR}"
+            echo "Maximind geolocation db for logstash"
+            wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=$MAXIMIND_LICENSE_KEY&suffix=tar.gz" -O GeoLite2-City.tar.gz
+            tar -xvzf GeoLite2-City.tar.gz
+            DB_DIR=\$(find . -type d -name 'GeoLite2-City_*' | head -n 1)
+            cp "\$DB_DIR/GeoLite2-City.mmdb" ./GeoLite2-City.mmdb
+            echo "${LOGS_SEPARATOR}"
+            echo "starting logstash"
             sudo systemctl enable logstash.service  
             sudo systemctl start logstash.service
             
@@ -264,7 +266,6 @@ runs:
                 }
               }' | jq -r '"\(.id):\(.api_key)"')
 
-
             echo "${LOGS_SEPARATOR}"
             echo "GPg encryption of API keys"
             # Write raw JSON output with proper escaping
@@ -283,7 +284,6 @@ runs:
             # export LOGSTASH_KEYSTORE_PASS
             # echo y | sudo --preserve-env=LOGSTASH_KEYSTORE_PASS -u logstash \
             # /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash create
-
           else
             echo "Logstash already installed."
           fi
@@ -367,27 +367,39 @@ runs:
           sleep 120
 
           #check_logstash_health()
-          check_and_restart_logstash() {
-            if journalctl -u logstash --since "2 minutes ago" | grep -i "failed"; then
-                echo "Logstash failed to start. Attempting to restart..."
-                systemctl restart logstash
+          check_logstash_health() {
+            local max_retries=4
+            local attempt=1
 
-                # Check if the restart was successful
-                if systemctl is-active --quiet logstash; then
-                    echo "Logstash has been restarted successfully."
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - Checking Logstash health..."
+            if sudo journalctl -u logstash --since "2 minutes ago" --no-pager | grep -Ei "failed|error|fatal|pipeline aborted|bootstrap checks failed"; then
+              echo "$(date '+%Y-%m-%d %H:%M:%S') - Logstash failure detected. Starting recovery attempts..."
+              while (( attempt <= max_retries )); do
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - Attempt $attempt to restart Logstash..."
+                if sudo systemctl restart logstash; then
+                  sleep 3  # Give it a moment to start
+                    if systemctl is-active --quiet logstash; then
+                      echo "$(date '+%Y-%m-%d %H:%M:%S') - Logstash restarted successfully on attempt $attempt."
+                      return 0
+                    else
+                      echo "$(date '+%Y-%m-%d %H:%M:%S') - Logstash still inactive after restart."
+                    fi
                 else
-                    echo "Failed to restart Logstash."
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') - systemctl restart failed."
                 fi
+
+                ((attempt++))
+                sleep 5  # Wait a bit before retrying
+              done
+              echo "$(date '+%Y-%m-%d %H:%M:%S') - All $max_retries attempts failed. Logstash remains inactive."
+              return 1
             else
-                echo "No 'failed to start' messages found in Logstash logs."
+              echo "$(date '+%Y-%m-%d %H:%M:%S') - No recent Logstash failures found."
             fi
           }
 
-          # Call the function
-          #check_and_restart_logstash
           
           #checks
-          sleep 10
           echo "${LOGS_SEPARATOR}"
           echo "checking cluster health to check status"
           check_cluster_health

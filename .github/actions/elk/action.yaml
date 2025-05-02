@@ -368,7 +368,8 @@ runs:
           check_logstash_health() {
             MAX_RETRIES=4
             ATTEMPT=1
-
+            echo "${LOGS_SEPARATOR}"
+            echo "checking logstash health"
             # Check for recent Logstash failures
             if sudo journalctl -u logstash --since "2 minutes ago" --no-pager | grep -Ei "failed|error|fatal|pipeline aborted|bootstrap checks failed"; then
               echo "Logstash failure detected. Starting recovery attempts..."
@@ -397,6 +398,7 @@ runs:
               # No recent failures detected
               echo "No recent Logstash failures found."
             fi
+            echo "${LOGS_SEPARATOR}"
           }
 
           

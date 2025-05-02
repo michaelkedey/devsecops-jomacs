@@ -329,16 +329,16 @@ runs:
                 remove_field => ["parsed_json", "message"]
               }
 
-              # Add geolocation data based on the IP
-              geoip {
-                source => "ip"
-                target => "geoip"
-                database => "GeoLite2-City.mmdb"
-                add_field => {
-                  "[geoip][coordinates][lat]" => "%{[geoip][latitude]}"
-                  "[geoip][coordinates][lon]" => "%{[geoip][longitude]}"
-                }
-              }
+              # # Add geolocation data based on the IP
+              # geoip {
+              #   source => "ip"
+              #   target => "geoip"
+              #   database => "GeoLite2-City.mmdb"
+              #   add_field => {
+              #     "[geoip][coordinates][lat]" => "%{[geoip][latitude]}"
+              #     "[geoip][coordinates][lon]" => "%{[geoip][longitude]}"
+              #   }
+              # }
 
               # Parse the timestamp
               date {
@@ -349,7 +349,7 @@ runs:
 
             output {
               elasticsearch {
-                hosts => ["https://localhost:{ELASTICSEARCH_PORT}"]
+                hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
                 ssl_enabled => true
                 ssl_verification_mode => full
                 ssl_certificate_authorities => "/etc/logstash/certs/http_ca.crt"
@@ -364,7 +364,7 @@ runs:
         LOGSTASH
           echo "restarting logstash"
           sudo systemctl restart logstash
-          sleep 120
+          sleep 60
 
           #check_logstash_health()
           check_logstash_health() {

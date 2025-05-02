@@ -371,30 +371,30 @@ runs:
             local max_retries=4
             local attempt=1
 
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - Checking Logstash health..."
+            echo "\$(date '+%Y-%m-%d %H:%M:%S') - Checking Logstash health..."
             if sudo journalctl -u logstash --since "2 minutes ago" --no-pager | grep -Ei "failed|error|fatal|pipeline aborted|bootstrap checks failed"; then
-              echo "$(date '+%Y-%m-%d %H:%M:%S') - Logstash failure detected. Starting recovery attempts..."
-              while (( attempt <= max_retries )); do
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - Attempt $attempt to restart Logstash..."
+              echo "\$(date '+%Y-%m-%d %H:%M:%S') - Logstash failure detected. Starting recovery attempts..."
+              while (( \$attempt <= \$max_retries )); do
+                echo "\$(date '+%Y-%m-%d %H:%M:%S') - Attempt $attempt to restart Logstash..."
                 if sudo systemctl restart logstash; then
                   sleep 3  # Give it a moment to start
                     if systemctl is-active --quiet logstash; then
-                      echo "$(date '+%Y-%m-%d %H:%M:%S') - Logstash restarted successfully on attempt $attempt."
+                      echo "\$(date '+%Y-%m-%d %H:%M:%S') - Logstash restarted successfully on attempt $attempt."
                       return 0
                     else
-                      echo "$(date '+%Y-%m-%d %H:%M:%S') - Logstash still inactive after restart."
+                      echo "\$(date '+%Y-%m-%d %H:%M:%S') - Logstash still inactive after restart."
                     fi
                 else
-                    echo "$(date '+%Y-%m-%d %H:%M:%S') - systemctl restart failed."
+                    echo "\$(date '+%Y-%m-%d %H:%M:%S') - systemctl restart failed."
                 fi
 
-                ((attempt++))
+                ((\$attempt++))
                 sleep 5  # Wait a bit before retrying
               done
-              echo "$(date '+%Y-%m-%d %H:%M:%S') - All $max_retries attempts failed. Logstash remains inactive."
+              echo "\$(date '+%Y-%m-%d %H:%M:%S') - All $max_retries attempts failed. Logstash remains inactive."
               return 1
             else
-              echo "$(date '+%Y-%m-%d %H:%M:%S') - No recent Logstash failures found."
+              echo "\$(date '+%Y-%m-%d %H:%M:%S') - No recent Logstash failures found."
             fi
           }
 

@@ -235,6 +235,7 @@ jobs:
           echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
 
           echo "Establishing SSH tunnel..."
+          sleep 120
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${HOST}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
 
       - name: deploy-app
@@ -426,6 +427,7 @@ jobs:
 
           # Establish the SSH tunnel from GitHub Actions to the target EC2 instance
           # This command forwards the local port ${TUNNEL} to the target EC2 instance's SSH  
+          sleep 120
           ssh -i private_key.pem -o StrictHostKeyChecking=no -tt -L ${TUNNEL}:${ELK}:${PORT} -p ${PORT} ${USER}@${BASTION} -N -f
         
       - name: deploy-elk

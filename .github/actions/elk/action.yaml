@@ -406,7 +406,7 @@ runs:
           echo "${LOGS_SEPARATOR}"
           echo "checking cluster health to check status"
           check_cluster_health
-          check_and_restart_logstash
+          check_logstash_health
 
           echo "${LOGS_SEPARATOR}"
           echo "service status checks"

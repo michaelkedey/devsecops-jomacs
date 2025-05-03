@@ -15,14 +15,14 @@
 
 - **[ochestrator.yaml](./cicd/ochestrator.yaml)**
   - A robust CI/CD pipeline that handles the full deployment lifecycle of the application and its supporting infrastructure. This workflow defines several key jobs, including:
-    - [infrastructure setup]( .github/workflows/ ochestrator.yaml#L26)
-    - [code scan]( .github/workflows/ ochestrator.yaml#L90)
-    - [docker image build and upload to dockerhub]( .github/workflows/ ochestrator.yaml#L135)
-    - [application deploy]( .github/workflows/ ochestrator.yaml#L188)
-      - [scan + application deploy only](.github/workflows/ ochestrator.yaml#L258)
-    - [elk deploy]( .github/workflows/ ochestrator.yaml#L547)
-      - [elk deploy only](.github/workflows/ ochestrator.yaml#L320)
-    - [infrastructure destroy]( .github/workflows/ ochestrator.yaml#L935)
+    - [infrastructure setup]( .github/workflows/ochestrator.yaml#L26)
+    - [code scan]( .github/workflows/ochestrator.yaml#L90)
+    - [docker image build and upload to dockerhub]( .github/workflows/ochestrator.yaml#L135)
+    - [application deploy]( .github/workflows/ochestrator.yaml#L188)
+      - [scan + application deploy only](.github/workflows/ochestrator.yaml#L258)
+    - [elk deploy]( .github/workflows/ochestrator.yaml#L547)
+      - [elk deploy only](.github/workflows/ochestrator.yaml#L320)
+    - [infrastructure destroy]( .github/workflows/ochestrator.yaml#L935)
   - this workflow has reusable code defined in action file, that are callable in the main workflow
     - [actions/app/action.yml](.github/actions/app/action.yaml)
     - [actions/elk/action.yml](.github/actions/elk/action.yaml)
@@ -51,7 +51,7 @@
   - terraform apply outputs are also securly sent to aws s3 bucket
 
 - **[infra.yaml](./cicd/infra.yaml)**
-- [infrastructure setup]([.github/workflows/ochestrator.yaml]( .github/workflows/ ochestrator.yaml#L26))
+- [infrastructure setup]([.github/workflows/ochestrator.yaml]( .github/workflows/ochestrator.yaml#L26))
   - designed to to create the necessary AWS resources for the pipeline,including;
       * [a vpc](infra/aws/main.tf#L5) with private and public subnets in multiple availability zones
       * 2 private application servers, in different private subnets
@@ -78,7 +78,7 @@
         * - full-deploy 
 
 - **[app.yaml](./cicd/app.yaml):**
-- [application deploy]( .github/workflows/ ochestrator.yaml#L188) designed to securely deploy the application to the private server, employing multiple strategies to ensure the application is deployed securely, including;
+- [application deploy]( .github/workflows/ochestrator.yaml#L188) designed to securely deploy the application to the private server, employing multiple strategies to ensure the application is deployed securely, including;
   * safety scan for vulnerabilities 
       * [safety-scan.json](./app/python/scan-reports/safety-report.json)
       * ![safety scan](./images/safety.png)
@@ -96,7 +96,7 @@
   * ![python app](./images/docker1j.png)
   
 - **[docker.yaml](./cicd/):**
-- [docker image build and upload]( .github/workflows/ ochestrator.yaml#L135) this workflow securely automates the scanning, creation and deployment of the created docker image to dockerhub. It performs a trivy scan of the created image, and on success, the image is deployed to dockerhub. On failure however, the image is not deployed. ;
+- [docker image build and upload]( .github/workflows/ochestrator.yaml#L135) this workflow securely automates the scanning, creation and deployment of the created docker image to dockerhub. It performs a trivy scan of the created image, and on success, the image is deployed to dockerhub. On failure however, the image is not deployed. ;
     * trivy scan for vulnerabilities
       * [trivy-scan.json](./app/python/scan-reports/trivy-scanreport.json)
     * generating scan reports for auditing

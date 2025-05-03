@@ -191,6 +191,8 @@
     - ![dev tools](./images/kibananaaaaaa.png)
 
 
+## 3. Lightweight Incident Response `Runbook` + Security Dashboard
+
 
 
 ### directory structure

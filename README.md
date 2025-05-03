@@ -16,13 +16,13 @@
 - **[ochestrator.yaml](./cicd/ochestrator.yaml)**
   - A robust CI/CD pipeline that handles the full deployment lifecycle of the application and its supporting infrastructure. This workflow defines several key jobs, including:
     - [infrastructure setup]( .github/workflows/ochestrator.yaml#L26)
-    - [code scan]( .github/workflows/ochestrator.yaml#L90)
-    - [docker image build and upload to dockerhub]( .github/workflows/ochestrator.yaml#L135)
-    - [application deploy]( .github/workflows/ochestrator.yaml#L188)
+    - [code scan]( .github/workflows/ochestrator.yaml#L92)
+    - [docker image build and upload to dockerhub]( .github/workflows/ochestrator.yaml#L138)
+    - [application deploy]( .github/workflows/ochestrator.yaml#L192)
       - [scan + application deploy only](.github/workflows/ochestrator.yaml#L258)
-    - [elk deploy]( .github/workflows/ochestrator.yaml#L547)
+    - [elk deploy]( .github/workflows/ochestrator.yaml#L384)
       - [elk deploy only](.github/workflows/ochestrator.yaml#L320)
-    - [infrastructure destroy]( .github/workflows/ochestrator.yaml#L935)
+    - [infrastructure destroy]( .github/workflows/ochestrator.yaml#L450)
   - this workflow has reusable code defined in action file, that are callable in the main workflow
     - [actions/app/action.yml](.github/actions/app/action.yaml)
     - [actions/elk/action.yml](.github/actions/elk/action.yaml)

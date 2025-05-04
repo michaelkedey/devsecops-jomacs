@@ -212,7 +212,7 @@
     - User-agent/browser info
     - Frequency of access attempts
     - Error rate spikes
-![security_dashboard](images/kibananana_piechasrt.png)
+![security_dashboard](images/kibana_city.png)
 ---
 
 

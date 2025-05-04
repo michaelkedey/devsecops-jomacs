@@ -478,7 +478,7 @@ runs:
             echo "${LOGS_SEPARATOR}"
             echo "checking logstash health"
             # Check for recent Logstash failures
-            if sudo journalctl -u logstash --since "2 minutes ago" --no-pager | grep -Ei "failed|error|fatal|pipeline aborted|bootstrap checks failed"; then
+            if sudo journalctl -u logstash --since "2 minutes ago" --no-pager | grep -Ei "^\[.*(ERROR|FATAL|pipeline aborted|bootstrap checks failed)"; then
               echo "Logstash failure detected. Starting recovery attempts..."
               while [ "\$ATTEMPT" -le "\$MAX_RETRIES" ]; do
                 echo "Attempt \$ATTEMPT to restart Logstash..."

@@ -235,7 +235,8 @@ runs:
             wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=$MAXIMIND_LICENSE_KEY&suffix=tar.gz" -O GeoLite2-City.tar.gz
             tar -xvzf GeoLite2-City.tar.gz
             DB_DIR=\$(find . -type d -name 'GeoLite2-City_*' | head -n 1)
-            cp "\$DB_DIR/GeoLite2-City.mmdb" GeoLite2-City.mmdb
+            mkdir -p /etc/logstash/geoip
+            cp "$DB_DIR/GeoLite2-City.mmdb" /etc/logstash/geoip/GeoLite2-City.mmdb
             echo "${LOGS_SEPARATOR}"
             echo "starting logstash"
             sudo systemctl enable logstash.service  
@@ -293,7 +294,7 @@ runs:
           sudo cp /etc/elasticsearch/certs/http_ca.crt /etc/logstash/certs/
           sudo chown root:logstash /etc/logstash/certs/http_ca.crt
           sudo chmod 640 /etc/logstash/certs/http_ca.crt
-          #sudo /usr/share/logstash/bin/logstash-plugin install logstash-filter-geoip
+          sudo /usr/share/logstash/bin/logstash-plugin install logstash-filter-geoip
           sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH
             input {
               beats {
@@ -327,16 +328,17 @@ runs:
                 remove_field => ["parsed_json", "message"]
               }
 
-              # # Add geolocation data based on the IP
-              # geoip {
-              #   source => "ip"
-              #   target => "geoip"
-              #   database => "GeoLite2-City.mmdb"
-              #   add_field => {
-              #     "[geoip][coordinates][lat]" => "%{[geoip][latitude]}"
-              #     "[geoip][coordinates][lon]" => "%{[geoip][longitude]}"
-              #   }
-              # }
+              # Add geolocation data based on the IP
+              geoip {
+                source => "ip"
+                target => "geoip"
+                database => "/etc/logstash/geoip/GeoLite2-City.mmdb"
+                add_field => [ "[geoip][coordinates]", "%{[geoip][longitude]}" ]
+                add_field => [ "[geoip][coordinates]", "%{[geoip][latitude]}"  ]
+              }
+              mutate {
+                convert => [ "[geoip][coordinates]", "float"]
+              }
 
               # Parse the timestamp
               date {

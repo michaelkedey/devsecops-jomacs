@@ -95,46 +95,46 @@ runs:
           echo "${LOGS_SEPARATOR}"
           sudo apt-get install -y openjdk-11-jdk jq
 
-          echo "Installing Elasticsearch."
-          echo "${LOGS_SEPARATOR}"
-          if ! dpkg -s elasticsearch &>/dev/null; then
-            wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
-            sudo apt-get install apt-transport-https
-            echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/9.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-9.x.list
-            sudo apt-get update && sudo apt-get install elasticsearch
-            sleep 15
-            sudo /bin/systemctl daemon-reload
-            sudo /bin/systemctl enable elasticsearch.service
-            sleep 30
-            echo "${LOGS_SEPARATOR}"
-            echo "starting elasticsearch"
-            sudo systemctl start elasticsearch.service
-            sleep 30
-            echo "${LOGS_SEPARATOR}"
-            echo "regenerating elasticsearch password"
-            ELASTIC_PASSWORD=\$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | sed -n 's/^New value: //p')
-            sleep 10
-            echo "${LOGS_SEPARATOR}"
-            echo "gpg encryption of password"
-            printf "%s\n" "\${ELASTIC_PASSWORD}" | gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 -o elastic_password.txt.gpg
-            echo "${LOGS_SEPARATOR}"
-            echo "starting cluster"
-            sudo systemctl start elasticsearch
-          else
-            echo "Elasticsearch already installed."  
-          fi
+          # echo "Installing Elasticsearch."
+          # echo "${LOGS_SEPARATOR}"
+          # if ! dpkg -s elasticsearch &>/dev/null; then
+          #   wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
+          #   sudo apt-get install apt-transport-https
+          #   echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/9.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-9.x.list
+          #   sudo apt-get update && sudo apt-get install elasticsearch
+          #   sleep 15
+          #   sudo /bin/systemctl daemon-reload
+          #   sudo /bin/systemctl enable elasticsearch.service
+          #   sleep 30
+          #   echo "${LOGS_SEPARATOR}"
+          #   echo "starting elasticsearch"
+          #   sudo systemctl start elasticsearch.service
+          #   sleep 30
+          #   echo "${LOGS_SEPARATOR}"
+          #   echo "regenerating elasticsearch password"
+          #   ELASTIC_PASSWORD=\$(sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b | sed -n 's/^New value: //p')
+          #   sleep 10
+          #   echo "${LOGS_SEPARATOR}"
+          #   echo "gpg encryption of password"
+          #   printf "%s\n" "\${ELASTIC_PASSWORD}" | gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 -o elastic_password.txt.gpg
+          #   echo "${LOGS_SEPARATOR}"
+          #   echo "starting cluster"
+          #   sudo systemctl start elasticsearch
+          # else
+          #   echo "Elasticsearch already installed."  
+          # fi
 
-          echo "${LOGS_SEPARATOR}"
-          echo "setting elsaticsearch configs"
-          sudo sed -i '/^#\?cluster\.name:/d' /etc/elasticsearch/elasticsearch.yml && echo 'cluster.name: "elk"' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
-          sudo sed -i '/^#\?network\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'network.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
-          sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
-          sudo cp /etc/elasticsearch/certs/http_ca.crt /usr/local/share/ca-certificates/http_ca.crt
-          sudo update-ca-certificates
-          echo "${LOGS_SEPARATOR}"
-          echo "restarting elasticsearch"
-          sudo systemctl restart elasticsearch.service
-          sleep 30
+          # echo "${LOGS_SEPARATOR}"
+          # echo "setting elsaticsearch configs"
+          # sudo sed -i '/^#\?cluster\.name:/d' /etc/elasticsearch/elasticsearch.yml && echo 'cluster.name: "elk"' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
+          # sudo sed -i '/^#\?network\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'network.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
+          # sudo sed -i '/^#\?transport\.host:/d' /etc/elasticsearch/elasticsearch.yml && echo 'transport.host: 0.0.0.0' | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
+          # sudo cp /etc/elasticsearch/certs/http_ca.crt /usr/local/share/ca-certificates/http_ca.crt
+          # sudo update-ca-certificates
+          # echo "${LOGS_SEPARATOR}"
+          # echo "restarting elasticsearch"
+          # sudo systemctl restart elasticsearch.service
+          # sleep 30
 
 
           echo "creating function to check cluster health"
@@ -170,94 +170,103 @@ runs:
           }
 
 
-          echo "Installing Kibana."
-          echo "${LOGS_SEPARATOR}"
-          if ! dpkg -s kibana &>/dev/null; then
-            sudo apt-get update && sudo apt-get install kibana
-            sleep 10
-            sudo /bin/systemctl daemon-reload
-            sudo /bin/systemctl enable kibana.service
-            sleep 10
-            sudo systemctl start kibana.service
+          # echo "Installing Kibana."
+          # echo "${LOGS_SEPARATOR}"
+          # if ! dpkg -s kibana &>/dev/null; then
+          #   sudo apt-get update && sudo apt-get install kibana
+          #   sleep 10
+          #   sudo /bin/systemctl daemon-reload
+          #   sudo /bin/systemctl enable kibana.service
+          #   sleep 10
+          #   sudo systemctl start kibana.service
 
-            echo "${LOGS_SEPARATOR}"
-            echo "checking cluster health to set kibana token"
-            check_cluster_health
+          #   echo "${LOGS_SEPARATOR}"
+          #   echo "checking cluster health to set kibana token"
+          #   check_cluster_health
 
-            echo "${LOGS_SEPARATOR}"
-            echo "setting enrolment token."
-            TOKEN=\$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
-            sleep 20
-            echo "applying token to kibana setup."
-            sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "\$TOKEN"
-            echo "${LOGS_SEPARATOR}"
-            echo "setting kibana reporting key."
-            # Generate a random 32-byte string, base64 encode it
-            KIBANA_KEY=\$(sudo openssl rand -base64 32)
-            echo "settign kibana reporting key"
-            sudo sed -i '/^#\?xpack\.reporting\.encryptionKey:/d' /etc/kibana/kibana.yml && echo "xpack.reporting.encryptionKey: \"\${KIBANA_KEY}\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-            sudo sed -i '/^#\?xpack\.encryptedSavedObjects\.encryptionKey:/d' /etc/kibana/kibana.yml && echo "xpack.encryptedSavedObjects.encryptionKey: \"\${KIBANA_KEY}\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-            echo "${LOGS_SEPARATOR}"
-            echo "gpg encryption of token and key"
-            echo "\${TOKEN}" > kibana_setup_token.txt
-            echo "\${KIBANA_KEY}" > kibana_reporting_key.txt
-            printf "%s\n" "\${TOKEN}" | gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 -o kibana_setup_token.gpg
-            printf "%s\n" "\${KIBANA_KEY}" | gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 -o kibana_reporting_key.gpg
-          else
-            echo "Kibana already installed."
-          fi
+          #   echo "${LOGS_SEPARATOR}"
+          #   echo "setting enrolment token."
+          #   TOKEN=\$(sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana)
+          #   sleep 20
+          #   echo "applying token to kibana setup."
+          #   sudo /usr/share/kibana/bin/kibana-setup --enrollment-token "\$TOKEN"
+          #   echo "${LOGS_SEPARATOR}"
+          #   echo "setting kibana reporting key."
+          #   # Generate a random 32-byte string, base64 encode it
+          #   KIBANA_KEY=\$(sudo openssl rand -base64 32)
+          #   echo "settign kibana reporting key"
+          #   sudo sed -i '/^#\?xpack\.reporting\.encryptionKey:/d' /etc/kibana/kibana.yml && echo "xpack.reporting.encryptionKey: \"\${KIBANA_KEY}\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          #   sudo sed -i '/^#\?xpack\.encryptedSavedObjects\.encryptionKey:/d' /etc/kibana/kibana.yml && echo "xpack.encryptedSavedObjects.encryptionKey: \"\${KIBANA_KEY}\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          #   echo "${LOGS_SEPARATOR}"
+          #   echo "gpg encryption of token and key"
+          #   echo "\${TOKEN}" > kibana_setup_token.txt
+          #   echo "\${KIBANA_KEY}" > kibana_reporting_key.txt
+          #   printf "%s\n" "\${TOKEN}" | gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 -o kibana_setup_token.gpg
+          #   printf "%s\n" "\${KIBANA_KEY}" | gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --symmetric --cipher-algo AES256 -o kibana_reporting_key.gpg
+          # else
+          #   echo "Kibana already installed."
+          # fi
 
-          echo "${LOGS_SEPARATOR}"
-          echo "setting kibana configs"
-          echo "configuring kibana certs" 
-          sudo mkdir -p /etc/kibana/certs
-          sudo cp /etc/elasticsearch/certs/http_ca.crt /etc/kibana/certs/
-          sudo chown root:kibana /etc/kibana/certs/http_ca.crt
-          sudo chmod 640 /etc/kibana/certs/http_ca.crt
-          sudo sed -i '/^#\?server\.host:/d' /etc/kibana/kibana.yml && echo 'server.host: "0.0.0.0"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-          sudo sed -i '/^#\?server\.basePath:/d' /etc/kibana/kibana.yml && echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-          sudo sed -i '/^server\.publicBaseUrl:/d' /etc/kibana/kibana.yml && echo "server.publicBaseUrl: \"http://${ALB_DNS}/elk\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-          sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
-          sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null          
-          sudo sed -i '/^#\?elasticsearch\.ssl\.certificateAuthorities:/d' /etc/kibana/kibana.yml && echo 'elasticsearch.ssl.certificateAuthorities: ["/etc/kibana/certs/http_ca.crt"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null  
-          echo "${LOGS_SEPARATOR}"
-          echo "restarting kibana"
-          sudo systemctl restart kibana.service
+          # echo "${LOGS_SEPARATOR}"
+          # echo "setting kibana configs"
+          # echo "configuring kibana certs" 
+          # sudo mkdir -p /etc/kibana/certs
+          # sudo cp /etc/elasticsearch/certs/http_ca.crt /etc/kibana/certs/
+          # sudo chown root:kibana /etc/kibana/certs/http_ca.crt
+          # sudo chmod 640 /etc/kibana/certs/http_ca.crt
+          # sudo sed -i '/^#\?server\.host:/d' /etc/kibana/kibana.yml && echo 'server.host: "0.0.0.0"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          # sudo sed -i '/^#\?server\.basePath:/d' /etc/kibana/kibana.yml && echo 'server.basePath: "/elk"' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          # sudo sed -i '/^server\.publicBaseUrl:/d' /etc/kibana/kibana.yml && echo "server.publicBaseUrl: \"http://${ALB_DNS}/elk\"" | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          # sudo sed -i '/^#\?server\.rewriteBasePath:/d' /etc/kibana/kibana.yml && echo 'server.rewriteBasePath: true' | sudo tee -a /etc/kibana/kibana.yml > /dev/null
+          # sudo sed -i '/^#\?elasticsearch\.hosts:/d' /etc/kibana/kibana.yml && echo 'elasticsearch.hosts: ["https://localhost:9200"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null          
+          # sudo sed -i '/^#\?elasticsearch\.ssl\.certificateAuthorities:/d' /etc/kibana/kibana.yml && echo 'elasticsearch.ssl.certificateAuthorities: ["/etc/kibana/certs/http_ca.crt"]' | sudo tee -a /etc/kibana/kibana.yml > /dev/null  
+          # echo "${LOGS_SEPARATOR}"
+          # echo "restarting kibana"
+          # sudo systemctl restart kibana.service
 
 
-          echo "${LOGS_SEPARATOR}"
-          echo "Installing Logstash."
-          if ! dpkg -s logstash &>/dev/null; then
-            echo "Installing Logstash..."
-            sudo apt-get update -y && sudo apt-get install logstash
-            echo "${LOGS_SEPARATOR}"
-            echo "Maximind geolocation db for logstash"
-            wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=$MAXIMIND_LICENSE_KEY&suffix=tar.gz" -O GeoLite2-City.tar.gz
-            tar -xvzf GeoLite2-City.tar.gz
-            DB_DIR=\$(find . -type d -name 'GeoLite2-City_*' | head -n 1)
-            sudo mkdir -p /etc/logstash/geoip
-            sudo cp "\$DB_DIR/GeoLite2-City.mmdb" /etc/logstash/geoip/GeoLite2-City.mmdb
-            echo "${LOGS_SEPARATOR}"
-            echo "starting logstash"
-            sudo systemctl enable logstash.service  
-            sudo systemctl start logstash.service
+          # echo "${LOGS_SEPARATOR}"
+          # echo "Installing Logstash."
+          # if ! dpkg -s logstash &>/dev/null; then
+          #   echo "Installing Logstash..."
+          #   sudo apt-get update -y && sudo apt-get install logstash
+          #   echo "${LOGS_SEPARATOR}"
+          #   echo "Maximind geolocation db for logstash"
+          #   wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=$MAXIMIND_LICENSE_KEY&suffix=tar.gz" -O GeoLite2-City.tar.gz
+          #   tar -xvzf GeoLite2-City.tar.gz
+          #   DB_DIR=\$(find . -type d -name 'GeoLite2-City_*' | head -n 1)
+          #   sudo mkdir -p /etc/logstash/geoip
+          #   cp "$DB_DIR/GeoLite2-City.mmdb" /etc/logstash/geoip/GeoLite2-City.mmdb
+          #   echo "${LOGS_SEPARATOR}"
+          #   echo "starting logstash"
+          #   sudo systemctl enable logstash.service  
+          #   sudo systemctl start logstash.service
             
-            # echo "${LOGS_SEPARATOR}"
-            # echo "Creating Logstash keystore if not exists"
-            # sudo mkdir -p /etc/logstash
-            # sudo chown -R logstash:logstash /etc/logstash
-            # sudo chmod 755 /etc/logstash
+          #   # echo "${LOGS_SEPARATOR}"
+          #   # echo "Creating Logstash keystore if not exists"
+          #   # sudo mkdir -p /etc/logstash
+          #   # sudo chown -R logstash:logstash /etc/logstash
+          #   # sudo chmod 755 /etc/logstash
             
-            # #LOGSTASH_KEYSTORE_PASS=\$(openssl rand -base64 32)
-            # LOGSTASH_KEYSTORE_PASS=$(openssl rand -base64 16 | tr -dc '[:alnum:]')  # Ensure ASCII characters only
-            # export LOGSTASH_KEYSTORE_PASS
-            # echo y | sudo --preserve-env=LOGSTASH_KEYSTORE_PASS -u logstash \
-            # /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash create
-          else
-            echo "Logstash already installed."
-          fi
+          #   # #LOGSTASH_KEYSTORE_PASS=\$(openssl rand -base64 32)
+          #   # LOGSTASH_KEYSTORE_PASS=$(openssl rand -base64 16 | tr -dc '[:alnum:]')  # Ensure ASCII characters only
+          #   # export LOGSTASH_KEYSTORE_PASS
+          #   # echo y | sudo --preserve-env=LOGSTASH_KEYSTORE_PASS -u logstash \
+          #   # /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash create
+          # else
+          #   echo "Logstash already installed."
+          # fi
 
-
+          echo "${LOGS_SEPARATOR}"
+          wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=$MAXIMIND_LICENSE_KEY&suffix=tar.gz" -O GeoLite2-City.tar.gz
+          tar -xvzf GeoLite2-City.tar.gz
+          DB_DIR=\$(find . -type d -name 'GeoLite2-City_*' | head -n 1)
+          sudo mkdir -p /etc/logstash/geoip
+          sudo cp "\$DB_DIR/GeoLite2-City.mmdb" /etc/logstash/geoip/GeoLite2-City.mmdb
+          echo "${LOGS_SEPARATOR}"
+          echo "starting logstash"
+          sudo systemctl enable logstash.service  
+          sudo systemctl start logstash.service
 
           echo "${LOGS_SEPARATOR}"
           echo "checking cluster health to set logstash api key"
@@ -297,6 +306,90 @@ runs:
           sudo chown root:logstash /etc/logstash/certs/http_ca.crt
           sudo chmod 640 /etc/logstash/certs/http_ca.crt
           sudo /usr/share/logstash/bin/logstash-plugin install logstash-filter-geoip
+        #   sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH
+        #     input {
+        #       beats {
+        #         port => ${LOGSTASH_PORT}
+        #         host => "0.0.0.0"
+        #       }
+        #     }
+
+        #     filter {
+        #       # Parse the entire log line as JSON
+        #       json {
+        #         source => "message"
+        #         target => "parsed_json"
+        #       }
+
+        #       # Promote fields from parsed_json to root level
+        #       mutate {
+        #         rename => {
+        #           "[parsed_json][asctime]"          => "asctime"
+        #           "[parsed_json][levelname]"        => "levelname"
+        #           "[parsed_json][message]"          => "flask_message"
+        #           "[parsed_json][pathname]"         => "pathname"
+        #           "[parsed_json][lineno]"           => "lineno"
+        #           "[parsed_json][event]"            => "flask_event"
+        #           "[parsed_json][ip]"               => "ip"
+        #           "[parsed_json][resolved_city]"    => "resolved_city"
+        #           "[parsed_json][resolved_country]" => "resolved_country"
+        #           "[parsed_json][user_agent]"       => "user_agent"
+        #           "[parsed_json][path]"             => "flask_path"
+        #         }
+        #         remove_field => ["parsed_json", "message"]
+        #       }
+
+        #       # Extract first valid IP from comma-separated list
+        #       mutate {
+        #         split => { "ip" => "," }
+        #         rename => { "[ip][0]" => "client_ip" }
+        #         strip => ["client_ip"]
+        #         remove_field => ["ip"]
+        #       }
+
+        #       # Add geolocation data based on the client IP
+        #       geoip {
+        #         source => "client_ip"
+        #         target => "geoip"
+        #         database => "/etc/logstash/geoip/GeoLite2-City.mmdb"
+        #         fields => ["city_name", "country_name", "continent_code", "location"]
+                
+        #         # Skip private IPs and invalid addresses
+        #         if [client_ip] =~ /^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|127\.|0\.0\.0\.0/ {
+        #           add_tag => ["_geoip_skipped"]
+        #           remove_field => ["geoip"]
+        #         }
+        #       }
+
+        #       # Ensure proper geo_point format
+        #       mutate {
+        #         convert => {
+        #           "[geoip][location]" => "float"
+        #         }
+        #       }
+
+        #       # Parse the timestamp
+        #       date {
+        #         match => ["asctime", "YYYY-MM-dd HH:mm:ss,SSS"]
+        #         target => "@timestamp"
+        #       }
+        #     }
+
+        #     output {
+        #       elasticsearch {
+        #         hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
+        #         ssl_enabled => true
+        #         ssl_verification_mode => "full"
+        #         ssl_certificate_authorities => "/etc/logstash/certs/http_ca.crt"
+        #         index => "flask-logs-%{+YYYY.MM.dd}"
+        #         api_key => "${LOGSTASH_API_KEY}"
+        #         retry_initial_interval => 3
+        #         retry_max_interval => 60
+        #         retry_on_conflict => 3
+        #       }
+        #     }
+        # LOGSTASH
+        
           sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH
             input {
               beats {
@@ -330,32 +423,25 @@ runs:
                 remove_field => ["parsed_json", "message"]
               }
 
-              # Extract first valid IP from comma-separated list
-              mutate {
-                split => { "ip" => "," }
-                rename => { "[ip][0]" => "client_ip" }
-                strip => ["client_ip"]
-                remove_field => ["ip"]
-              }
-
-              # Add geolocation data based on the client IP
+              # Add geolocation data based on the IP
               geoip {
-                source => "client_ip"
+                source => "ip"
                 target => "geoip"
                 database => "/etc/logstash/geoip/GeoLite2-City.mmdb"
-                fields => ["city_name", "country_name", "continent_code", "location"]
-                
-                # Skip private IPs and invalid addresses
-                if [client_ip] =~ /^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|127\.|0\.0\.0\.0/ {
-                  add_tag => ["_geoip_skipped"]
-                  remove_field => ["geoip"]
+                #add_field => [ "[geoip][coordinates]", "%{[geoip][longitude]}" ]
+                #add_field => [ "[geoip][coordinates]", "%{[geoip][latitude]}"  ]
+              }
+              mutate {
+                add_field => {
+                  "[geoip][location][lat]" => "%{[geoip][latitude]}"
+                  "[geoip][location][lon]" => "%{[geoip][longitude]}"
                 }
               }
 
-              # Ensure proper geo_point format
               mutate {
                 convert => {
-                  "[geoip][location]" => "float"
+                  "[geoip][location][lat]" => "float"
+                  "[geoip][location][lon]" => "float"
                 }
               }
 
@@ -370,15 +456,16 @@ runs:
               elasticsearch {
                 hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
                 ssl_enabled => true
-                ssl_verification_mode => "full"
+                ssl_verification_mode => full
                 ssl_certificate_authorities => "/etc/logstash/certs/http_ca.crt"
                 index => "flask-logs-%{+YYYY.MM.dd}"
-                api_key => "${LOGSTASH_API_KEY}"
+                api_key => "\${LOGSTASH_API_KEY}"
                 retry_initial_interval => 3
                 retry_max_interval => 60
                 retry_on_conflict => 3
               }
             }
+
         LOGSTASH
           echo "restarting logstash"
           sudo systemctl restart logstash
@@ -399,8 +486,13 @@ runs:
                   sleep 10  # Give it time to start
                   # Check if Logstash is now active
                   if systemctl is-active --quiet logstash; then
-                    echo "Logstash restarted successfully on attempt \$ATTEMPT."
-                    return 0
+                    echo "Re-checking journal logs to confirm no errors..."
+                    if ! sudo journalctl -u logstash --since "2 minutes ago" --no-pager | grep -Ei "failed|error|fatal|pipeline aborted|bootstrap checks failed"; then
+                      echo "Logstash restarted successfully on attempt \$ATTEMPT."
+                      return 0
+                    else
+                      echo "Logstash restarted but errors still found in logs."
+                    fi
                   else
                     echo "Logstash still inactive after restart."
                   fi
@@ -412,7 +504,7 @@ runs:
               done
 
               # If all attempts fail, log the failure
-              echo "All \$MAX_RETRIES attempts failed. Logstash remains inactive."
+              echo "All \$MAX_RETRIES attempts failed. Logstash remains unhealthy."
               return 1
             else
               # No recent failures detected
@@ -420,6 +512,43 @@ runs:
             fi
             echo "${LOGS_SEPARATOR}"
           }
+
+
+          # check_logstash_health() {
+          #   MAX_RETRIES=4
+          #   ATTEMPT=1
+          #   echo "${LOGS_SEPARATOR}"
+          #   echo "checking logstash health"
+          #   # Check for recent Logstash failures
+          #   if sudo journalctl -u logstash --since "2 minutes ago" --no-pager | grep -Ei "failed|error|fatal|pipeline aborted|bootstrap checks failed"; then
+          #     echo "Logstash failure detected. Starting recovery attempts..."
+          #     while [ "\$ATTEMPT" -le "\$MAX_RETRIES" ]; do
+          #       echo "Attempt \$ATTEMPT to restart Logstash..."
+          #       if sudo systemctl restart logstash; then
+          #         sleep 10  # Give it time to start
+          #         # Check if Logstash is now active
+          #         if systemctl is-active --quiet logstash; then
+          #           echo "Logstash restarted successfully on attempt \$ATTEMPT."
+          #           return 0
+          #         else
+          #           echo "Logstash still inactive after restart."
+          #         fi
+          #       else
+          #         echo "systemctl restart failed."
+          #       fi
+          #       ATTEMPT=\$((ATTEMPT + 1))
+          #       sleep 10
+          #     done
+
+          #     # If all attempts fail, log the failure
+          #     echo "All \$MAX_RETRIES attempts failed. Logstash remains inactive."
+          #     return 1
+          #   else
+          #     # No recent failures detected
+          #     echo "No recent Logstash failures found."
+          #   fi
+          #   echo "${LOGS_SEPARATOR}"
+          # }
 
           
           #checks

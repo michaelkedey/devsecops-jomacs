@@ -262,7 +262,7 @@ runs:
           tar -xvzf GeoLite2-City.tar.gz
           DB_DIR=\$(find . -type d -name 'GeoLite2-City_*' | head -n 1)
           sudo mkdir -p /etc/logstash/geoip
-          cp "\$DB_DIR/GeoLite2-City.mmdb" /etc/logstash/geoip/GeoLite2-City.mmdb
+          sudo cp "\$DB_DIR/GeoLite2-City.mmdb" /etc/logstash/geoip/GeoLite2-City.mmdb
           echo "${LOGS_SEPARATOR}"
           echo "starting logstash"
           sudo systemctl enable logstash.service  

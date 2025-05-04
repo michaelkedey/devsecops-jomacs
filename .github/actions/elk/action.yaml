@@ -339,25 +339,32 @@ runs:
                 remove_field => ["parsed_json", "message"]
               }
 
-              # Add geolocation data based on the IP
+              # Extract first valid IP from comma-separated list
+              mutate {
+                split => { "ip" => "," }
+                rename => { "[ip][0]" => "client_ip" }
+                strip => ["client_ip"]
+                remove_field => ["ip"]
+              }
+
+              # Add geolocation data based on the client IP
               geoip {
-                source => "ip"
+                source => "client_ip"
                 target => "geoip"
                 database => "/etc/logstash/geoip/GeoLite2-City.mmdb"
-                #add_field => [ "[geoip][coordinates]", "%{[geoip][longitude]}" ]
-                #add_field => [ "[geoip][coordinates]", "%{[geoip][latitude]}"  ]
-              }
-              mutate {
-                add_field => {
-                  "[geoip][location][lat]" => "%{[geoip][latitude]}"
-                  "[geoip][location][lon]" => "%{[geoip][longitude]}"
+                fields => ["city_name", "country_name", "continent_code", "location"]
+                
+                # Skip private IPs and invalid addresses
+                if [client_ip] =~ /^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|127\.|0\.0\.0\.0/ {
+                  add_tag => ["_geoip_skipped"]
+                  remove_field => ["geoip"]
                 }
               }
 
+              # Ensure proper geo_point format
               mutate {
                 convert => {
-                  "[geoip][location][lat]" => "float"
-                  "[geoip][location][lon]" => "float"
+                  "[geoip][location]" => "float"
                 }
               }
 
@@ -372,17 +379,94 @@ runs:
               elasticsearch {
                 hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
                 ssl_enabled => true
-                ssl_verification_mode => full
+                ssl_verification_mode => "full"
                 ssl_certificate_authorities => "/etc/logstash/certs/http_ca.crt"
                 index => "flask-logs-%{+YYYY.MM.dd}"
-                api_key => "\${LOGSTASH_API_KEY}"
+                api_key => "${LOGSTASH_API_KEY}"
                 retry_initial_interval => 3
                 retry_max_interval => 60
                 retry_on_conflict => 3
               }
             }
-
         LOGSTASH
+        
+        #   sudo tee /etc/logstash/conf.d/filebeat-to-es.conf > /dev/null << LOGSTASH
+        #     input {
+        #       beats {
+        #         port => ${LOGSTASH_PORT}
+        #         host => "0.0.0.0"
+        #       }
+        #     }
+
+        #     filter {
+        #       # Parse the entire log line as JSON
+        #       json {
+        #         source => "message"
+        #         target => "parsed_json"
+        #       }
+
+        #       # Promote fields from parsed_json to root level
+        #       mutate {
+        #         rename => {
+        #           "[parsed_json][asctime]"          => "asctime"
+        #           "[parsed_json][levelname]"        => "levelname"
+        #           "[parsed_json][message]"          => "flask_message"
+        #           "[parsed_json][pathname]"         => "pathname"
+        #           "[parsed_json][lineno]"           => "lineno"
+        #           "[parsed_json][event]"            => "flask_event"
+        #           "[parsed_json][ip]"               => "ip"
+        #           "[parsed_json][resolved_city]"    => "resolved_city"
+        #           "[parsed_json][resolved_country]" => "resolved_country"
+        #           "[parsed_json][user_agent]"       => "user_agent"
+        #           "[parsed_json][path]"             => "flask_path"
+        #         }
+        #         remove_field => ["parsed_json", "message"]
+        #       }
+
+        #       # Add geolocation data based on the IP
+        #       geoip {
+        #         source => "ip"
+        #         target => "geoip"
+        #         database => "/etc/logstash/geoip/GeoLite2-City.mmdb"
+        #         #add_field => [ "[geoip][coordinates]", "%{[geoip][longitude]}" ]
+        #         #add_field => [ "[geoip][coordinates]", "%{[geoip][latitude]}"  ]
+        #       }
+        #       mutate {
+        #         add_field => {
+        #           "[geoip][location][lat]" => "%{[geoip][latitude]}"
+        #           "[geoip][location][lon]" => "%{[geoip][longitude]}"
+        #         }
+        #       }
+
+        #       mutate {
+        #         convert => {
+        #           "[geoip][location][lat]" => "float"
+        #           "[geoip][location][lon]" => "float"
+        #         }
+        #       }
+
+        #       # Parse the timestamp
+        #       date {
+        #         match => ["asctime", "YYYY-MM-dd HH:mm:ss,SSS"]
+        #         target => "@timestamp"
+        #       }
+        #     }
+
+        #     output {
+        #       elasticsearch {
+        #         hosts => ["https://localhost:${ELASTICSEARCH_PORT}"]
+        #         ssl_enabled => true
+        #         ssl_verification_mode => full
+        #         ssl_certificate_authorities => "/etc/logstash/certs/http_ca.crt"
+        #         index => "flask-logs-%{+YYYY.MM.dd}"
+        #         api_key => "\${LOGSTASH_API_KEY}"
+        #         retry_initial_interval => 3
+        #         retry_max_interval => 60
+        #         retry_on_conflict => 3
+        #       }
+        #     }
+
+        # LOGSTASH
           echo "restarting logstash"
           sudo systemctl restart logstash
           sleep 60

@@ -1,0 +1,44 @@
+name: Security Incident
+title: "[SECURITY] Unauthorized Access - <Date>"
+description: Use this form to report and track unauthorized access incidents.
+labels: [security, incident]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Detection
+  - type: textarea
+    id: detection
+    attributes:
+      label: What was detected?
+      placeholder: Include alert source (Kibana/Filebeat), unusual IPs, and access patterns.
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Containment
+  - type: textarea
+    id: containment
+    attributes:
+      label: What steps were taken to contain the threat?
+      placeholder: IP blocks, access revokes, secret rotations, etc.
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Eradication & Recovery
+  - type: textarea
+    id: recovery
+    attributes:
+      label: How was the system cleaned and recovered?
+      placeholder: Logs checked, services restored, backups used, etc.
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Lessons Learned
+  - type: textarea
+    id: lessons
+    attributes:
+      label: What did you learn?
+      placeholder: Root cause, improvements, monitoring updates, etc.

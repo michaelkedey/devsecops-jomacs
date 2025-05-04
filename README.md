@@ -117,6 +117,7 @@
 
 - [python](./app/python/)
     * contains the python application code which runs on the private server
+---
 
 
 ## 2. Local Infrastructure-as-Code with Policy Enforcement
@@ -150,6 +151,7 @@
         ```
         terraform destroy --auto-approve
         ```
+---
 
 
 ## 3. Container Scanning & Registry Compliance
@@ -162,6 +164,7 @@
       * [trivy-scan.json](./app/python/scan-reports/trivy-scanreport.json)
     * generating scan reports for auditing
     * failing image deployments to dockerhub if any security issues are found.
+---
 
 
 ## 4. Centralized Logging & Security Monitoring
@@ -189,10 +192,28 @@
     - ![piechart](./images/kibana_agentt.png)
     - ![piechart2](./images/kibananana_piechasrt.png)
     - ![dev tools](./images/kibananaaaaaa.png)
+---
 
 
-## 3. Lightweight Incident Response `Runbook` + Security Dashboard
+## 5. Lightweight Incident Response Runbook + Security Dashboard
 
+### **[SECURITY_RUNBOOK](./SECURITY_RUNBOOK.md):**
+  - This section outlines how the system detects, responds to, and recovers from unauthorized access or suspicious activity. A lightweight runbook is maintained to guide incident handling using logs shipped through the ELK stack (Filebeat → Logstash → Elasticsearch → Kibana), including dashboards for visualization.
+  - **View the full runbook here:** [SECURITY_RUNBOOK.md](./SECURITY_RUNBOOK.md)
+  - Key components include:
+    - **Detection:** Alerts from Kibana dashboards (e.g., access from unknown countries).
+    - **Containment:** Steps like blocking IPs and rotating credentials.
+    - **Eradication & Recovery:** Investigating logs, restoring backups, and reviewing service integrity.
+    - **Lessons Learned:** Post-incident review and rule updates.
+
+### **Security dashboards** 
+  - built in Kibana to provide visibility into:
+    - GeoIP access patterns (country, city)
+    - User-agent/browser info
+    - Frequency of access attempts
+    - Error rate spikes
+![security_dashboard](images/kibananana_piechasrt.png)
+---
 
 
 ### directory structure

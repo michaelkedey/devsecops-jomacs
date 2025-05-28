@@ -1,4 +1,5 @@
 This looks great but you need to use the latest versions of the GitHub workflows you're using.
+Thanks Jay. Implemented auto GitHub Actions Version update via `dependabot`
 
 # devsecops-jomacs
 
@@ -233,6 +234,7 @@ This looks great but you need to use the latest versions of the GitHub workflows
 │   │   ├── __pycache__
 │   │   │   └── app.cpython-310.pyc
 │   │   ├── requirements.txt
+│   │   ├── .safety.yaml
 │   │   ├── scan-reports
 │   │   │   ├── bandit-report.json
 │   │   │   ├── safety-report.json
@@ -244,10 +246,28 @@ This looks great but you need to use the latest versions of the GitHub workflows
 │   │       └── index.html
 │   └── security
 │       └── config
+│           └── .bandit
 ├── cicd
 │   ├── app.yaml
 │   ├── docker.yaml
-│   └── infra.yaml
+│   ├── infra.yaml
+│   └── ochestrator.yaml
+├── .github
+│   ├── actions
+│   │   ├── app
+│   │   │   └── action.yaml
+│   │   └── elk
+│   │       └── action.yaml
+│   ├── dependabot.yml
+│   ├── ISSUE_TEMPLATE
+│   │   └── incedent.yaml
+│   └── workflows
+│       ├── app.yaml
+│       ├── docker.yaml
+│       ├── elk.yaml
+│       ├── infra.yaml
+│       └── ochestrator.yaml
+├── .gitignore
 ├── images
 │   ├── bandit.png
 │   ├── cicddddddddddddddddddddddddddddddd.png
@@ -313,9 +333,9 @@ This looks great but you need to use the latest versions of the GitHub workflows
 │           ├── provider.tf
 │           ├── README.md
 │           └── vars.tf
-├── password.txt
-└── README.md
+├── README.md
+└── SECURITY_RUNBOOK.md
 
-28 directories, 67 files
+34 directories, 80 files
 
 ```

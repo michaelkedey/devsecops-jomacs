@@ -95,7 +95,7 @@ jobs:
     steps:
       # 1. Checkout Code from GitHub
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       # 2. Set up Python environment and install dependencies
       - name: Set up Python 3.x
@@ -142,7 +142,7 @@ jobs:
     steps:
       #1. Checkout code from the repository
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       #2. Set up Docker Buildx (required for multi-platform builds)
       - name: Set up Docker Buildx
@@ -196,7 +196,7 @@ jobs:
     steps:
       # 1. Checkout Code from GitHub
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       # 2. Download tf outputs
       - name: Download Terraform outputs from S3
@@ -261,7 +261,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Download Terraform outputs from S3
         env:

@@ -18,7 +18,7 @@ jobs:
     
     # Checkout code from the repository
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     # Set up Docker Buildx (required for multi-platform builds)
     - name: Set up Docker Buildx

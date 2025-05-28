@@ -18,7 +18,7 @@ jobs:
     steps:
       # 1. Checkout Code from GitHub
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       # 2. Set up Python environment and install dependencies
       - name: Set up Python 3.x
@@ -66,7 +66,7 @@ jobs:
     steps:
       # 1. Checkout Code from GitHub
       - name: Checkout Code
-        uses: actions/checkout@v2    
+        uses: actions/checkout@v4    
       # 6. Set up SSH key and establish SSH Tunnel
       - name: Set up SSH tunnel and deploy code
         env:

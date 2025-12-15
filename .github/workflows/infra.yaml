@@ -57,7 +57,7 @@ jobs:
           echo "Generated outputs.json at: $(pwd)/outputs.json"
 
       - name: Upload Terraform Outputs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: terraform-outputs
           path: infra/aws/outputs.json

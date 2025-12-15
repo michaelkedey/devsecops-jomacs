@@ -75,7 +75,7 @@ jobs:
           echo "lb_dns=$(jq -r '.lb_dns.value' outputs.json)" >> $GITHUB_OUTPUT
 
       - name: Upload Terraform Outputs to Github Aretefacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: terraform-outputs
           path: infra/aws/outputs.json
@@ -122,14 +122,14 @@ jobs:
       # 5. Upload the reports for later review
       - name: Upload Bandit Report
         if: always() # Always upload, even if workflow fails
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: bandit-report
           path: ./app/python/bandit-report.json
 
       - name: Upload Safety Report
         if: always() # Always upload, even if workflow fails
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: safety-report
           path: ./app/python/safety-report.json
@@ -173,7 +173,7 @@ jobs:
       #7. Upload the Trivy scan report as an artifact (so you can download it later)
       - name: Upload Trivy scan report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: trivy-scan-report
           path: trivy-reports/scan-report.json
